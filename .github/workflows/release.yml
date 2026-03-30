@@ -1,62 +1,100 @@
+# 打标签后自动构建 release APK 并发布到 GitHub Releases。
+#
+# 支持的标签示例：v1.2.3、v1.2.3-beta、tv-3.3.9（版本号会去掉前缀 v / tv-）
+#
+# 需在仓库 Settings → Secrets and variables → Actions 中配置：
+#   KEYSTORE_BASE64  —— keystore.jks 的 base64（整文件编码）
+#   KEYSTORE_PASSWORD、KEY_ALIAS、KEY_PASSWORD
+#
+# 当前工程仅一种安装包（系统 WebView），产物命名为：
+#   tv-<版本>-all-sdk21-original.apk
+# 若日后增加 disguised（包名伪装）或 X5（腾讯 TBS WebView）等 productFlavor，可在此 workflow 中追加 assemble 与复制步骤。
+
 name: Release
 
 on:
   push:
     tags:
+      # 例如 v1.4.5、v1.4.5-beta.1
       - "v*.*.*"
+      - "v*.*.*-*"
+      # 例如 tv-3.3.9（与常见发行包名一致）
+      - "tv-*.*.*"
+      - "tv-*.*.*-*"
+
+permissions:
+  contents: write
 
 jobs:
-  build:
+  release:
     runs-on: ubuntu-latest
-
     steps:
-      - name: 代码迁出
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: 构建Java环境
+      - name: Setup JDK
         uses: actions/setup-java@v4
         with:
-          distribution: "zulu"
-          java-version: "17"
+          distribution: temurin
+          java-version: 17
 
-      - name: 解码生成 jks
-        run: echo $KEYSTORE_BASE64 | base64 -di > app/keystore.jks
+      - name: Gradle cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            gradle-${{ runner.os }}-
+
+      - name: Decode keystore
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "::error::未配置 Secret KEYSTORE_BASE64，无法签名 release APK。"
+            exit 1
+          fi
+          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > app/keystore.jks
 
-      - name: 生成apk
-        run: chmod +x ./gradlew && ./gradlew assembleRelease
+      - name: Parse version from tag
+        id: ver
+        run: |
+          TAG="${GITHUB_REF#refs/tags/}"
+          VER="$TAG"
+          VER="${VER#v}"
+          VER="${VER#tv-}"
+          echo "version=$VER" >> "$GITHUB_OUTPUT"
+          echo "Release version: $VER (from tag $TAG)"
 
+      - name: Assemble release
         env:
+          KEYSTORE: ${{ github.workspace }}/app/keystore.jks
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD}}
-
-      - name: 获取版本号
-        id: version
-        run: echo "version=${GITHUB_REF#refs/tags/v}" >>$GITHUB_OUTPUT
-
-      - name: 重命名应用
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
-          for file in app/build/outputs/apk/release/app-*.apk; do
-            if [[ $file =~ app-(.?*)release.apk ]]; then
-              new_file_name="app/build/outputs/apk/release/mytv-android-${BASH_REMATCH[1]}${{ steps.version.outputs.version }}.apk"
-              mv "$file" "$new_file_name"
-            fi
-          done
+          chmod +x ./gradlew
+          ./gradlew assembleRelease --no-daemon -PreleaseVersion="${{ steps.ver.outputs.version }}"
 
-      - name: Prepare artifacts
+      - name: Package artifacts
         run: |
-          mkdir artifacts
-          cp app/build/outputs/apk/release/*.apk artifacts/
+          mkdir -p artifacts
+          shopt -s nullglob
+          apks=(app/build/outputs/apk/release/*.apk)
+          if [ ${#apks[@]} -eq 0 ]; then
+            echo "::error::未找到 release APK"
+            exit 1
+          fi
+          # 当前仅单产物，命名与常见 mytv 发行一致；多 flavor 时可改为循环命名
+          cp "${apks[0]}" "artifacts/tv-${{ steps.ver.outputs.version }}-all-sdk21-original.apk"
+          ls -la artifacts/
 
-      - name: Upload Release
-        uses: ncipollo/release-action@v1
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
         with:
-          name: v${{ steps.version.outputs.version }}
-          token: ${{ secrets.GIT_TOKEN }}
-          omitBodyDuringUpdate: true
-          omitNameDuringUpdate: true
-          omitPrereleaseDuringUpdate: true
-          allowUpdates: true
-          artifacts: artifacts/*
+          files: artifacts/*
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

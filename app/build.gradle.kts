@@ -14,6 +14,9 @@ if (keystorePropertiesFile.exists()) {
     keystoreProperties.load(FileInputStream(keystorePropertiesFile))
 }
 
+/** CI/发布打标签时传入：./gradlew -PreleaseVersion=1.2.3 */
+val releaseVersion = (project.findProperty("releaseVersion") as String?)?.trim().orEmpty()
+
 android {
     namespace = "top.yogiczy.mytv"
     compileSdk = 34
@@ -23,7 +26,7 @@ android {
         minSdk = 21
         targetSdk = 34
         versionCode = 1
-        versionName = "1.4.4"
+        versionName = releaseVersion.ifEmpty { "1.4.4" }
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
