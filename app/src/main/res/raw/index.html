@@ -29,8 +29,8 @@
 <body>
     <div class="min-h-100vh py-46px" id="app">
         <van-config-provider :theme="isDark ? 'dark' : 'light'">
-            <!-- 使用 div + v-show，避免 HTML <template> 与 v-if/v-else-if 链被 tabbar 打断导致 Vue compiler-30 -->
-            <div v-if="settings">
+            <!-- v-if 与 v-else 必须紧邻，中间不能有空白文本节点（部分 WebView 会触发 compiler-30） -->
+            <div v-if="!settings"><van-empty image="network"></van-empty></div><div v-else>
                 <div class="p-20px pt-0">
                     <div class="ml-16px text-32px">{{ settings.appTitle }}</div>
                     <div class="ml-16px text-gray text-14px">{{ settings.appRepo }}</div>
@@ -45,10 +45,7 @@
                     <van-cell-group inset title="直播源">
                         <van-cell title="当前默认直播源">
                             <template #label>
-                                <div class="text-13px">
-                                    <span v-if="settings.iptvSourceUrl && settings.iptvSourceUrl.trim()" class="text-gray" style="word-break:break-all;">{{ settings.iptvSourceUrl }}</span>
-                                    <span v-else style="color:#ed6a0c;">未配置：请填写下方 URL 并点「推送链接」，或从历史中点「设为默认」</span>
-                                </div>
+                                <div class="text-13px text-gray" :style="(settings.iptvSourceUrl && settings.iptvSourceUrl.trim()) ? { wordBreak: 'break-all' } : { color: '#ed6a0c' }">{{ (settings.iptvSourceUrl && settings.iptvSourceUrl.trim()) ? settings.iptvSourceUrl : '未配置：请填写下方 URL 并点「推送链接」，或从历史中点「设为默认」' }}</div>
                             </template>
                         </van-cell>
                         <van-cell v-for="u in (settings.iptvSourceUrlHistory || [])" :key="'iptv-'+u" :title="u" title-class="cell-url-title" is-link @click="settings.iptvSourceUrl = u; confirmSettings()">
@@ -157,21 +154,21 @@
                                 <span class="text-gray text-12px">开启后记录订阅/节目单等 HTTP 请求 URL、请求头与响应码及数据体大小（不记录正文）；关闭后清空已缓存日志。网页底部「日志」查看。</span>
                             </template>
                             <template #right-icon>
-                                <van-switch v-model="settings.debugAppLog" @change="confirmSettings" />
+                                <van-switch v-model="settings.debugAppLog" @change="confirmSettings"></van-switch>
                             </template>
                         </van-cell>
                         <van-cell title="上传apk">
                             <template #extra>
-                                <van-uploader :after-read="uploaderAfterRead" accept=".apk" />
+                                <van-uploader :after-read="uploaderAfterRead" accept=".apk"></van-uploader>
                             </template>
                         </van-cell>
                     </van-cell-group>
                 </div>
 
                 <div v-show="tabActive === 'log'">
-                    <van-empty v-if="!settings.debugAppLog" description="调试日志已关闭，请在「配置」→「调试」中开启" />
-                    <van-empty v-else-if="!settings.logHistory || !settings.logHistory.length" description="暂无日志，触发订阅刷新或节目单加载后可查看" />
-                    <van-list v-else>
+                    <van-empty v-show="!settings.debugAppLog" description="调试日志已关闭，请在「配置」→「调试」中开启"></van-empty>
+                    <van-empty v-show="settings.debugAppLog && (!settings.logHistory || !settings.logHistory.length)" description="暂无日志，触发订阅刷新或节目单加载后可查看"></van-empty>
+                    <van-list v-show="settings.debugAppLog && settings.logHistory && settings.logHistory.length">
                         <van-cell v-for="(item, idx) in settings.logHistory" :key="item.time + '-' + idx" :label="item.cause">
                             <template #title>
                                 <div class="flex flex-col gap-1">
@@ -195,8 +192,6 @@
                     <van-tabbar-item name="log" icon="list-switch">日志</van-tabbar-item>
                 </van-tabbar>
             </div>
-
-            <van-empty image="network" v-else />
         </van-config-provider>
     </div>
 
