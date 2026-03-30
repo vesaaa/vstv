@@ -125,7 +125,6 @@ object HttpServer : Loggable() {
                         httpServerAdvertiseIp = SP.httpServerAdvertiseIp,
                         lanIPv4Candidates = LanIpResolver.lanIPv4Candidates(ctx),
                         settingsPageUrl = serverUrl(),
-                        videoPlayerUserAgent = SP.videoPlayerUserAgent,
                     )
                 )
             )
@@ -192,10 +191,6 @@ object HttpServer : Loggable() {
             }
         }
 
-        if (body.has("videoPlayerUserAgent")) {
-            SP.videoPlayerUserAgent = body.optString("videoPlayerUserAgent", "")
-        }
-
         wrapResponse(response).send("success")
     }
 
@@ -211,7 +206,6 @@ private data class AllSettings(
     val httpServerAdvertiseIp: String = "",
     val lanIPv4Candidates: List<String> = emptyList(),
     val settingsPageUrl: String = "",
-    val videoPlayerUserAgent: String,
 )
 
 @Serializable

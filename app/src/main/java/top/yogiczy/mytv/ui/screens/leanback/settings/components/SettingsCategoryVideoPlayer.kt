@@ -60,14 +60,6 @@ fun LeanbackSettingsCategoryVideoPlayer(
                 },
             )
         }
-
-        item {
-            LeanbackSettingsCategoryListItem(
-                headlineContent = "播放器自定义UA",
-                supportingContent = settingsViewModel.videoPlayerUserAgent,
-                remoteConfig = true,
-            )
-        }
     }
 }
 

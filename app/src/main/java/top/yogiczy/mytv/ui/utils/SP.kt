@@ -7,6 +7,8 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import top.yogiczy.mytv.data.utils.Constants
 import top.yogiczy.mytv.utils.Logger
+import top.yogiczy.mytv.utils.normalizeIptvRequestHeadersInput
+import top.yogiczy.mytv.utils.parseHttpHeaderLines
 
 private val spJson = Json { ignoreUnknownKeys = true }
 
@@ -126,9 +128,6 @@ object SP {
         UPDATE_FORCE_REMIND,
 
         /** ==================== 播放器 ==================== */
-        /** 播放器 自定义ua */
-        VIDEO_PLAYER_USER_AGENT,
-
         /** 播放器 加载超时 */
         VIDEO_PLAYER_LOAD_TIMEOUT,
 
@@ -199,6 +198,17 @@ object SP {
     var iptvSourceRequestHeaders: String
         get() = sp.getString(KEY.IPTV_SOURCE_REQUEST_HEADERS.name, "") ?: ""
         set(value) = sp.edit().putString(KEY.IPTV_SOURCE_REQUEST_HEADERS.name, value).apply()
+
+    /**
+     * 播放频道流时的 HTTP User-Agent：与 [iptvSourceRequestHeaders] 中的 User-Agent 一致；
+     * 未配置 User-Agent 时使用 [Constants.VIDEO_PLAYER_USER_AGENT]。
+     */
+    fun playbackHttpUserAgent(): String {
+        val map = normalizeIptvRequestHeadersInput(iptvSourceRequestHeaders).parseHttpHeaderLines()
+        val ua = map.entries.firstOrNull { it.key.equals("User-Agent", ignoreCase = true) }
+            ?.value?.trim()
+        return ua?.takeIf { it.isNotEmpty() } ?: Constants.VIDEO_PLAYER_USER_AGENT
+    }
 
     /** 扫码/设置页展示的局域网 IP；空表示自动选择 */
     var httpServerAdvertiseIp: String
@@ -331,13 +341,6 @@ object SP {
         set(value) = sp.edit().putBoolean(KEY.UPDATE_FORCE_REMIND.name, value).apply()
 
     /** ==================== 播放器 ==================== */
-    /** 播放器 自定义ua */
-    var videoPlayerUserAgent: String
-        get() = (sp.getString(KEY.VIDEO_PLAYER_USER_AGENT.name, "") ?: "").ifBlank {
-            Constants.VIDEO_PLAYER_USER_AGENT
-        }
-        set(value) = sp.edit().putString(KEY.VIDEO_PLAYER_USER_AGENT.name, value).apply()
-
     /** 播放器 加载超时 */
     var videoPlayerLoadTimeout: Long
         get() = sp.getLong(KEY.VIDEO_PLAYER_LOAD_TIMEOUT.name, Constants.VIDEO_PLAYER_LOAD_TIMEOUT)

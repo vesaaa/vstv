@@ -50,7 +50,7 @@ class LeanbackMedia3VideoPlayer(
     private fun prepare(uri: Uri, contentType: Int? = null) {
         val dataSourceFactory =
             DefaultDataSource.Factory(context, DefaultHttpDataSource.Factory().apply {
-                setUserAgent(SP.videoPlayerUserAgent)
+                setUserAgent(SP.playbackHttpUserAgent())
                 setConnectTimeoutMs(SP.videoPlayerLoadTimeout.toInt())
                 setReadTimeoutMs(SP.videoPlayerLoadTimeout.toInt())
                 setKeepPostFor302Redirects(true)

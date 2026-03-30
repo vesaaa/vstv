@@ -2,6 +2,11 @@
 
 应用展示名 **VsTV**；仓库与构建标识仍为 **vstv**。发行线使用 **`v0.0.x`** 标签与版本号。历史 `v1.x` / `tv*` 等标签已从本 fork 移除（原为上游同步残留）。
 
+## [0.0.19] - 2026-03-30
+
+- 播放流 HTTP User-Agent 与直播源请求头中的 **User-Agent** 统一：`SP.playbackHttpUserAgent()`，`Media3VideoPlayer` 使用；未配置 UA 时仍为内置 `ExoPlayer`
+- 移除独立「播放器自定义 UA」与网页对应项；移除 `SP.videoPlayerUserAgent` 及 `GET/POST` 中的 `videoPlayerUserAgent`
+
 ## [0.0.18] - 2026-03-30
 
 - 订阅请求头：`normalizeIptvRequestHeadersInput`，单行无冒号视为仅填 **User-Agent 取值**；网页与 `IptvRepository` / `HttpServer` / `MainViewModel` 写入一致
