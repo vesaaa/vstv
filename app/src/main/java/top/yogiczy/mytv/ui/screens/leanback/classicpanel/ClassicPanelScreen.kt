@@ -145,8 +145,14 @@ private fun LeanbackClassicPanelScreenContent(
         mutableStateOf(
             if (iptvFavoriteListVisibleProvider())
                 LeanbackClassicPanelScreenFavoriteIptvGroup
-            else
-                iptvGroupList[max(0, iptvGroupList.iptvGroupIdx(currentIptvProvider()))]
+            else when {
+                iptvGroupList.isEmpty() && iptvFavoriteEnableProvider() ->
+                    LeanbackClassicPanelScreenFavoriteIptvGroup
+                else -> {
+                    val gIdx = max(0, iptvGroupList.iptvGroupIdx(currentIptvProvider()))
+                    iptvGroupList.getOrNull(gIdx) ?: IptvGroup()
+                }
+            }
         )
     }
 
