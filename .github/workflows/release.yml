@@ -1,12 +1,13 @@
-# 打标签后自动构建 release APK 并发布到 GitHub Releases。
+# 打标签后构建 4 个 release APK 并发布到 GitHub Releases。
 #
-# 支持的标签示例：v1.2.3、v1.2.3-beta、tv-3.3.9（版本号会去掉前缀 v / tv-）
+# 产物（与常见 mytv 命名对齐，前缀为 vstv）：
+#   vstv-<ver>-all-sdk21-original.apk
+#   vstv-<ver>-all-sdk21-disguised.apk
+#   vstv-<ver>-arm64-v8a-sdk21-original-X5.apk
+#   vstv-<ver>-armeabi-v7a-sdk21-original-X5.apk
 #
-# 可选 Secret（正式签名，推荐上架/长期使用前配置）：
-#   KEYSTORE_BASE64、KEYSTORE_PASSWORD、KEY_ALIAS、KEY_PASSWORD
-# 未配置时：使用 Android Debug 密钥签名，可正常出包试用，勿用于商店上架。
-#
-# 产物命名：vstv-<版本>-all-sdk21-original.apk
+# 标签：v*.*.*、v*.*.*-*、tv-*.*.*、tv-*.*.*-*
+# Secret（可选）：KEYSTORE_BASE64、KEYSTORE_PASSWORD、KEY_ALIAS、KEY_PASSWORD；未配置则用 Debug 签名。
 
 name: Release
 
@@ -25,7 +26,6 @@ jobs:
   release:
     runs-on: ubuntu-latest
     env:
-      # 消除 Actions 对 Node 20 的弃用告警，提前使用 Node 24 运行 JS actions
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     steps:
@@ -59,7 +59,7 @@ jobs:
             echo "已使用仓库 Secret 中的 Release 签名"
           else
             echo "mode=debug" >> "$GITHUB_OUTPUT"
-            echo "::notice::未配置 KEYSTORE_BASE64，将使用 Debug 签名打包（仅供测试）。正式发行请到仓库 Settings → Secrets 配置 KEYSTORE_*。"
+            echo "::notice::未配置 KEYSTORE_BASE64，将使用 Debug 签名打包（仅供测试）。"
 
           fi
 
@@ -73,7 +73,7 @@ jobs:
           echo "version=$VER" >> "$GITHUB_OUTPUT"
           echo "Release version: $VER (from tag $TAG)"
 
-      - name: Assemble release
+      - name: Assemble all release variants
         env:
           KEYSTORE: ${{ github.workspace }}/app/keystore.jks
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
@@ -89,28 +89,37 @@ jobs:
 
       - name: Package artifacts
         run: |
-          mkdir -p artifacts
-          shopt -s nullglob
-          cd app/build/outputs/apk/release
-          apks=(*.apk)
-          if [ ${#apks[@]} -eq 0 ]; then
-            echo "::error::未找到 release APK"
-            exit 1
-          fi
-          echo "=== release 目录内 APK（用于核对体积）==="
-          ls -lh *.apk
-          # 优先使用标准单包名，避免误选其它产物
-          if [ -f app-release.apk ]; then
-            SRC="app-release.apk"
-          else
-            SRC="${apks[0]}"
-            echo "::notice::未找到 app-release.apk，使用: $SRC"
-          fi
-          SO_COUNT=$(unzip -l "$SRC" 2>/dev/null | grep -c '\.so$' || true)
-          echo "选中文件: $SRC，内含 .so 数量: $SO_COUNT"
-          cd "$GITHUB_WORKSPACE"
-          cp "app/build/outputs/apk/release/$SRC" "artifacts/vstv-${{ steps.ver.outputs.version }}-all-sdk21-original.apk"
-          ls -lh artifacts/
+          set -e
+          VER="${{ steps.ver.outputs.version }}"
+          ROOT="$GITHUB_WORKSPACE"
+          mkdir -p "$ROOT/artifacts"
+          echo "=== 构建输出目录 ==="
+          find "$ROOT/app/build/outputs/apk" -name "*.apk" -type f | sort || true
+
+          copy_apk() {
+            local src="$1"
+            local dest="$2"
+            if [[ ! -f "$src" ]]; then
+              echo "::error::缺少 APK: $src"
+              exit 1
+            fi
+            cp "$src" "$dest"
+            SO_COUNT=$(unzip -l "$dest" 2>/dev/null | grep -c '\.so$' || true)
+            echo "$dest — .so 数量: ${SO_COUNT:-0}"
+            ls -lh "$dest"
+          }
+
+          copy_apk "$ROOT/app/build/outputs/apk/original/release/app-original-release.apk" \
+            "$ROOT/artifacts/vstv-${VER}-all-sdk21-original.apk"
+          copy_apk "$ROOT/app/build/outputs/apk/disguised/release/app-disguised-release.apk" \
+            "$ROOT/artifacts/vstv-${VER}-all-sdk21-disguised.apk"
+          copy_apk "$ROOT/app/build/outputs/apk/originalX5Arm64/release/app-originalX5Arm64-release.apk" \
+            "$ROOT/artifacts/vstv-${VER}-arm64-v8a-sdk21-original-X5.apk"
+          copy_apk "$ROOT/app/build/outputs/apk/originalX5Armeabi/release/app-originalX5Armeabi-release.apk" \
+            "$ROOT/artifacts/vstv-${VER}-armeabi-v7a-sdk21-original-X5.apk"
+
+          echo "=== 即将上传的 artifacts ==="
+          ls -lh "$ROOT/artifacts/"
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2

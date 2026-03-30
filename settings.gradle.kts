@@ -16,6 +16,13 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        // 腾讯 X5（TBS）SDK
+        maven {
+            url = uri("https://mirrors.tencent.com/nexus/repository/maven-public/")
+            content {
+                includeGroup("com.tencent.tbs")
+            }
+        }
     }
 }
 
