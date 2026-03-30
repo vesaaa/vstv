@@ -23,9 +23,9 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
+    timeout-minutes: 90
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-      # 避免 R8/多 flavor 同时构建时 2G 堆 OOM
       GRADLE_OPTS: -Xmx4096m -Dfile.encoding=UTF-8
 
     steps:
@@ -37,16 +37,7 @@ jobs:
         with:
           distribution: temurin
           java-version: 17
-
-      - name: Gradle cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-          restore-keys: |
-            gradle-${{ runner.os }}-
+          cache: gradle
 
       - name: Prepare keystore (optional)
         id: sign
@@ -60,7 +51,6 @@ jobs:
           else
             echo "mode=debug" >> "$GITHUB_OUTPUT"
             echo "::notice::未配置 KEYSTORE_BASE64，将使用 Debug 签名打包（仅供测试）。"
-
           fi
 
       - name: Parse version from tag
@@ -71,7 +61,14 @@ jobs:
           VER="${VER#v}"
           VER="${VER#tv-}"
           echo "version=$VER" >> "$GITHUB_OUTPUT"
-          echo "Release version: $VER (from tag $TAG)"
+          VER_NUM="${VER%%-*}"
+          IFS='.' read -r A B C <<< "$VER_NUM"
+          A=${A:-0}
+          B=${B:-0}
+          C=${C:-0}
+          VC=$((10#$A * 1000000 + 10#$B * 1000 + 10#$C))
+          echo "versionCode=$VC" >> "$GITHUB_OUTPUT"
+          echo "Release version=$VER versionCode=$VC (from tag $TAG)"
 
       - name: Assemble all release variants
         env:
@@ -81,13 +78,29 @@ jobs:
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
           chmod +x ./gradlew
-          ARGS=(assembleRelease --no-daemon "-PreleaseVersion=${{ steps.ver.outputs.version }}")
+          VER="${{ steps.ver.outputs.version }}"
+          VC="${{ steps.ver.outputs.versionCode }}"
+          ARGS=(
+            assembleRelease
+            --no-daemon
+            --build-cache
+            "-PreleaseVersion=$VER"
+            "-PversionCode=$VC"
+          )
           if [ "${{ steps.sign.outputs.mode }}" = "debug" ]; then
             ARGS+=(-PciUseDebugSigning=true)
           fi
-          ./gradlew "${ARGS[@]}" --stacktrace
+          for attempt in 1 2 3; do
+            if ./gradlew "${ARGS[@]}" --stacktrace; then
+              exit 0
+            fi
+            echo "::warning::Gradle 失败，第 $attempt 次重试（30s 后）…"
+            sleep 30
+          done
+          exit 1
 
       - name: Package artifacts
+        if: success()
         run: |
           set -euo pipefail
           VER="${{ steps.ver.outputs.version }}"
@@ -96,7 +109,6 @@ jobs:
           echo "=== 构建输出目录（全部 APK）==="
           find "$ROOT/app/build/outputs/apk" -name "*.apk" -type f 2>/dev/null | sort || true
 
-          # AGP 可能生成 app-<flavor>-release.apk 或带版本后缀等；避免硬编码文件名
           pick_apk() {
             local flavor="$1"
             local dir="$ROOT/app/build/outputs/apk/${flavor}/release"
@@ -105,13 +117,13 @@ jobs:
               return 1
             fi
             local apk=""
-            apk=$(find "$dir" -maxdepth 1 -type f \( -name "*.apk" \) ! -name "*-unsigned.apk" ! -name "*unaligned*" | head -n1 || true)
+            apk=$(find "$dir" -type f -name "*.apk" ! -name "*-unsigned.apk" ! -name "*unaligned*" 2>/dev/null | head -n1 || true)
             if [[ -z "$apk" ]]; then
-              apk=$(find "$dir" -maxdepth 1 -type f -name "*.apk" | head -n1 || true)
+              apk=$(find "$dir" -type f -name "*.apk" 2>/dev/null | head -n1 || true)
             fi
             if [[ -z "$apk" || ! -f "$apk" ]]; then
               echo "::error::在 $dir 中未找到 APK（flavor=${flavor}）"
-              ls -la "$dir" || true
+              find "$ROOT/app/build/outputs/apk" -type f 2>/dev/null | head -50 || true
               return 1
             fi
             echo "选用 [$flavor]: $apk" >&2
@@ -139,6 +151,7 @@ jobs:
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
+        if: success()
         with:
           files: artifacts/*
           generate_release_notes: true
