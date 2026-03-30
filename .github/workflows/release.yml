@@ -27,6 +27,8 @@ jobs:
     runs-on: ubuntu-latest
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+      # 避免 R8/多 flavor 同时构建时 2G 堆 OOM
+      GRADLE_OPTS: -Xmx4096m -Dfile.encoding=UTF-8
 
     steps:
       - name: Checkout
@@ -85,38 +87,54 @@ jobs:
           if [ "${{ steps.sign.outputs.mode }}" = "debug" ]; then
             ARGS+=(-PciUseDebugSigning=true)
           fi
-          ./gradlew "${ARGS[@]}"
+          ./gradlew "${ARGS[@]}" --stacktrace
 
       - name: Package artifacts
         run: |
-          set -e
+          set -euo pipefail
           VER="${{ steps.ver.outputs.version }}"
           ROOT="$GITHUB_WORKSPACE"
           mkdir -p "$ROOT/artifacts"
-          echo "=== 构建输出目录 ==="
-          find "$ROOT/app/build/outputs/apk" -name "*.apk" -type f | sort || true
+          echo "=== 构建输出目录（全部 APK）==="
+          find "$ROOT/app/build/outputs/apk" -name "*.apk" -type f 2>/dev/null | sort || true
 
-          copy_apk() {
-            local src="$1"
-            local dest="$2"
-            if [[ ! -f "$src" ]]; then
-              echo "::error::缺少 APK: $src"
-              exit 1
+          # AGP 可能生成 app-<flavor>-release.apk 或带版本后缀等；避免硬编码文件名
+          pick_apk() {
+            local flavor="$1"
+            local dir="$ROOT/app/build/outputs/apk/${flavor}/release"
+            if [[ ! -d "$dir" ]]; then
+              echo "::error::缺少输出目录: $dir"
+              return 1
             fi
+            local apk=""
+            apk=$(find "$dir" -maxdepth 1 -type f \( -name "*.apk" \) ! -name "*-unsigned.apk" ! -name "*unaligned*" | head -n1 || true)
+            if [[ -z "$apk" ]]; then
+              apk=$(find "$dir" -maxdepth 1 -type f -name "*.apk" | head -n1 || true)
+            fi
+            if [[ -z "$apk" || ! -f "$apk" ]]; then
+              echo "::error::在 $dir 中未找到 APK（flavor=${flavor}）"
+              ls -la "$dir" || true
+              return 1
+            fi
+            echo "选用 [$flavor]: $apk" >&2
+            printf '%s\n' "$apk"
+          }
+
+          copy_flavor() {
+            local flavor="$1"
+            local dest="$2"
+            local src
+            src=$(pick_apk "$flavor")
             cp "$src" "$dest"
             SO_COUNT=$(unzip -l "$dest" 2>/dev/null | grep -c '\.so$' || true)
             echo "$dest — .so 数量: ${SO_COUNT:-0}"
             ls -lh "$dest"
           }
 
-          copy_apk "$ROOT/app/build/outputs/apk/original/release/app-original-release.apk" \
-            "$ROOT/artifacts/vstv-${VER}-all-sdk21-original.apk"
-          copy_apk "$ROOT/app/build/outputs/apk/disguised/release/app-disguised-release.apk" \
-            "$ROOT/artifacts/vstv-${VER}-all-sdk21-disguised.apk"
-          copy_apk "$ROOT/app/build/outputs/apk/originalX5Arm64/release/app-originalX5Arm64-release.apk" \
-            "$ROOT/artifacts/vstv-${VER}-arm64-v8a-sdk21-original-X5.apk"
-          copy_apk "$ROOT/app/build/outputs/apk/originalX5Armeabi/release/app-originalX5Armeabi-release.apk" \
-            "$ROOT/artifacts/vstv-${VER}-armeabi-v7a-sdk21-original-X5.apk"
+          copy_flavor "original" "$ROOT/artifacts/vstv-${VER}-all-sdk21-original.apk"
+          copy_flavor "disguised" "$ROOT/artifacts/vstv-${VER}-all-sdk21-disguised.apk"
+          copy_flavor "originalX5Arm64" "$ROOT/artifacts/vstv-${VER}-arm64-v8a-sdk21-original-X5.apk"
+          copy_flavor "originalX5Armeabi" "$ROOT/artifacts/vstv-${VER}-armeabi-v7a-sdk21-original-X5.apk"
 
           echo "=== 即将上传的 artifacts ==="
           ls -lh "$ROOT/artifacts/"
