@@ -8,7 +8,7 @@ import top.yogiczy.mytv.ui.utils.SP
 /**
  * 日志工具类
  *
- * 写入 [history] 仅在 [SP.debugAppLog] 为 true 时生效（默认关闭），供网页「日志」页与调测使用；Logcat 始终输出。
+ * 写入 [history] 仅在 [SP.debugAppLog] 为 true 时生效（默认关闭），供电视端调试开关与调测使用；Logcat 始终输出。
  */
 class Logger private constructor(
     private val tag: String

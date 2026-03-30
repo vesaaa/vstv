@@ -4,7 +4,6 @@ import android.content.Context
 import android.widget.Toast
 import com.koushikdutta.async.AsyncServer
 import com.koushikdutta.async.http.body.JSONObjectBody
-import com.koushikdutta.async.http.body.MultipartFormDataBody
 import com.koushikdutta.async.http.server.AsyncHttpServer
 import com.koushikdutta.async.http.server.AsyncHttpServerRequest
 import com.koushikdutta.async.http.server.AsyncHttpServerResponse
@@ -19,18 +18,11 @@ import top.yogiczy.mytv.R
 import top.yogiczy.mytv.data.repositories.epg.EpgRepository
 import top.yogiczy.mytv.data.repositories.iptv.IptvRepository
 import top.yogiczy.mytv.data.utils.Constants
-import top.yogiczy.mytv.utils.ApkInstaller
 import top.yogiczy.mytv.utils.LanIpResolver
 import top.yogiczy.mytv.utils.Loggable
-import top.yogiczy.mytv.utils.Logger
-import java.io.File
 
 object HttpServer : Loggable() {
     const val SERVER_PORT = 1616
-
-    private val uploadedApkFile = File(AppGlobal.cacheDir, "uploaded_apk.apk").apply {
-        deleteOnExit()
-    }
 
     private var showToast: (String) -> Unit = { }
 
@@ -84,10 +76,6 @@ object HttpServer : Loggable() {
                     handleSetSettings(request, response)
                 }
 
-                server.post("/api/upload/apk") { request, response ->
-                    handleUploadApk(request, response, context)
-                }
-
                 HttpServer.showToast = showToast
                 log.i("服务已启动: 0.0.0.0:${SERVER_PORT}")
             } catch (ex: Exception) {
@@ -133,16 +121,12 @@ object HttpServer : Loggable() {
                         serverPort = SERVER_PORT,
                         iptvSourceUrl = SP.iptvSourceUrl,
                         iptvSourceRequestHeaders = SP.iptvSourceRequestHeaders,
-                        iptvSourceUrlHistory = SP.iptvSourceUrlHistoryList.toList().sorted(),
                         httpServerAdvertiseIp = SP.httpServerAdvertiseIp,
                         lanIPv4Candidates = LanIpResolver.lanIPv4Candidates(ctx),
                         settingsPageUrl = serverUrl(),
                         epgXmlUrl = SP.epgXmlUrl,
                         epgXmlUrlUsesBuiltinDefault = SP.isEpgXmlUrlStoredBlank,
-                        epgXmlUrlHistory = SP.epgXmlUrlHistoryList.toList().sorted(),
                         videoPlayerUserAgent = SP.videoPlayerUserAgent,
-                        debugAppLog = SP.debugAppLog,
-                        logHistory = Logger.history,
                     )
                 )
             )
@@ -172,70 +156,45 @@ object HttpServer : Loggable() {
         response: AsyncHttpServerResponse,
     ) {
         val body = request.getBody<JSONObjectBody>().get()
-        val iptvSourceUrl = body.optString("iptvSourceUrl", "")
-        val iptvSourceRequestHeaders = body.optString("iptvSourceRequestHeaders", "")
-        val httpServerAdvertiseIp = body.optString("httpServerAdvertiseIp", "")
-        val epgXmlUrl = body.optString("epgXmlUrl", "")
-        val videoPlayerUserAgent = body.optString("videoPlayerUserAgent", "")
-        val debugAppLog = body.optBoolean("debugAppLog", false)
 
-        val iptvChanged = SP.iptvSourceUrl != iptvSourceUrl ||
-            SP.iptvSourceRequestHeaders != iptvSourceRequestHeaders
-        if (iptvChanged) {
-            SP.iptvSourceUrl = iptvSourceUrl
-            SP.iptvSourceRequestHeaders = iptvSourceRequestHeaders
-            if (iptvSourceUrl.isNotBlank()) {
-                SP.putIptvSourceHeadersForUrl(iptvSourceUrl, iptvSourceRequestHeaders)
-            }
-            IptvRepository().clearCache()
-        }
-
-        if (SP.httpServerAdvertiseIp != httpServerAdvertiseIp) {
-            SP.httpServerAdvertiseIp = httpServerAdvertiseIp
-        }
-
-        if (SP.epgXmlUrl != epgXmlUrl) {
-            SP.epgXmlUrl = epgXmlUrl
-            EpgRepository().clearCache()
-        }
-
-        SP.videoPlayerUserAgent = videoPlayerUserAgent
-
-        if (SP.debugAppLog != debugAppLog) {
-            SP.debugAppLog = debugAppLog
-        }
-
-        wrapResponse(response).send("success")
-    }
-
-    private fun handleUploadApk(
-        request: AsyncHttpServerRequest,
-        response: AsyncHttpServerResponse,
-        context: Context,
-    ) {
-        val body = request.getBody<MultipartFormDataBody>()
-
-        val os = uploadedApkFile.outputStream()
-        val contentLength = request.headers["Content-Length"]?.toLong() ?: 1
-        var hasReceived = 0L
-
-        body.setMultipartCallback { part ->
-            if (part.isFile) {
-                body.setDataCallback { _, bb ->
-                    val byteArray = bb.allByteArray
-                    hasReceived += byteArray.size
-                    showToast("正在接收文件: ${(hasReceived * 100f / contentLength).toInt()}%")
-                    os.write(byteArray)
+        if (body.has("iptvSourceUrl") || body.has("iptvSourceRequestHeaders")) {
+            val iptvSourceUrl =
+                if (body.has("iptvSourceUrl")) body.optString("iptvSourceUrl", "") else SP.iptvSourceUrl
+            val iptvSourceRequestHeaders =
+                if (body.has("iptvSourceRequestHeaders")) {
+                    body.optString("iptvSourceRequestHeaders", "")
+                } else {
+                    SP.iptvSourceRequestHeaders
                 }
+            val iptvChanged = SP.iptvSourceUrl != iptvSourceUrl ||
+                SP.iptvSourceRequestHeaders != iptvSourceRequestHeaders
+            if (iptvChanged) {
+                SP.iptvSourceUrl = iptvSourceUrl
+                SP.iptvSourceRequestHeaders = iptvSourceRequestHeaders
+                if (iptvSourceUrl.isNotBlank()) {
+                    SP.putIptvSourceHeadersForUrl(iptvSourceUrl, iptvSourceRequestHeaders)
+                }
+                IptvRepository().clearCache()
             }
         }
 
-        body.setEndCallback {
-            showToast("文件接收完成")
-            body.dataEmitter.close()
-            os.flush()
-            os.close()
-            ApkInstaller.installApk(context, uploadedApkFile.path)
+        if (body.has("httpServerAdvertiseIp")) {
+            val httpServerAdvertiseIp = body.optString("httpServerAdvertiseIp", "")
+            if (SP.httpServerAdvertiseIp != httpServerAdvertiseIp) {
+                SP.httpServerAdvertiseIp = httpServerAdvertiseIp
+            }
+        }
+
+        if (body.has("epgXmlUrl")) {
+            val epgXmlUrl = body.optString("epgXmlUrl", "")
+            if (SP.epgXmlUrl != epgXmlUrl) {
+                SP.epgXmlUrl = epgXmlUrl
+                EpgRepository().clearCache()
+            }
+        }
+
+        if (body.has("videoPlayerUserAgent")) {
+            SP.videoPlayerUserAgent = body.optString("videoPlayerUserAgent", "")
         }
 
         wrapResponse(response).send("success")
@@ -250,18 +209,12 @@ private data class AllSettings(
     val serverPort: Int = HttpServer.SERVER_PORT,
     val iptvSourceUrl: String,
     val iptvSourceRequestHeaders: String = "",
-    val iptvSourceUrlHistory: List<String> = emptyList(),
     val httpServerAdvertiseIp: String = "",
     val lanIPv4Candidates: List<String> = emptyList(),
     val settingsPageUrl: String = "",
     val epgXmlUrl: String,
     val epgXmlUrlUsesBuiltinDefault: Boolean = false,
-    val epgXmlUrlHistory: List<String> = emptyList(),
     val videoPlayerUserAgent: String,
-
-    val debugAppLog: Boolean = false,
-
-    val logHistory: List<Logger.HistoryItem>,
 )
 
 @Serializable

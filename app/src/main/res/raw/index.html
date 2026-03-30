@@ -13,16 +13,6 @@
             color: #f5f5f5;
             background-color: black;
         }
-        .cell-url-title {
-            flex: 1;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            max-width: 100%;
-        }
-        .cell-url-title + .van-cell__value {
-            flex: none;
-        }
     </style>
 </head>
 
@@ -36,169 +26,88 @@
                     <div class="ml-16px text-gray text-14px">{{ settings.appRepo }}</div>
                 </div>
 
-                <div v-show="tabActive === 'config'">
-                    <van-cell-group inset title="通知">
-                        <van-cell title="修改之前请先关闭应用的设置界面，否则会有冲突"></van-cell>
-                        <van-cell title="以下设置修改后，需要重启应用生效"></van-cell>
-                    </van-cell-group>
+                <van-cell-group inset title="通知">
+                    <van-cell title="修改前请关闭电视端「设置」页，避免与网页同时写入"></van-cell>
+                    <van-cell title="部分项修改后需重启应用生效"></van-cell>
+                    <van-cell title="本页仅负责推送；订阅源列表、默认项、删除等请在 APP 设置中操作"></van-cell>
+                </van-cell-group>
 
-                    <van-cell-group inset title="直播源">
-                        <van-cell title="当前默认直播源">
-                            <template #label>
-                                <div class="text-13px text-gray" :style="(settings.iptvSourceUrl && settings.iptvSourceUrl.trim()) ? { wordBreak: 'break-all' } : { color: '#ed6a0c' }">{{ (settings.iptvSourceUrl && settings.iptvSourceUrl.trim()) ? settings.iptvSourceUrl : '未配置：请填写下方 URL 并点「推送链接」，或从历史中点「设为默认」' }}</div>
-                            </template>
-                        </van-cell>
-                        <van-cell v-for="u in (settings.iptvSourceUrlHistory || [])" :key="'iptv-'+u" :title="u" title-class="cell-url-title" is-link @click="settings.iptvSourceUrl = u; confirmSettings()">
-                            <template #value><span class="text-12px" style="color:#1989fa;">设为默认</span></template>
-                        </van-cell>
-                        <van-cell title="自定义直播源">
-                            <template #label>
-                                <van-space class="w-full" direction="vertical" size="small">
-                                    <span>支持 m3u 与 tvbox 链接；推送后即为当前默认源</span>
-                                    <van-field class="!p-0" placeholder="粘贴订阅 URL"
-                                        v-model="settings.iptvSourceUrl" type="textarea" rows="2"></van-field>
-                                </van-space>
-                            </template>
-
-                            <template #extra>
-                                <van-button @click="confirmSettings()" size="small"
-                                    type="primary">推送链接
-                                </van-button>
-                            </template>
-                        </van-cell>
-                        <van-cell title="订阅拉取请求头（可选）">
-                            <template #label>
-                                <van-space class="w-full" direction="vertical" size="small">
-                                    <span class="text-gray text-12px">每行一条，格式 Name: Value。部分源需特定 UA 才返回 m3u</span>
-                                    <span class="text-gray text-12px">示例：User-Agent: okHttp/Mod-1.5.0.0</span>
-                                    <van-field class="!p-0" placeholder=""
-                                        v-model="settings.iptvSourceRequestHeaders" type="textarea" rows="3"></van-field>
-                                </van-space>
-                            </template>
-                            <template #extra>
-                                <van-button @click="confirmSettings()" size="small"
-                                    type="primary">推送
-                                </van-button>
-                            </template>
-                        </van-cell>
-                    </van-cell-group>
-
-                    <van-cell-group inset title="本机设置页地址" v-if="settings.lanIPv4Candidates && settings.lanIPv4Candidates.length">
-                        <van-cell title="检测到的局域网 IPv4">
-                            <template #label>
-                                <div>{{ settings.lanIPv4Candidates.join(' · ') }}</div>
-                                <div class="text-gray text-12px mt-8px">若扫码无法打开，可尝试在浏览器输入上方列表中的其它 IP，端口 {{ settings.serverPort || 1616 }}</div>
-                            </template>
-                        </van-cell>
-                        <van-cell title="手动指定展示 IP（可选）">
-                            <template #label>
-                                <van-field placeholder="留空则由电视自动选择" v-model="settings.httpServerAdvertiseIp"></van-field>
-                            </template>
-                            <template #extra>
-                                <van-button @click="confirmSettings()" size="small" type="primary">保存</van-button>
-                            </template>
-                        </van-cell>
-                    </van-cell-group>
-
-                    <van-cell-group inset title="节目单">
-                        <van-cell title="当前生效节目单地址">
-                            <template #label>
-                                <div class="text-13px">
-                                    <div class="text-gray" style="word-break:break-all;">{{ settings.epgXmlUrl }}</div>
-                                    <div v-if="settings.epgXmlUrlUsesBuiltinDefault" class="text-gray text-12px mt-4px">（存储中未填写，上列为应用内置默认地址）</div>
+                <van-cell-group inset title="直播源">
+                    <van-cell title="地址 + User-Agent 一组推送">
+                        <template #label>
+                            <van-space class="w-full" direction="vertical" size="small">
+                                <span>与 APP 一致：<strong>直播源地址</strong>与<strong>请求头（含 User-Agent）</strong>绑定保存；拉取该订阅时会<strong>自动带上</strong>对应请求头。下方两项只需点<strong>一次</strong>「推送」。</span>
+                                <div class="text-13px" style="word-break:break-all;">
+                                    <div class="text-gray text-12px">当前表单（与下方输入同步）</div>
+                                    <div class="mt-4px"><span class="text-gray">地址：</span>{{ summaryIptvUrl(settings) }}</div>
+                                    <div class="mt-4px"><span class="text-gray">User-Agent：</span>{{ summaryUserAgent(settings) }}</div>
                                 </div>
-                            </template>
-                        </van-cell>
-                        <van-cell v-for="u in (settings.epgXmlUrlHistory || [])" :key="'epg-'+u" :title="u" title-class="cell-url-title" is-link @click="settings.epgXmlUrl = u; confirmSettings()">
-                            <template #value><span class="text-12px" style="color:#1989fa;">设为默认</span></template>
-                        </van-cell>
-                        <van-cell title="自定义节目单">
-                            <template #label>
-                                <van-space class="w-full" direction="vertical" size="small">
-                                    <span>支持 xml、xml.gz；推送后写入存储并作为默认；留空推送则恢复内置默认</span>
-                                    <van-field class="!p-0" placeholder="留空推送 = 使用内置默认"
-                                        v-model="settings.epgXmlUrl" type="textarea" rows="2"></van-field>
-                                </van-space>
-                            </template>
+                                <span class="text-gray text-12px">请求头格式与程序内 <code>HttpHeaderLines</code> 一致：每行 <strong>Name: Value</strong>，<strong>第一个英文冒号</strong> <code>:</code> 分隔；<strong>不支持</strong> <code>Key=Value</code>。</span>
+                                <span class="text-gray text-12px">示例：<code>User-Agent: okHttp/Mod-1.5.0.0</code></span>
+                                <span class="text-gray text-12px">直播源地址</span>
+                                <van-field class="!p-0" placeholder="粘贴订阅 URL（可为空）"
+                                    v-model="settings.iptvSourceUrl" type="textarea" rows="2"></van-field>
+                                <span class="text-gray text-12px">请求头（可含多行；常见为一条 User-Agent）</span>
+                                <van-field class="!p-0" placeholder="每行 Name: Value"
+                                    v-model="settings.iptvSourceRequestHeaders" type="textarea" rows="4"></van-field>
+                                <van-button @click="pushIptv()" block type="primary" class="mt-8px">推送（地址与请求头一起生效）</van-button>
+                            </van-space>
+                        </template>
+                    </van-cell>
+                </van-cell-group>
 
-                            <template #extra>
-                                <van-button
-                                    @click="confirmSettings()"
-                                    size="small" type="primary">推送链接
-                                </van-button>
-                            </template>
-                        </van-cell>
-                    </van-cell-group>
+                <van-cell-group inset title="本机设置页地址" v-if="settings.lanIPv4Candidates && settings.lanIPv4Candidates.length">
+                    <van-cell title="检测到的局域网 IPv4">
+                        <template #label>
+                            <div>{{ settings.lanIPv4Candidates.join(' · ') }}</div>
+                            <div class="text-gray text-12px mt-8px">若扫码无法打开，可尝试浏览器输入列表中其它 IP，端口 {{ settings.serverPort || 1616 }}</div>
+                        </template>
+                    </van-cell>
+                    <van-cell title="手动指定展示 IP（可选）">
+                        <template #label>
+                            <van-field placeholder="留空则由电视自动选择" v-model="settings.httpServerAdvertiseIp"></van-field>
+                        </template>
+                        <template #extra>
+                            <van-button @click="saveAdvertiseIp()" size="small" type="primary">保存</van-button>
+                        </template>
+                    </van-cell>
+                </van-cell-group>
 
-                    <van-cell-group inset title="播放器">
-                        <van-cell title="自定义UA">
-                            <template #label>
-                                <van-space class="w-full" direction="vertical" size="small">
-                                    <van-field class="!p-0" placeholder="置为空时，将恢复默认"
-                                            v-model="settings.videoPlayerUserAgent" type="textarea" rows="2"></van-field>
-                                </van-space>
-                            </template>
+                <van-cell-group inset title="节目单">
+                    <van-cell title="推送节目单地址">
+                        <template #label>
+                            <van-space class="w-full" direction="vertical" size="small">
+                                <span>支持 xml、xml.gz；留空并推送则恢复内置默认。列表与默认项在 APP 设置中管理。</span>
+                                <van-field class="!p-0" placeholder="留空推送 = 使用内置默认"
+                                    v-model="settings.epgXmlUrl" type="textarea" rows="2"></van-field>
+                            </van-space>
+                        </template>
+                        <template #extra>
+                            <van-button @click="pushEpg()" size="small" type="primary">推送</van-button>
+                        </template>
+                    </van-cell>
+                </van-cell-group>
 
-                            <template #extra>
-                                <van-button
-                                        @click="confirmSettings()"
-                                        size="small" type="primary">推送
-                                </van-button>
-                            </template>
-                        </van-cell>
-                    </van-cell-group>
-
-                    <van-cell-group inset title="调试">
-                        <van-cell center title="应用调试日志">
-                            <template #label>
-                                <span class="text-gray text-12px">开启后记录订阅/节目单等 HTTP 请求 URL、请求头与响应码及数据体大小（不记录正文）；关闭后清空已缓存日志。网页底部「日志」查看。</span>
-                            </template>
-                            <template #right-icon>
-                                <van-switch v-model="settings.debugAppLog" @change="confirmSettings"></van-switch>
-                            </template>
-                        </van-cell>
-                        <van-cell title="上传apk">
-                            <template #extra>
-                                <van-uploader :after-read="uploaderAfterRead" accept=".apk"></van-uploader>
-                            </template>
-                        </van-cell>
-                    </van-cell-group>
-                </div>
-
-                <div v-show="tabActive === 'log'">
-                    <van-empty v-show="!settings.debugAppLog" description="调试日志已关闭，请在「配置」→「调试」中开启"></van-empty>
-                    <van-empty v-show="settings.debugAppLog && (!settings.logHistory || !settings.logHistory.length)" description="暂无日志，触发订阅刷新或节目单加载后可查看"></van-empty>
-                    <van-list v-show="settings.debugAppLog && settings.logHistory && settings.logHistory.length">
-                        <van-cell v-for="(item, idx) in settings.logHistory" :key="item.time + '-' + idx" :label="item.cause">
-                            <template #title>
-                                <div class="flex flex-col gap-1">
-                                    <div class="flex gap-1 items-center">
-                                        <van-tag plain>{{ item.tag }}</van-tag>
-                                        <van-tag plain>{{ item.level }}</van-tag>
-                                    </div>
-                                    <span style="white-space: pre-wrap; word-break: break-all;">{{ item.message }}</span>
-                                </div>
-                            </template>
-
-                            <template #extra>
-                                <span class="text-gray">{{ dayjs(item.time).format('HH:mm:ss') }}</span>
-                            </template>
-                        </van-cell>
-                    </van-list>
-                </div>
-
-                <van-tabbar v-model="tabActive">
-                    <van-tabbar-item name="config" icon="tv-o">配置</van-tabbar-item>
-                    <van-tabbar-item name="log" icon="list-switch">日志</van-tabbar-item>
-                </van-tabbar>
+                <van-cell-group inset title="播放器">
+                    <van-cell title="自定义 UA">
+                        <template #label>
+                            <van-space class="w-full" direction="vertical" size="small">
+                                <van-field class="!p-0" placeholder="置为空时恢复默认"
+                                    v-model="settings.videoPlayerUserAgent" type="textarea" rows="2"></van-field>
+                            </van-space>
+                        </template>
+                        <template #extra>
+                            <van-button @click="pushPlayerUa()" size="small" type="primary">推送</van-button>
+                        </template>
+                    </van-cell>
+                </van-cell-group>
             </div>
         </van-config-provider>
     </div>
 
     <script>
-        const { createApp, ref, onMounted, watch, nextTick } = Vue
+        const { createApp, ref, onMounted } = Vue
 
-        //const baseUrl = "http://127.0.0.1:1616"
         const baseUrl = ""
 
         async function requestApi(url, config) {
@@ -206,77 +115,121 @@
             if (resp.status !== 200) {
                 throw new Error(`请求失败：${resp.status}`)
             }
-
             return resp
         }
 
-        dayjs.locale('zh-cn')
-        dayjs.extend(dayjs_plugin_relativeTime)
+        function displayEmptyText(v) {
+            const t = (v == null ? '' : String(v)).trim()
+            return t || '（空）'
+        }
+
+        /** 网页表单默认请求头（设备存储为空时填入，便于一键推送） */
+        const DEFAULT_IPTV_REQUEST_HEADERS = 'User-Agent: okHttp/Mod-1.5.0.0'
+
+        /** 与 Kotlin parseHttpHeaderLines：首个 ':' 分隔、忽略 # 注释行 */
+        function userAgentFromHeaderLines(s) {
+            if (!s || !String(s).trim()) return ''
+            for (const raw of String(s).split(/\r?\n/)) {
+                const line = raw.trim()
+                if (!line || line.startsWith('#')) continue
+                const idx = line.indexOf(':')
+                if (idx <= 0) continue
+                const name = line.slice(0, idx).trim().toLowerCase()
+                if (name === 'user-agent') return line.slice(idx + 1).trim()
+            }
+            return ''
+        }
 
         createApp({
             setup() {
                 const isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
-
-                const tabActive = ref('config')
-
                 const settings = ref()
-                async function confirmSettings() {
+
+                function summaryIptvUrl(s) {
+                    return displayEmptyText(s && s.iptvSourceUrl)
+                }
+
+                function summaryUserAgent(s) {
+                    return displayEmptyText(userAgentFromHeaderLines(s && s.iptvSourceRequestHeaders))
+                }
+
+                async function postPartial(partial) {
+                    vant.showLoadingToast({ message: '加载中...', forbidClick: true, duration: 0 })
                     try {
-                        vant.showLoadingToast({ message: '加载中...', forbidClick: true, duration: 0 })
                         await requestApi('/api/settings', {
-                            method: "POST",
-                            body: JSON.stringify({ ...settings.value, logHistory: undefined }),
+                            method: 'POST',
+                            body: JSON.stringify(partial),
                             headers: { 'Content-Type': 'application/json' }
                         })
-                        await refreshSettings()
+                        await refreshSettings(false)
                         vant.closeToast()
+                        vant.showSuccessToast('已保存')
                     } catch (e) {
+                        vant.closeToast()
                         vant.showFailToast('无法修改设置')
                         console.error(e)
-                        refreshSettings()
+                        await refreshSettings(true)
                     }
                 }
-                async function refreshSettings() {
+
+                async function refreshSettings(showLoading) {
+                    if (showLoading === undefined) showLoading = true
                     try {
-                        vant.showLoadingToast({ message: '加载中...', forbidClick: true, duration: 0 })
+                        if (showLoading) {
+                            vant.showLoadingToast({ message: '加载中...', forbidClick: true, duration: 0 })
+                        }
                         settings.value = await (await requestApi('/api/settings')).json()
-                        if (!settings.value.debugAppLog) settings.value.debugAppLog = false
-                        settings.value.iptvSourceUrlHistory = settings.value.iptvSourceUrlHistory || []
-                        settings.value.epgXmlUrlHistory = settings.value.epgXmlUrlHistory || []
-                        const lh = settings.value.logHistory || []
-                        settings.value.logHistory = [...lh].reverse()
-                        vant.closeToast()
+                        // 仅完整加载时预填默认，避免推送成功后 refresh(false) 把用户刚保存的空请求头又填回默认
+                        if (showLoading) {
+                            const h = settings.value.iptvSourceRequestHeaders
+                            if (h == null || String(h).trim() === '') {
+                                settings.value.iptvSourceRequestHeaders = DEFAULT_IPTV_REQUEST_HEADERS
+                            }
+                        }
+                        if (showLoading) vant.closeToast()
                     } catch (e) {
+                        if (showLoading) vant.closeToast()
                         vant.showFailToast('无法获取设置')
                         console.error(e)
                     }
                 }
 
+                function pushIptv() {
+                    if (!settings.value) return
+                    postPartial({
+                        iptvSourceUrl: settings.value.iptvSourceUrl ?? '',
+                        iptvSourceRequestHeaders: settings.value.iptvSourceRequestHeaders ?? '',
+                    })
+                }
+
+                function saveAdvertiseIp() {
+                    if (!settings.value) return
+                    postPartial({ httpServerAdvertiseIp: settings.value.httpServerAdvertiseIp ?? '' })
+                }
+
+                function pushEpg() {
+                    if (!settings.value) return
+                    postPartial({ epgXmlUrl: settings.value.epgXmlUrl ?? '' })
+                }
+
+                function pushPlayerUa() {
+                    if (!settings.value) return
+                    postPartial({ videoPlayerUserAgent: settings.value.videoPlayerUserAgent ?? '' })
+                }
 
                 onMounted(async () => {
                     await refreshSettings()
                 })
 
-                async function uploaderAfterRead(file) {
-                    try {
-                        vant.showLoadingToast({ message: '加载中...', forbidClick: true, duration: 0 })
-                        const formData = new FormData()
-                        formData.append('filename', file.file)
-                        await requestApi('/api/upload/apk', { method: "POST", body: formData })
-                        vant.closeToast()
-                    } catch (e) {
-                        vant.showFailToast('上传apk失败')
-                        console.error(e)
-                    }
-                }
-
                 return {
-                    dayjs,
                     isDark,
-                    tabActive,
                     settings,
-                    confirmSettings,
-                    uploaderAfterRead,
+                    summaryIptvUrl,
+                    summaryUserAgent,
+                    pushIptv,
+                    saveAdvertiseIp,
+                    pushEpg,
+                    pushPlayerUa,
                 }
             }
         })

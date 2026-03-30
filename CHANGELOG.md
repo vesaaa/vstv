@@ -2,6 +2,12 @@
 
 应用展示名 **VsTV**；仓库与构建标识仍为 **vstv**。发行线使用 **`v0.0.x`** 标签与版本号。历史 `v1.x` / `tv*` 等标签已从本 fork 移除（原为上游同步残留）。
 
+## [0.0.17] - 2026-03-30
+
+- 网页：移除调试区、日志 Tab、APK 上传；`GET /api/settings` 不再返回历史列表与调试日志；`POST /api/settings` 仅更新 JSON 中出现的字段，避免网页推送误改电视端调试开关
+- 网页：直播源地址与请求头（含 User-Agent）**一组一次推送**；说明与 `HttpHeaderLines` 一致（`Name: Value`、冒号分隔）；设备未存请求头时表单预填 `User-Agent: okHttp/Mod-1.5.0.0`（仅完整加载时）
+- 服务端：移除 `POST /api/upload/apk`
+
 ## [0.0.16] - 2026-03-30
 
 - 网页配置：进一步修复 Vue **compiler-30**（in-DOM 模板中 `v-if`/`v-else` 之间空白文本节点；日志区改为 `v-show`）；**禁止对自定义组件使用 `/>` 自闭合**（HTML 解析下易未闭合，把后续 DOM 吞进错误节点，部分 WebView 必现）
