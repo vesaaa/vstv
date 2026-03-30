@@ -106,7 +106,7 @@
 ## 说明
 
 - 目标环境：Android 5+，电视 / 盒子 / 平板 / 手机（含 Leanback）
-- 播放能力依赖设备解码与订阅源质量；已集成 Media3（HLS / DASH / SS / RTSP 等）及可选 FFmpeg 扩展
+- 播放能力依赖设备 **MediaCodec** 硬解与订阅源质量；已集成 Media3（HLS / DASH / SS / RTSP 等）。FFmpeg 扩展需自行按 [androidx/media 文档](https://github.com/androidx/media/tree/release/libraries/decoder_ffmpeg) 编译 AAR，官方 Maven 无预构建产物。
 - 自动更新检查指向 **本仓库** 的最新 Release
 
 ## 功能

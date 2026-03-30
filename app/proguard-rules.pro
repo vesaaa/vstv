@@ -20,10 +20,6 @@
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
 
-# Media3 FFmpeg 扩展（R8 勿裁剪 JNI 相关入口）
--keep class androidx.media3.decoder.ffmpeg.** { *; }
--dontwarn androidx.media3.decoder.ffmpeg.**
-
 # 腾讯 X5（TBS）
 -keep class com.tencent.smtt.** { *; }
 -dontwarn com.tencent.smtt.**
