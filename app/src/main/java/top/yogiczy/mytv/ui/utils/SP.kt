@@ -279,6 +279,10 @@ object SP {
         get() = (sp.getString(KEY.EPG_XML_URL.name, "") ?: "").ifBlank { Constants.EPG_XML_URL }
         set(value) = sp.edit().putString(KEY.EPG_XML_URL.name, value).apply()
 
+    /** 存储中节目单 URL 是否为空（生效地址来自内置默认，用于网页/文案提示） */
+    val isEpgXmlUrlStoredBlank: Boolean
+        get() = (sp.getString(KEY.EPG_XML_URL.name, "") ?: "").isBlank()
+
     /** 节目单刷新时间阈值（小时） */
     var epgRefreshTimeThreshold: Int
         get() = sp.getInt(KEY.EPG_REFRESH_TIME_THRESHOLD.name, Constants.EPG_REFRESH_TIME_THRESHOLD)
@@ -297,7 +301,7 @@ object SP {
 
     /** 使用经典选台界面 */
     var uiUseClassicPanelScreen: Boolean
-        get() = sp.getBoolean(KEY.UI_USE_CLASSIC_PANEL_SCREEN.name, false)
+        get() = sp.getBoolean(KEY.UI_USE_CLASSIC_PANEL_SCREEN.name, true)
         set(value) = sp.edit().putBoolean(KEY.UI_USE_CLASSIC_PANEL_SCREEN.name, value).apply()
 
     /** 界面密度缩放比例 */

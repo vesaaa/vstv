@@ -37,9 +37,11 @@ import top.yogiczy.mytv.ui.rememberLeanbackChildPadding
 import top.yogiczy.mytv.ui.screens.leanback.components.LeanbackVisible
 import top.yogiczy.mytv.ui.screens.leanback.main.components.LeanbackBackPressHandledArea
 import top.yogiczy.mytv.ui.screens.leanback.main.components.LeanbackMainContent
+import top.yogiczy.mytv.ui.screens.leanback.panel.LeanbackPanelDateTimeScreen
 import top.yogiczy.mytv.ui.screens.leanback.settings.LeanbackSettingsScreen
 import top.yogiczy.mytv.ui.theme.LeanbackTheme
 import top.yogiczy.mytv.ui.utils.HttpServer
+import top.yogiczy.mytv.ui.utils.SP
 import top.yogiczy.mytv.ui.utils.handleLeanbackKeyEvents
 
 @Composable
@@ -73,13 +75,22 @@ private fun LeanbackMainScreenLoading(messageProvider: () -> String?) {
     val childPadding = rememberLeanbackChildPadding()
 
     Box(modifier = Modifier.fillMaxSize()) {
+        LeanbackPanelDateTimeScreen(showModeProvider = { SP.UiTimeShowMode.ALWAYS })
+        Text(
+            text = "正在加载频道与节目单…",
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.92f),
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(top = childPadding.top + 12.dp, start = 24.dp, end = 24.dp),
+        )
         Column(
             modifier = Modifier
                 .align(Alignment.BottomStart)
                 .padding(start = childPadding.start, bottom = childPadding.bottom),
         ) {
             Text(
-                text = "加载中...",
+                text = "加载中",
                 style = MaterialTheme.typography.headlineSmall,
                 color = MaterialTheme.colorScheme.onBackground,
             )
@@ -113,6 +124,15 @@ private fun LeanbackMainScreenError(
     val childPadding = rememberLeanbackChildPadding()
 
     Box(modifier = Modifier.fillMaxSize()) {
+        LeanbackPanelDateTimeScreen(showModeProvider = { SP.UiTimeShowMode.ALWAYS })
+        Text(
+            text = "加载未完成，可扫码配置直播源后重试",
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.88f),
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(top = childPadding.top + 12.dp, start = 24.dp, end = 24.dp),
+        )
         Column(
             modifier = Modifier
                 .align(Alignment.BottomStart)

@@ -26,7 +26,7 @@ import top.yogiczy.mytv.utils.Logger
 import java.io.File
 
 object HttpServer : Loggable() {
-    private const val SERVER_PORT = 10481
+    const val SERVER_PORT = 1616
 
     private val uploadedApkFile = File(AppGlobal.cacheDir, "uploaded_apk.apk").apply {
         deleteOnExit()
@@ -130,12 +130,16 @@ object HttpServer : Loggable() {
                     AllSettings(
                         appTitle = Constants.APP_TITLE,
                         appRepo = Constants.APP_REPO,
+                        serverPort = SERVER_PORT,
                         iptvSourceUrl = SP.iptvSourceUrl,
                         iptvSourceRequestHeaders = SP.iptvSourceRequestHeaders,
+                        iptvSourceUrlHistory = SP.iptvSourceUrlHistoryList.toList().sorted(),
                         httpServerAdvertiseIp = SP.httpServerAdvertiseIp,
                         lanIPv4Candidates = LanIpResolver.lanIPv4Candidates(ctx),
                         settingsPageUrl = serverUrl(),
                         epgXmlUrl = SP.epgXmlUrl,
+                        epgXmlUrlUsesBuiltinDefault = SP.isEpgXmlUrlStoredBlank,
+                        epgXmlUrlHistory = SP.epgXmlUrlHistoryList.toList().sorted(),
                         videoPlayerUserAgent = SP.videoPlayerUserAgent,
                         debugAppLog = SP.debugAppLog,
                         logHistory = Logger.history,
@@ -243,12 +247,16 @@ object HttpServer : Loggable() {
 private data class AllSettings(
     val appTitle: String,
     val appRepo: String,
+    val serverPort: Int = SERVER_PORT,
     val iptvSourceUrl: String,
     val iptvSourceRequestHeaders: String = "",
+    val iptvSourceUrlHistory: List<String> = emptyList(),
     val httpServerAdvertiseIp: String = "",
     val lanIPv4Candidates: List<String> = emptyList(),
     val settingsPageUrl: String = "",
     val epgXmlUrl: String,
+    val epgXmlUrlUsesBuiltinDefault: Boolean = false,
+    val epgXmlUrlHistory: List<String> = emptyList(),
     val videoPlayerUserAgent: String,
 
     val debugAppLog: Boolean = false,
