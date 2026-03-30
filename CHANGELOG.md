@@ -2,6 +2,10 @@
 
 应用展示名 **VsTV**；仓库与构建标识仍为 **vstv**。发行线使用 **`v0.0.x`** 标签与版本号。历史 `v1.x` / `tv*` 等标签已从本 fork 移除（原为上游同步残留）。
 
+## [0.0.15] - 2026-03-30
+
+- 修复：`AllSettings` 默认参数中误用裸 `SERVER_PORT` 导致 Release 编译失败，改为 `HttpServer.SERVER_PORT`
+
 ## [0.0.14] - 2026-03-30
 
 - 设置页 HTTP 端口改为 **1616**（`HttpServer`、README、网页文案）
