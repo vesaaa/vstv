@@ -77,21 +77,29 @@ class LeanbackMainContentState(
                 }
             }
 
-            // 记忆可播放的域名
-            SP.iptvPlayableHostList += getUrlHost(_currentIptv.urlList[_currentIptvUrlIdx])
+            if (_currentIptv.urlList.isNotEmpty()) {
+                val idx = _currentIptvUrlIdx.coerceIn(_currentIptv.urlList.indices)
+                SP.iptvPlayableHostList += getUrlHost(_currentIptv.urlList[idx])
+            }
         }
 
         videoPlayerState.onError {
-            if (_currentIptvUrlIdx < _currentIptv.urlList.size - 1) {
+            if (_currentIptv.urlList.isNotEmpty() &&
+                _currentIptvUrlIdx < _currentIptv.urlList.size - 1
+            ) {
                 changeCurrentIptv(_currentIptv, _currentIptvUrlIdx + 1)
             }
 
-            // 从记忆中删除不可播放的域名
-            SP.iptvPlayableHostList -= getUrlHost(_currentIptv.urlList[_currentIptvUrlIdx])
+            if (_currentIptv.urlList.isNotEmpty()) {
+                val idx = _currentIptvUrlIdx.coerceIn(_currentIptv.urlList.indices)
+                SP.iptvPlayableHostList -= getUrlHost(_currentIptv.urlList[idx])
+            }
         }
 
         videoPlayerState.onCutoff {
-            changeCurrentIptv(_currentIptv, _currentIptvUrlIdx)
+            if (_currentIptv.urlList.isNotEmpty()) {
+                changeCurrentIptv(_currentIptv, _currentIptvUrlIdx)
+            }
         }
     }
 
@@ -114,8 +122,20 @@ class LeanbackMainContentState(
 
         if (iptv == _currentIptv && urlIdx == null) return
 
-        if (iptv == _currentIptv && urlIdx != _currentIptvUrlIdx) {
-            SP.iptvPlayableHostList -= getUrlHost(_currentIptv.urlList[_currentIptvUrlIdx])
+        if (iptv == _currentIptv && urlIdx != null && urlIdx != _currentIptvUrlIdx &&
+            _currentIptv.urlList.isNotEmpty()
+        ) {
+            val oldIdx = _currentIptvUrlIdx.coerceIn(_currentIptv.urlList.indices)
+            SP.iptvPlayableHostList -= getUrlHost(_currentIptv.urlList[oldIdx])
+        }
+
+        if (iptv.urlList.isEmpty()) {
+            _isTempPanelVisible = false
+            _currentIptv = iptv
+            _currentIptvUrlIdx = 0
+            val idx = iptvGroupList.iptvIdx(_currentIptv)
+            SP.iptvLastIptvIdx = if (idx >= 0) idx else 0
+            return
         }
 
         _isTempPanelVisible = true
