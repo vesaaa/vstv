@@ -306,7 +306,9 @@ fun LeanbackMainContent(
         }
 
         LeanbackVisible({ mainContentState.isSettingsVisible }) {
-            LeanbackSettingsScreen()
+            LeanbackSettingsScreen(
+                onRequestClose = { mainContentState.isSettingsVisible = false },
+            )
         }
 
         LeanbackVisible({ settingsViewModel.debugShowFps }) {

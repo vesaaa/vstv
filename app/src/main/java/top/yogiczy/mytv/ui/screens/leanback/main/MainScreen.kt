@@ -233,7 +233,7 @@ private fun LeanbackMainSettingsHandle(
             content()
 
             LeanbackVisible({ showSettings }) {
-                LeanbackSettingsScreen()
+                LeanbackSettingsScreen(onRequestClose = { showSettings = false })
             }
         }
     }

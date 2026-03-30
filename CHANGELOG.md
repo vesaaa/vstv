@@ -2,6 +2,11 @@
 
 应用展示名 **VsTV**；仓库与构建标识仍为 **vstv**。发行线使用 **`v0.0.x`** 标签与版本号。历史 `v1.x` / `tv*` 等标签已从本 fork 移除（原为上游同步残留）。
 
+## [0.0.20] - 2026-03-30
+
+- 设置页左侧菜单改为 **2 列方块网格**（图标 + 标题）；首格 **「返回直播」**，确认即关闭设置回到全屏播放
+- `LeanbackSettingsScreen(onRequestClose)`；`LeanbackSettingsMenuItem` 区分返回直播与各设置分类；右侧在「返回直播」时显示操作说明
+
 ## [0.0.19] - 2026-03-30
 
 - 播放流 HTTP User-Agent 与直播源请求头中的 **User-Agent** 统一：`SP.playbackHttpUserAgent()`，`Media3VideoPlayer` 使用；未配置 UA 时仍为内置 `ExoPlayer`
