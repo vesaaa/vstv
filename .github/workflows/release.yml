@@ -1,8 +1,8 @@
 # 打标签后构建 2 个 release APK 并发布到 GitHub Releases。
 #
-# 产物（与常见 mytv 命名对齐，前缀为 vstv）：
-#   vstv-<ver>-all-sdk21-original.apk
-#   vstv-<ver>-all-sdk21-disguised.apk
+# 产物（前缀 vstv）：
+#   vstv-<ver>-all-sdk21.apk          — 常规版（包名 top.yogiczy.mytv）
+#   vstv-<ver>-all-sdk21-HarmonyOS.apk — 鸿蒙/兼容向（包名 com.chinablue.tv，桌面名 Z视介）
 #
 # 标签：v*.*.*、v*.*.*-*（本 fork 仅使用 v0.0.x 发行线）
 # Secret（可选）：KEYSTORE_BASE64、KEYSTORE_PASSWORD、KEY_ALIAS、KEY_PASSWORD；未配置则用 Debug 签名。
@@ -139,8 +139,8 @@ jobs:
             ls -lh "$dest"
           }
 
-          copy_flavor "original" "$ROOT/artifacts/vstv-${VER}-all-sdk21-original.apk"
-          copy_flavor "disguised" "$ROOT/artifacts/vstv-${VER}-all-sdk21-disguised.apk"
+          copy_flavor "original" "$ROOT/artifacts/vstv-${VER}-all-sdk21.apk"
+          copy_flavor "disguised" "$ROOT/artifacts/vstv-${VER}-all-sdk21-HarmonyOS.apk"
 
           echo "=== 即将上传的 artifacts ==="
           ls -lh "$ROOT/artifacts/"

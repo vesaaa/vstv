@@ -15,9 +15,12 @@ class GithubGitReleaseParser : GitReleaseParser {
     override suspend fun parse(data: String): GitRelease {
         val json = Json.parseToJsonElement(data).jsonObject
 
+        val assets = json.getValue("assets").jsonArray
+        val url = assets.pickVstvDefaultApkBrowserUrl()
+            ?: assets[0].jsonObject["browser_download_url"]!!.jsonPrimitive.content
         return GitRelease(
             version = json.getValue("tag_name").jsonPrimitive.content.substring(1),
-            downloadUrl = Constants.GITHUB_PROXY + json.getValue("assets").jsonArray[0].jsonObject["browser_download_url"]!!.jsonPrimitive.content,
+            downloadUrl = Constants.GITHUB_PROXY + url,
             description = json.getValue("body").jsonPrimitive.content
         )
     }

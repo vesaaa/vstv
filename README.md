@@ -102,6 +102,15 @@
 
 在 [Releases](https://github.com/vesaaa/vstv/releases) 下载预编译 APK，或本地自行编译。
 
+每个版本会提供 **两个** APK，请按设备与需求选择（文件名中的 `<ver>` 为版本号，如 `0.0.13`）：
+
+| 文件 | 适用场景 |
+|------|----------|
+| **`vstv-<ver>-all-sdk21.apk`** | **默认下载**：常规 VsTV，包名 `top.yogiczy.mytv`，桌面显示 **VsTV**。适用于大多数 Android 电视 / 盒子 / 手机。 |
+| **`vstv-<ver>-all-sdk21-HarmonyOS.apk`** | **华为智慧屏 / 鸿蒙生态**等需要「非 mytv 系包名」侧载时使用：包名 `com.chinablue.tv`，桌面名 **Z视介**，与常规版 **互不相同包**，数据与更新通道彼此独立。 |
+
+应用内 **检查更新** 会拉取与 **常规包** 对应的 APK（`…-all-sdk21.apk`）；若你安装的是 HarmonyOS 变体，请自行在 Release 页下载带 **HarmonyOS** 后缀的安装包升级。
+
 ## 说明
 
 - 目标环境：Android 5+，电视 / 盒子 / 平板 / 手机（含 Leanback）

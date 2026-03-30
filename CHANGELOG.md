@@ -2,9 +2,14 @@
 
 应用展示名 **VsTV**；仓库与构建标识仍为 **vstv**。发行线使用 **`v0.0.x`** 标签与版本号。历史 `v1.x` / `tv*` 等标签已从本 fork 移除（原为上游同步残留）。
 
+## [0.0.13] - 2026-03-30
+
+- 发行：Release APK 重命名——常规版 **`vstv-<ver>-all-sdk21.apk`**（去掉 `-original`）；鸿蒙向变体 **`vstv-<ver>-all-sdk21-HarmonyOS.apk`**（原 `-disguised` 文件名）；README 已说明选型
+- 更新：GitHub / Gitee Release 解析在 **多 APK** 时优先选取常规包，避免自动更新误下 HarmonyOS 变体
+
 ## [0.0.12] - 2026-03-30
 
-- 构建：移除腾讯 **X5（TBS）** 相关 productFlavor（`originalX5Arm64` / `originalX5Armeabi`）、`tbssdk` 依赖、`src/x5`、`USE_X5` / `BuildConfig` 字段、ProGuard 保留规则、`settings` 中腾讯 Maven 镜像；Release 工作流仅上传 **original** 与 **disguised** 两个 APK
+- 构建：移除腾讯 **X5（TBS）** 相关 productFlavor（`originalX5Arm64` / `originalX5Armeabi`）、`tbssdk` 依赖、`src/x5`、`USE_X5` / `BuildConfig` 字段、ProGuard 保留规则、`settings` 中腾讯 Maven 镜像；Release 工作流仅上传 **original** 与 **disguised** 两个 APK（Gradle flavor 名未改，仅 CI 产物名于 0.0.13 调整）
 
 ## [0.0.11] - 2026-03-30
 
