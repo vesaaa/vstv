@@ -1,14 +1,19 @@
 <div align="center">
-    <h1>我的电视</h1>
+    <h1>vstv</h1>
 <div align="center">
 
-![GitHub repo size](https://img.shields.io/github/repo-size/yaoxieyoulei/mytv-android)
-![GitHub Repo stars](https://img.shields.io/github/stars/yaoxieyoulei/mytv-android)
-![GitHub all releases](https://img.shields.io/github/downloads/yaoxieyoulei/mytv-android/total)
+![GitHub repo size](https://img.shields.io/github/repo-size/vesaaa/vstv)
+![GitHub Repo stars](https://img.shields.io/github/stars/vesaaa/vstv)
+![GitHub all releases](https://img.shields.io/github/downloads/vesaaa/vstv/total)
 
 </div>
-    <p>使用Android原生开发的视频播放软件</p>
+    <p>基于 Android 原生（Kotlin / Compose / Media3）的电视直播客户端 fork，默认不内置订阅源，需自行配置。</p>
 </div>
+
+## 与上游
+
+- 上游：<https://github.com/sakana164/mytv-android>（及更早 lineage）
+- 本仓库：<https://github.com/vesaaa/vstv>，**发行标签仅使用 `v0.0.x`**
 
 ## 使用
 
@@ -32,12 +37,12 @@
 - 访问以下网址：`http://<设备IP>:10481`
 - 打开应用设置界面，移到最后一项
 - 支持自定义订阅源、自定义节目单、缓存时间等等
-- 须知：网页中引用了`jsdelivr`的cdn，请确保能够正常访问
+- 须知：网页中引用了 `jsdelivr` 的 CDN，请确保能够正常访问
 
 ### 自定义订阅源
 
 - 设置入口：自定义设置网址
-- 格式支持：m3u格式、tvbox格式
+- 格式支持：m3u 格式、tvbox 格式
 
 ### 多订阅源
 
@@ -79,14 +84,13 @@
 
 ## 下载
 
-可以通过右侧release进行下载或拉取代码到本地进行编译
+在 [Releases](https://github.com/vesaaa/vstv/releases) 下载预编译 APK，或本地自行编译。
 
 ## 说明
 
-- 主要解决 [my_tv](https://github.com/yaoxieyoulei/my_tv)（flutter）在低端设备上播放（4k）视频卡顿掉帧
-- 仅支持Android5及以上
-- 网络环境必须支持IPV6（默认订阅源）
-- 只在自家电视上测过，其他电视稳定性未知
+- 目标环境：Android 5+，电视 / 盒子 / 平板 / 手机（含 Leanback）
+- 播放能力依赖设备解码与订阅源质量；已集成 Media3（HLS / DASH / SS / RTSP 等）及可选 FFmpeg 扩展
+- 自动更新检查指向 **本仓库** 的最新 Release
 
 ## 功能
 
@@ -105,24 +109,16 @@
 
 ## 更新日志
 
-[更新日志](./CHANGELOG.md)
+[CHANGELOG.md](./CHANGELOG.md)
 
 ## 声明
 
-此项目（我的电视）是个人为了兴趣而开发, 仅用于学习和测试。 所用API皆从官方网站收集, 不提供任何破解内容。
-
-## 技术交流
-
-Telegram: https://t.me/mytv_android
-
-## 赞赏
-
-<img src="./screenshots/mm_reward_qrcode.png" width="48%"/>
+本项目仅供学习与交流。所用接口与数据来自公开网络与用户自行配置的订阅，不提供任何破解内容。
 
 ## 致谢
 
+- [mytv-android](https://github.com/sakana164/mytv-android) 及上游贡献者
 - [my-tv](https://github.com/lizongying/my-tv)
 - [参考设计稿](https://github.com/lizongying/my-tv/issues/594)
 - [IPV6直播源](https://github.com/zhumeng11/IPTV)
 - [live](https://github.com/fanmingming/live)
-- 等等

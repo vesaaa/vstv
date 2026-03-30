@@ -12,7 +12,7 @@ object Constants {
     /**
      * 应用 代码仓库
      */
-    const val APP_REPO = "https://github.com/yaoxieyoulei/mytv-android"
+    const val APP_REPO = "https://github.com/vesaaa/vstv"
 
     /**
      * IPTV 源地址占位（不再内置可播地址；留空由用户扫码/网页配置）
@@ -38,7 +38,7 @@ object Constants {
      * Git最新版本信息
      */
     const val GIT_RELEASE_LATEST_URL =
-        "https://api.github.com/repos/yaoxieyoulei/mytv-android/releases/latest"
+        "https://api.github.com/repos/vesaaa/vstv/releases/latest"
 
     /**
      * GitHub加速代理地址

@@ -26,6 +26,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "My TV"
+rootProject.name = "vstv"
 include(":app")
  

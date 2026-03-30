@@ -3,7 +3,6 @@ name: bug-反馈
 about: 描述你所遇到的bug
 title: 问题反馈
 labels: bug
-assignees: yaoxieyoulei
 
 ---
 

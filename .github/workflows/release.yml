@@ -6,7 +6,7 @@
 #   vstv-<ver>-arm64-v8a-sdk21-original-X5.apk
 #   vstv-<ver>-armeabi-v7a-sdk21-original-X5.apk
 #
-# 标签：v*.*.*、v*.*.*-*、tv-*.*.*、tv-*.*.*-*
+# 标签：v*.*.*、v*.*.*-*（本 fork 仅使用 v0.0.x 发行线）
 # Secret（可选）：KEYSTORE_BASE64、KEYSTORE_PASSWORD、KEY_ALIAS、KEY_PASSWORD；未配置则用 Debug 签名。
 
 name: Release
@@ -16,8 +16,6 @@ on:
     tags:
       - "v*.*.*"
       - "v*.*.*-*"
-      - "tv-*.*.*"
-      - "tv-*.*.*-*"
 
 permissions:
   contents: write
