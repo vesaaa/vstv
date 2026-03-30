@@ -247,7 +247,7 @@ object HttpServer : Loggable() {
 private data class AllSettings(
     val appTitle: String,
     val appRepo: String,
-    val serverPort: Int = SERVER_PORT,
+    val serverPort: Int = HttpServer.SERVER_PORT,
     val iptvSourceUrl: String,
     val iptvSourceRequestHeaders: String = "",
     val iptvSourceUrlHistory: List<String> = emptyList(),
