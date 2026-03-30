@@ -33,7 +33,6 @@ import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.launch
 import top.yogiczy.mytv.data.repositories.iptv.IptvRepository
-import top.yogiczy.mytv.data.utils.Constants
 import top.yogiczy.mytv.ui.screens.leanback.components.LeanbackQrcodeDialog
 import top.yogiczy.mytv.ui.screens.leanback.settings.LeanbackSettingsViewModel
 import top.yogiczy.mytv.ui.screens.leanback.toast.LeanbackToastState
@@ -124,8 +123,12 @@ fun LeanbackSettingsCategoryIptv(
 
             LeanbackSettingsCategoryListItem(
                 headlineContent = "自定义直播源",
-                supportingContent = if (settingsViewModel.iptvSourceUrl != Constants.IPTV_SOURCE_URL) settingsViewModel.iptvSourceUrl else null,
-                trailingContent = if (settingsViewModel.iptvSourceUrl != Constants.IPTV_SOURCE_URL) "已启用" else "未启用",
+                supportingContent = if (settingsViewModel.iptvSourceUrl.isNotBlank()) {
+                    settingsViewModel.iptvSourceUrl
+                } else {
+                    "未配置，请扫码或网页推送 m3u/tvbox 链接"
+                },
+                trailingContent = if (settingsViewModel.iptvSourceUrl.isNotBlank()) "已配置" else "未配置",
                 onSelected = { showDialog = true },
                 remoteConfig = true,
             )
@@ -133,15 +136,15 @@ fun LeanbackSettingsCategoryIptv(
             LeanbackSettingsIptvSourceHistoryDialog(showDialogProvider = { showDialog },
                 onDismissRequest = { showDialog = false },
                 iptvSourceHistoryProvider = {
-                    settingsViewModel.iptvSourceUrlHistoryList.filter {
-                        it != Constants.IPTV_SOURCE_URL
-                    }.toImmutableList()
+                    settingsViewModel.iptvSourceUrlHistoryList.filter { it.isNotBlank() }.toImmutableList()
                 },
                 currentIptvSourceProvider = { settingsViewModel.iptvSourceUrl },
                 onSelected = {
                     showDialog = false
                     if (settingsViewModel.iptvSourceUrl != it) {
                         settingsViewModel.iptvSourceUrl = it
+                        settingsViewModel.iptvSourceRequestHeaders =
+                            if (it.isBlank()) "" else SP.getIptvSourceHeadersForUrl(it)
                         coroutineScope.launch { IptvRepository().clearCache() }
                     }
                 },
@@ -170,11 +173,11 @@ private fun LeanbackSettingsIptvSourceHistoryDialog(
     showDialogProvider: () -> Boolean = { false },
     onDismissRequest: () -> Unit = {},
     iptvSourceHistoryProvider: () -> ImmutableList<String> = { persistentListOf() },
-    currentIptvSourceProvider: () -> String = { Constants.IPTV_SOURCE_URL },
+    currentIptvSourceProvider: () -> String = { "" },
     onSelected: (String) -> Unit = {},
     onDeleted: (String) -> Unit = {},
 ) {
-    val iptvSourceHistory = listOf(Constants.IPTV_SOURCE_URL) + iptvSourceHistoryProvider()
+    val iptvSourceHistory = listOf("") + iptvSourceHistoryProvider()
     val currentIptvSource = currentIptvSourceProvider()
 
     if (showDialogProvider()) {
@@ -215,7 +218,7 @@ private fun LeanbackSettingsIptvSourceHistoryDialog(
                                         else focusRequester.requestFocus()
                                     },
                                     onLongSelect = {
-                                        if (isFocused) onDeleted(source)
+                                        if (isFocused && source.isNotBlank()) onDeleted(source)
                                         else focusRequester.requestFocus()
                                     },
                                 ),
@@ -223,7 +226,11 @@ private fun LeanbackSettingsIptvSourceHistoryDialog(
                             onClick = { },
                             headlineContent = {
                                 androidx.tv.material3.Text(
-                                    text = if (source == Constants.IPTV_SOURCE_URL) "默认直播源（网络需要支持ipv6）" else source,
+                                    text = if (source.isBlank()) {
+                                        "未配置直播源（扫码或网页添加）"
+                                    } else {
+                                        source
+                                    },
                                     modifier = Modifier.fillMaxWidth(),
                                     maxLines = if (isFocused) Int.MAX_VALUE else 2,
                                 )
@@ -262,7 +269,7 @@ private fun LeanbackSettingsIptvSourceHistoryDialog(
                         )
 
                         LeanbackQrcodeDialog(
-                            text = HttpServer.serverUrl,
+                            text = HttpServer.serverUrl(),
                             description = "扫码前往设置页面",
                             showDialogProvider = { showDialog },
                             onDismissRequest = { showDialog = false },

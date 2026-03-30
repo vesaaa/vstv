@@ -36,12 +36,18 @@ class LeanbackMainViewModel : ViewModel() {
     }
 
     private suspend fun refreshIptv() {
+        if (SP.iptvSourceUrl.isBlank()) {
+            _uiState.value = LeanbackMainUiState.Ready(iptvGroupList = IptvGroupList())
+            return
+        }
+
         flow {
             emit(
                 iptvRepository.getIptvGroupList(
                     sourceUrl = SP.iptvSourceUrl,
                     cacheTime = SP.iptvSourceCacheTime,
                     simplify = SP.iptvSourceSimplify,
+                    requestHeadersText = SP.iptvSourceRequestHeaders,
                 )
             )
         }
@@ -55,11 +61,16 @@ class LeanbackMainViewModel : ViewModel() {
             }
             .catch {
                 _uiState.value = LeanbackMainUiState.Error(it.message)
-                SP.iptvSourceUrlHistoryList -= SP.iptvSourceUrl
+                if (SP.iptvSourceUrl.isNotBlank()) {
+                    SP.iptvSourceUrlHistoryList -= SP.iptvSourceUrl
+                }
             }
             .map {
                 _uiState.value = LeanbackMainUiState.Ready(iptvGroupList = it)
-                SP.iptvSourceUrlHistoryList += SP.iptvSourceUrl
+                if (SP.iptvSourceUrl.isNotBlank()) {
+                    SP.iptvSourceUrlHistoryList += SP.iptvSourceUrl
+                    SP.putIptvSourceHeadersForUrl(SP.iptvSourceUrl, SP.iptvSourceRequestHeaders)
+                }
                 it
             }
             .collect()

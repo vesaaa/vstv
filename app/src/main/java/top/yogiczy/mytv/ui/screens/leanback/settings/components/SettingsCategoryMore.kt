@@ -24,8 +24,9 @@ import top.yogiczy.mytv.ui.utils.HttpServer
 @Composable
 fun LeanbackSettingsCategoryMore(
     modifier: Modifier = Modifier,
-    serverUrl: String = HttpServer.serverUrl,
 ) {
+    var serverUrl by remember { mutableStateOf(HttpServer.serverUrl()) }
+
     TvLazyColumn(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -33,8 +34,20 @@ fun LeanbackSettingsCategoryMore(
     ) {
         item {
             LeanbackSettingsCategoryListItem(
-                headlineContent = "设置页面",
+                headlineContent = "设置页面地址",
+                supportingContent = "若手机扫二维码打不开，短按下一项切换本机 IPv4；第一项为自动选择",
                 trailingContent = serverUrl,
+            )
+        }
+
+        item {
+            LeanbackSettingsCategoryListItem(
+                headlineContent = "切换扫码用的本机 IP",
+                supportingContent = "在自动与检测到的局域网 IPv4 之间循环",
+                trailingContent = "短按切换",
+                onSelected = {
+                    serverUrl = HttpServer.cycleHttpServerAdvertiseIp()
+                },
             )
         }
 
@@ -67,8 +80,6 @@ fun LeanbackSettingsCategoryMore(
 @Composable
 private fun LeanbackSettingsMorePreview() {
     LeanbackTheme {
-        LeanbackSettingsCategoryMore(
-            serverUrl = "http://127.0.0.1:10481",
-        )
+        LeanbackSettingsCategoryMore()
     }
 }

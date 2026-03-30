@@ -15,9 +15,9 @@ object Constants {
     const val APP_REPO = "https://github.com/yaoxieyoulei/mytv-android"
 
     /**
-     * IPTV源地址
+     * IPTV 源地址占位（不再内置可播地址；留空由用户扫码/网页配置）
      */
-    const val IPTV_SOURCE_URL = "http://1.2.3.4/live.m3u"
+    const val IPTV_SOURCE_URL = ""
 
     /**
      * IPTV源缓存时间（毫秒）

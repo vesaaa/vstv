@@ -90,6 +90,22 @@ class LeanbackSettingsViewModel : ViewModel() {
             SP.iptvSourceUrl = value
         }
 
+    private var _iptvSourceRequestHeaders by mutableStateOf(SP.iptvSourceRequestHeaders)
+    var iptvSourceRequestHeaders: String
+        get() = _iptvSourceRequestHeaders
+        set(value) {
+            _iptvSourceRequestHeaders = value
+            SP.iptvSourceRequestHeaders = value
+        }
+
+    private var _httpServerAdvertiseIp by mutableStateOf(SP.httpServerAdvertiseIp)
+    var httpServerAdvertiseIp: String
+        get() = _httpServerAdvertiseIp
+        set(value) {
+            _httpServerAdvertiseIp = value
+            SP.httpServerAdvertiseIp = value
+        }
+
     private var _iptvPlayableHostList by mutableStateOf(SP.iptvPlayableHostList)
     var iptvPlayableHostList: Set<String>
         get() = _iptvPlayableHostList

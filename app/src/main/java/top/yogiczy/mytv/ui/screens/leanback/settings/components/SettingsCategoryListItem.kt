@@ -91,7 +91,7 @@ fun LeanbackSettingsCategoryListItem(
     )
 
     LeanbackQrcodeDialog(
-        text = HttpServer.serverUrl,
+        text = HttpServer.serverUrl(),
         description = "扫码前往设置页面",
         showDialogProvider = { showServerUrlDialog },
         onDismissRequest = { showServerUrlDialog = false },

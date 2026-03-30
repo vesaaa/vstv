@@ -228,7 +228,7 @@ private fun LeanbackSettingsEpgSourceHistoryDialog(
                         )
 
                         LeanbackQrcodeDialog(
-                            text = HttpServer.serverUrl,
+                            text = HttpServer.serverUrl(),
                             description = "扫码前往设置页面",
                             showDialogProvider = { showDialog },
                             onDismissRequest = { showDialog = false },

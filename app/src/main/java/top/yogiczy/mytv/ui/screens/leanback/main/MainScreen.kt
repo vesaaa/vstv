@@ -108,7 +108,7 @@ private fun LeanbackMainScreenLoadingPreview() {
 @Composable
 private fun LeanbackMainScreenError(
     messageProvider: () -> String?,
-    serverUrl: String = HttpServer.serverUrl,
+    serverUrl: String = HttpServer.serverUrl(),
 ) {
     val childPadding = rememberLeanbackChildPadding()
 

@@ -20,12 +20,10 @@ import top.yogiczy.mytv.data.repositories.epg.EpgRepository
 import top.yogiczy.mytv.data.repositories.iptv.IptvRepository
 import top.yogiczy.mytv.data.utils.Constants
 import top.yogiczy.mytv.utils.ApkInstaller
+import top.yogiczy.mytv.utils.LanIpResolver
 import top.yogiczy.mytv.utils.Loggable
 import top.yogiczy.mytv.utils.Logger
 import java.io.File
-import java.net.Inet4Address
-import java.net.NetworkInterface
-import java.net.SocketException
 
 object HttpServer : Loggable() {
     private const val SERVER_PORT = 10481
@@ -36,8 +34,26 @@ object HttpServer : Loggable() {
 
     private var showToast: (String) -> Unit = { }
 
-    val serverUrl: String by lazy {
-        "http://${getLocalIpAddress()}:${SERVER_PORT}"
+    /** 设置页完整 URL（二维码与文案）；优先手动指定的 [SP.httpServerAdvertiseIp]，否则取当前网络 IPv4。 */
+    fun serverUrl(): String {
+        val ctx = AppGlobal.applicationContext
+        val explicit = SP.httpServerAdvertiseIp.trim()
+        val ip = when {
+            explicit.isNotBlank() -> explicit
+            else -> LanIpResolver.lanIPv4Candidates(ctx).firstOrNull() ?: "127.0.0.1"
+        }
+        return "http://$ip:$SERVER_PORT"
+    }
+
+    /** 在「自动」与本机各 IPv4 之间循环，用于解决二维码 IP 不准的问题。 */
+    fun cycleHttpServerAdvertiseIp(): String {
+        val ctx = AppGlobal.applicationContext
+        val candidates = LanIpResolver.lanIPv4Candidates(ctx)
+        val options = listOf("") + candidates
+        val cur = SP.httpServerAdvertiseIp
+        val idx = options.indexOf(cur).let { if (it >= 0) it else 0 }
+        SP.httpServerAdvertiseIp = options[(idx + 1) % options.size]
+        return serverUrl()
     }
 
     fun start(context: Context, showToast: (String) -> Unit) {
@@ -58,6 +74,10 @@ object HttpServer : Loggable() {
 
                 server.get("/api/settings") { _, response ->
                     handleGetSettings(response)
+                }
+
+                server.get("/api/server-info") { _, response ->
+                    handleGetServerInfo(response)
                 }
 
                 server.post("/api/settings") { request, response ->
@@ -102,6 +122,7 @@ object HttpServer : Loggable() {
     }
 
     private fun handleGetSettings(response: AsyncHttpServerResponse) {
+        val ctx = AppGlobal.applicationContext
         wrapResponse(response).apply {
             setContentType("application/json")
             send(
@@ -110,9 +131,31 @@ object HttpServer : Loggable() {
                         appTitle = Constants.APP_TITLE,
                         appRepo = Constants.APP_REPO,
                         iptvSourceUrl = SP.iptvSourceUrl,
+                        iptvSourceRequestHeaders = SP.iptvSourceRequestHeaders,
+                        httpServerAdvertiseIp = SP.httpServerAdvertiseIp,
+                        lanIPv4Candidates = LanIpResolver.lanIPv4Candidates(ctx),
+                        settingsPageUrl = serverUrl(),
                         epgXmlUrl = SP.epgXmlUrl,
                         videoPlayerUserAgent = SP.videoPlayerUserAgent,
                         logHistory = Logger.history,
+                    )
+                )
+            )
+        }
+    }
+
+    private fun handleGetServerInfo(response: AsyncHttpServerResponse) {
+        val ctx = AppGlobal.applicationContext
+        val candidates = LanIpResolver.lanIPv4Candidates(ctx)
+        wrapResponse(response).apply {
+            setContentType("application/json")
+            send(
+                Json.encodeToString(
+                    ServerInfo(
+                        port = SERVER_PORT,
+                        httpServerAdvertiseIp = SP.httpServerAdvertiseIp,
+                        lanIPv4Candidates = candidates,
+                        settingsPageUrl = serverUrl(),
                     )
                 )
             )
@@ -124,13 +167,25 @@ object HttpServer : Loggable() {
         response: AsyncHttpServerResponse,
     ) {
         val body = request.getBody<JSONObjectBody>().get()
-        val iptvSourceUrl = body.get("iptvSourceUrl").toString()
-        val epgXmlUrl = body.get("epgXmlUrl").toString()
-        val videoPlayerUserAgent = body.get("videoPlayerUserAgent").toString()
+        val iptvSourceUrl = body.optString("iptvSourceUrl", "")
+        val iptvSourceRequestHeaders = body.optString("iptvSourceRequestHeaders", "")
+        val httpServerAdvertiseIp = body.optString("httpServerAdvertiseIp", "")
+        val epgXmlUrl = body.optString("epgXmlUrl", "")
+        val videoPlayerUserAgent = body.optString("videoPlayerUserAgent", "")
 
-        if (SP.iptvSourceUrl != iptvSourceUrl) {
+        val iptvChanged = SP.iptvSourceUrl != iptvSourceUrl ||
+            SP.iptvSourceRequestHeaders != iptvSourceRequestHeaders
+        if (iptvChanged) {
             SP.iptvSourceUrl = iptvSourceUrl
+            SP.iptvSourceRequestHeaders = iptvSourceRequestHeaders
+            if (iptvSourceUrl.isNotBlank()) {
+                SP.putIptvSourceHeadersForUrl(iptvSourceUrl, iptvSourceRequestHeaders)
+            }
             IptvRepository().clearCache()
+        }
+
+        if (SP.httpServerAdvertiseIp != httpServerAdvertiseIp) {
+            SP.httpServerAdvertiseIp = httpServerAdvertiseIp
         }
 
         if (SP.epgXmlUrl != epgXmlUrl) {
@@ -176,27 +231,6 @@ object HttpServer : Loggable() {
         wrapResponse(response).send("success")
     }
 
-    private fun getLocalIpAddress(): String {
-        val defaultIp = "0.0.0.0"
-
-        try {
-            val en = NetworkInterface.getNetworkInterfaces()
-            while (en.hasMoreElements()) {
-                val intf = en.nextElement()
-                val enumIpAddr = intf.inetAddresses
-                while (enumIpAddr.hasMoreElements()) {
-                    val inetAddress = enumIpAddr.nextElement()
-                    if (!inetAddress.isLoopbackAddress && inetAddress is Inet4Address) {
-                        return inetAddress.hostAddress ?: defaultIp
-                    }
-                }
-            }
-            return defaultIp
-        } catch (ex: SocketException) {
-            log.e("IP Address: ${ex.message}", ex)
-            return defaultIp
-        }
-    }
 }
 
 @Serializable
@@ -204,8 +238,20 @@ private data class AllSettings(
     val appTitle: String,
     val appRepo: String,
     val iptvSourceUrl: String,
+    val iptvSourceRequestHeaders: String = "",
+    val httpServerAdvertiseIp: String = "",
+    val lanIPv4Candidates: List<String> = emptyList(),
+    val settingsPageUrl: String = "",
     val epgXmlUrl: String,
     val videoPlayerUserAgent: String,
 
     val logHistory: List<Logger.HistoryItem>,
+)
+
+@Serializable
+private data class ServerInfo(
+    val port: Int,
+    val httpServerAdvertiseIp: String,
+    val lanIPv4Candidates: List<String>,
+    val settingsPageUrl: String,
 )

@@ -1,5 +1,6 @@
 package top.yogiczy.mytv
 
+import android.content.Context
 import java.io.File
 
 /**
@@ -10,4 +11,9 @@ object AppGlobal {
      * 缓存目录
      */
     lateinit var cacheDir: File
+
+    /**
+     * Application Context（用于网络、IP 解析等）
+     */
+    lateinit var applicationContext: Context
 }

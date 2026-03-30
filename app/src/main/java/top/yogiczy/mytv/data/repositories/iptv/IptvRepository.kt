@@ -11,6 +11,8 @@ import top.yogiczy.mytv.data.entities.IptvList
 import top.yogiczy.mytv.data.repositories.FileCacheRepository
 import top.yogiczy.mytv.data.repositories.iptv.parser.IptvParser
 import top.yogiczy.mytv.utils.Logger
+import top.yogiczy.mytv.utils.parseHttpHeaderLines
+import top.yogiczy.mytv.utils.toOkHttpHeaders
 
 /**
  * 直播源获取
@@ -21,11 +23,17 @@ class IptvRepository : FileCacheRepository("iptv.txt") {
     /**
      * 获取远程直播源数据
      */
-    private suspend fun fetchSource(sourceUrl: String) = withContext(Dispatchers.IO) {
+    private suspend fun fetchSource(sourceUrl: String, requestHeadersText: String) =
+        withContext(Dispatchers.IO) {
         log.d("获取远程直播源: $sourceUrl")
 
         val client = OkHttpClient()
-        val request = Request.Builder().url(sourceUrl).build()
+        val headerMap = requestHeadersText.parseHttpHeaderLines()
+        val reqBuilder = Request.Builder().url(sourceUrl)
+        if (headerMap.isNotEmpty()) {
+            reqBuilder.headers(headerMap.toOkHttpHeaders())
+        }
+        val request = reqBuilder.build()
 
         try {
             with(client.newCall(request).execute()) {
@@ -55,10 +63,14 @@ class IptvRepository : FileCacheRepository("iptv.txt") {
         sourceUrl: String,
         cacheTime: Long,
         simplify: Boolean = false,
+        requestHeadersText: String = "",
     ): IptvGroupList {
+        if (sourceUrl.isBlank()) {
+            return IptvGroupList()
+        }
         try {
             val sourceData = getOrRefresh(cacheTime) {
-                fetchSource(sourceUrl)
+                fetchSource(sourceUrl, requestHeadersText)
             }
 
             val parser = IptvParser.instances.first { it.isSupport(sourceUrl, sourceData) }

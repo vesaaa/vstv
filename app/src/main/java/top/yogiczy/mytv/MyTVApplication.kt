@@ -8,6 +8,7 @@ class MyTVApplication : Application() {
         super.onCreate()
 
         UnsafeTrustManager.enableUnsafeTrustManager()
+        AppGlobal.applicationContext = applicationContext
         AppGlobal.cacheDir = applicationContext.cacheDir
         SP.init(applicationContext)
     }

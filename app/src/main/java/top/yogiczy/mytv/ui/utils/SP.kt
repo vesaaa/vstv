@@ -2,7 +2,12 @@ package top.yogiczy.mytv.ui.utils
 
 import android.content.Context
 import android.content.SharedPreferences
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import top.yogiczy.mytv.data.utils.Constants
+
+private val spJson = Json { ignoreUnknownKeys = true }
 
 /**
  * 应用配置存储
@@ -58,6 +63,15 @@ object SP {
 
         /** 直播源历史列表 */
         IPTV_SOURCE_URL_HISTORY_LIST,
+
+        /** 直播源拉取时附加的 HTTP 请求头（多行 Name: Value） */
+        IPTV_SOURCE_REQUEST_HEADERS,
+
+        /** 各订阅 URL 对应的请求头（JSON 对象） */
+        IPTV_SOURCE_HEADERS_BY_URL_JSON,
+
+        /** 设置页/二维码展示的 IP（空则自动） */
+        HTTP_SERVER_ADVERTISE_IP,
 
         /** 是否启用数字选台 */
         IPTV_CHANNEL_NO_SELECT_ENABLE,
@@ -163,9 +177,45 @@ object SP {
 
     /** 直播源 url */
     var iptvSourceUrl: String
-        get() = (sp.getString(KEY.IPTV_SOURCE_URL.name, "")
-            ?: "").ifBlank { Constants.IPTV_SOURCE_URL }
+        get() = sp.getString(KEY.IPTV_SOURCE_URL.name, "") ?: ""
         set(value) = sp.edit().putString(KEY.IPTV_SOURCE_URL.name, value).apply()
+
+    /** 拉取 m3u/tvbox 订阅时使用的额外请求头（每行「Name: Value」） */
+    var iptvSourceRequestHeaders: String
+        get() = sp.getString(KEY.IPTV_SOURCE_REQUEST_HEADERS.name, "") ?: ""
+        set(value) = sp.edit().putString(KEY.IPTV_SOURCE_REQUEST_HEADERS.name, value).apply()
+
+    /** 扫码/设置页展示的局域网 IP；空表示自动选择 */
+    var httpServerAdvertiseIp: String
+        get() = sp.getString(KEY.HTTP_SERVER_ADVERTISE_IP.name, "") ?: ""
+        set(value) = sp.edit().putString(KEY.HTTP_SERVER_ADVERTISE_IP.name, value).apply()
+
+    private var iptvSourceHeadersByUrlJsonRaw: String
+        get() = sp.getString(KEY.IPTV_SOURCE_HEADERS_BY_URL_JSON.name, "{}") ?: "{}"
+        set(value) = sp.edit().putString(KEY.IPTV_SOURCE_HEADERS_BY_URL_JSON.name, value).apply()
+
+    /** 读取某订阅 URL 已保存的请求头文本 */
+    fun getIptvSourceHeadersForUrl(url: String): String {
+        if (url.isBlank()) return ""
+        val map = runCatching {
+            spJson.decodeFromString<Map<String, String>>(iptvSourceHeadersByUrlJsonRaw)
+        }.getOrElse { emptyMap() }
+        return map[url].orEmpty()
+    }
+
+    /** 将请求头文本与订阅 URL 绑定保存 */
+    fun putIptvSourceHeadersForUrl(url: String, headers: String) {
+        if (url.isBlank()) return
+        val map = runCatching {
+            spJson.decodeFromString<Map<String, String>>(iptvSourceHeadersByUrlJsonRaw).toMutableMap()
+        }.getOrElse { mutableMapOf() }
+        if (headers.isBlank()) {
+            map.remove(url)
+        } else {
+            map[url] = headers
+        }
+        iptvSourceHeadersByUrlJsonRaw = spJson.encodeToString(map)
+    }
 
     /** 直播源缓存时间（毫秒） */
     var iptvSourceCacheTime: Long
