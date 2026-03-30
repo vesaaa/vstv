@@ -17,6 +17,9 @@ if (keystorePropertiesFile.exists()) {
 /** CI/发布打标签时传入：./gradlew -PreleaseVersion=1.2.3 */
 val releaseVersion = (project.findProperty("releaseVersion") as String?)?.trim().orEmpty()
 
+/** GitHub Actions 等未提供 jks 时：-PciUseDebugSigning=true，release 使用 debug 密钥（仅测试包） */
+val ciUseDebugSigning = project.hasProperty("ciUseDebugSigning")
+
 android {
     namespace = "top.yogiczy.mytv"
     compileSdk = 34
@@ -64,19 +67,25 @@ android {
         }
     }
     signingConfigs {
-        create("release") {
-            storeFile =
-                file(System.getenv("KEYSTORE") ?: keystoreProperties["storeFile"] ?: "keystore.jks")
-            storePassword = System.getenv("KEYSTORE_PASSWORD")
-                ?: keystoreProperties.getProperty("storePassword")
-            keyAlias = System.getenv("KEY_ALIAS") ?: keystoreProperties.getProperty("keyAlias")
-            keyPassword =
-                System.getenv("KEY_PASSWORD") ?: keystoreProperties.getProperty("keyPassword")
+        if (!ciUseDebugSigning) {
+            create("release") {
+                storeFile =
+                    file(System.getenv("KEYSTORE") ?: keystoreProperties["storeFile"] ?: "keystore.jks")
+                storePassword = System.getenv("KEYSTORE_PASSWORD")
+                    ?: keystoreProperties.getProperty("storePassword")
+                keyAlias = System.getenv("KEY_ALIAS") ?: keystoreProperties.getProperty("keyAlias")
+                keyPassword =
+                    System.getenv("KEY_PASSWORD") ?: keystoreProperties.getProperty("keyPassword")
+            }
         }
     }
     buildTypes {
         getByName("release") {
-            signingConfig = signingConfigs.getByName("release")
+            signingConfig = if (ciUseDebugSigning) {
+                signingConfigs.getByName("debug")
+            } else {
+                signingConfigs.getByName("release")
+            }
         }
     }
 }
