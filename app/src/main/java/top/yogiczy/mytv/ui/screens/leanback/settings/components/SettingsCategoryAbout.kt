@@ -89,7 +89,7 @@ private fun LeanbackSettingsAboutPreview() {
     LeanbackTheme {
         LeanbackSettingsCategoryAbout(
             packageInfo = PackageInfo().apply {
-                versionName = "0.0.6"
+                versionName = "0.0.7"
             }
         )
     }

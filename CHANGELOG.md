@@ -2,6 +2,10 @@
 
 本仓库为 fork，发行线使用 **`v0.0.x`** 标签与版本号。历史 `v1.x` / `tv*` 等标签已从本 fork 移除（原为上游同步残留）。
 
+## [0.0.7] - 2026-03-30
+
+- CI：Release 工作流 YAML 修正；`setup-java` 内置 Gradle 缓存；显式 `versionCode`；Gradle 重试；TBS 双镜像；APK 递归查找
+
 ## [0.0.6] - 2026-03-30
 
 - 默认节目单地址改为 `http://epg.51zmt.top:8000/e.xml`（仍支持同站 `e.xml.gz`）
