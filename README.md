@@ -1,5 +1,6 @@
 <div align="center">
-    <h1>vstv</h1>
+    <h1>VsTV</h1>
+    <p><strong>vstv</strong> — 仓库、CI 产物前缀与标识沿用此名</p>
 <div align="center">
 
 ![GitHub repo size](https://img.shields.io/github/repo-size/vesaaa/vstv)
@@ -7,13 +8,13 @@
 ![GitHub all releases](https://img.shields.io/github/downloads/vesaaa/vstv/total)
 
 </div>
-    <p>基于 Android 原生（Kotlin / Compose / Media3）的电视直播客户端 fork，默认不内置订阅源，需自行配置。</p>
+    <p>基于 Android 原生（Kotlin / Compose / Media3）的电视直播客户端（<strong>VsTV</strong>），默认不内置订阅源，需自行配置。</p>
 </div>
 
 ## 与上游
 
 - 上游：<https://github.com/sakana164/mytv-android>（及更早 lineage）
-- 本仓库：<https://github.com/vesaaa/vstv>，**发行标签仅使用 `v0.0.x`**
+- 本仓库：<https://github.com/vesaaa/vstv>（应用展示名 <strong>VsTV</strong>），**发行标签仅使用 `v0.0.x`**
 
 ## 目标设备与运行环境（国产电视等）
 
@@ -130,7 +131,7 @@
 
 ## 声明
 
-本项目仅供学习与交流。所用接口与数据来自公开网络与用户自行配置的订阅，不提供任何破解内容。
+**VsTV**（仓库标识 vstv）仅供学习与交流。所用接口与数据来自公开网络与用户自行配置的订阅，不提供任何破解内容。
 
 ## 致谢
 

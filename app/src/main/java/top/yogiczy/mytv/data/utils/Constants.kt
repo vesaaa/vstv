@@ -5,9 +5,9 @@ package top.yogiczy.mytv.data.utils
  */
 object Constants {
     /**
-     * 应用 标题
+     * 应用对外展示名称（桌面、关于、网页设置页等）
      */
-    const val APP_TITLE = "我的电视"
+    const val APP_TITLE = "VsTV"
 
     /**
      * 应用 代码仓库
