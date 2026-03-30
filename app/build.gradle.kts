@@ -14,8 +14,24 @@ if (keystorePropertiesFile.exists()) {
     keystoreProperties.load(FileInputStream(keystorePropertiesFile))
 }
 
-/** CI/发布打标签时传入：./gradlew -PreleaseVersion=1.2.3 */
+/** CI/发布打标签时传入：./gradlew -PreleaseVersion=0.0.5 */
 val releaseVersion = (project.findProperty("releaseVersion") as String?)?.trim().orEmpty()
+
+/** 可选覆盖：-PversionCode=123；否则由 versionName 的 x.y.z 推导，保证侧载覆盖安装版本递增 */
+fun semverToVersionCode(versionName: String): Int {
+    val core = versionName.trim().removePrefix("v").substringBefore("-").substringBefore("+")
+    val parts = core.split(".").mapNotNull { it.toIntOrNull() }
+    if (parts.size != 3) return 1
+    return parts[0].coerceIn(0, 999) * 1_000_000 +
+        parts[1].coerceIn(0, 999) * 1_000 +
+        parts[2].coerceIn(0, 999)
+}
+
+val defaultVersionName = "0.0.5"
+val resolvedVersionName = releaseVersion.ifEmpty { defaultVersionName }
+val resolvedVersionCode =
+    (project.findProperty("versionCode") as String?)?.toIntOrNull()
+        ?: semverToVersionCode(resolvedVersionName)
 
 /** GitHub Actions 等未提供 jks 时：-PciUseDebugSigning=true，release 使用 debug 密钥（仅测试包） */
 val ciUseDebugSigning = project.hasProperty("ciUseDebugSigning")
@@ -28,8 +44,8 @@ android {
         applicationId = "top.yogiczy.mytv"
         minSdk = 21
         targetSdk = 34
-        versionCode = 1
-        versionName = releaseVersion.ifEmpty { "0.0.4" }
+        versionCode = resolvedVersionCode
+        versionName = resolvedVersionName
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {

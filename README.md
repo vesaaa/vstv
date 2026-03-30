@@ -15,6 +15,23 @@
 - 上游：<https://github.com/sakana164/mytv-android>（及更早 lineage）
 - 本仓库：<https://github.com/vesaaa/vstv>，**发行标签仅使用 `v0.0.x`**
 
+## 目标设备与运行环境（国产电视等）
+
+主要面向 **智能电视 / 盒子**：如 TCL、海信、酷开、华为智慧屏、荣耀、小米电视等，系统多为 **厂商定制 Android**（含鸿蒙设备上的 **Android 兼容层**）。此类环境通常 **没有谷歌移动服务（GMS）**、**没有 Play 商店**，依赖 **U 盘 / 远程安装 / 网页上传 APK** 等方式侧载。
+
+本应用 **不依赖** Google Play 服务或谷歌账号；网络播放使用 **OkHttp + Media3**，设置页走本机 **HTTP 服务（10481 端口）**。已做或请注意：
+
+| 项 | 说明 |
+|----|------|
+| 桌面入口 | `LeanbackActivity` 同时声明 **LEANBACK_LAUNCHER** 与 **LAUNCHER**，便于在电视桌面出现 |
+| 明文 HTTP | 已允许 **明文流量**（`usesCleartextTraffic` + `networkSecurityConfig`），兼容常见 IPTV/EPG **http** 源 |
+| 覆盖安装 | `versionCode` 由 **x.y.z** 自动推导（与 `-PreleaseVersion` / 默认 `versionName` 一致），避免长期固定为 `1` 导致无法升级 |
+| 网页装 APK | Android 11+ 已声明 **`<queries>`** 指向 APK 安装 `Intent`，减少「点了安装没反应」 |
+| 安装权限 | 首次侧载或网页更新需在系统设置中允许 **安装未知应用**；部分品牌路径名称不同 |
+| 开机自启 | **BootReceiver** 依赖 `BOOT_COMPLETED`，华为 / 小米等可能需在系统里为本应用 **允许自启动 / 后台活动**，否则无效 |
+
+**X5 变体**（`originalX5Arm64` / `originalX5Armeabi`）：内置腾讯 TBS，适用于 **系统 WebView 过旧或异常** 的机型；需能访问腾讯 Maven 镜像以编译。若播放与设置页均正常，一般用 **original** 即可。
+
 ## 使用
 
 ### 操作方式
