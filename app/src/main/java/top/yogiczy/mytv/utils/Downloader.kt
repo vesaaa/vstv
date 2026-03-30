@@ -5,7 +5,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.Interceptor
-import okhttp3.OkHttpClient
 import okio.BufferedSource
 import okio.ForwardingSource
 import okio.buffer
@@ -22,7 +21,7 @@ object Downloader : Loggable() {
                     .body(DownloadResponseBody(originalResponse, onProgressCb)).build()
             }
 
-            val client = OkHttpClient.Builder().addNetworkInterceptor(interceptor).build()
+            val client = AppOkHttp.newBuilder().addNetworkInterceptor(interceptor).build()
             val request = okhttp3.Request.Builder().url(url).build()
 
             try {

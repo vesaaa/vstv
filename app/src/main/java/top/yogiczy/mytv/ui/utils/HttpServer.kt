@@ -137,6 +137,7 @@ object HttpServer : Loggable() {
                         settingsPageUrl = serverUrl(),
                         epgXmlUrl = SP.epgXmlUrl,
                         videoPlayerUserAgent = SP.videoPlayerUserAgent,
+                        debugAppLog = SP.debugAppLog,
                         logHistory = Logger.history,
                     )
                 )
@@ -172,6 +173,7 @@ object HttpServer : Loggable() {
         val httpServerAdvertiseIp = body.optString("httpServerAdvertiseIp", "")
         val epgXmlUrl = body.optString("epgXmlUrl", "")
         val videoPlayerUserAgent = body.optString("videoPlayerUserAgent", "")
+        val debugAppLog = body.optBoolean("debugAppLog", false)
 
         val iptvChanged = SP.iptvSourceUrl != iptvSourceUrl ||
             SP.iptvSourceRequestHeaders != iptvSourceRequestHeaders
@@ -194,6 +196,10 @@ object HttpServer : Loggable() {
         }
 
         SP.videoPlayerUserAgent = videoPlayerUserAgent
+
+        if (SP.debugAppLog != debugAppLog) {
+            SP.debugAppLog = debugAppLog
+        }
 
         wrapResponse(response).send("success")
     }
@@ -244,6 +250,8 @@ private data class AllSettings(
     val settingsPageUrl: String = "",
     val epgXmlUrl: String,
     val videoPlayerUserAgent: String,
+
+    val debugAppLog: Boolean = false,
 
     val logHistory: List<Logger.HistoryItem>,
 )

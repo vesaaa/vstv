@@ -52,6 +52,19 @@ fun LeanbackSettingsCategoryDebug(
                 },
             )
         }
+
+        item {
+            LeanbackSettingsCategoryListItem(
+                headlineContent = "应用调试日志",
+                supportingContent = "开启后记录 HTTP 请求地址、请求头与响应状态及体长（不含正文），网页「日志」页可查看；默认关闭",
+                trailingContent = {
+                    Switch(checked = settingsViewModel.debugAppLog, onCheckedChange = null)
+                },
+                onSelected = {
+                    settingsViewModel.debugAppLog = !settingsViewModel.debugAppLog
+                },
+            )
+        }
     }
 }
 

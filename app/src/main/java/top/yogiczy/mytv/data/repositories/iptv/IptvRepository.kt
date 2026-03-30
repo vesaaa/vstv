@@ -2,7 +2,6 @@ package top.yogiczy.mytv.data.repositories.iptv
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import okhttp3.OkHttpClient
 import okhttp3.Request
 import top.yogiczy.mytv.data.entities.Iptv
 import top.yogiczy.mytv.data.entities.IptvGroup
@@ -10,6 +9,7 @@ import top.yogiczy.mytv.data.entities.IptvGroupList
 import top.yogiczy.mytv.data.entities.IptvList
 import top.yogiczy.mytv.data.repositories.FileCacheRepository
 import top.yogiczy.mytv.data.repositories.iptv.parser.IptvParser
+import top.yogiczy.mytv.utils.AppOkHttp
 import top.yogiczy.mytv.utils.Logger
 import top.yogiczy.mytv.utils.parseHttpHeaderLines
 import top.yogiczy.mytv.utils.toOkHttpHeaders
@@ -27,7 +27,7 @@ class IptvRepository : FileCacheRepository("iptv.txt") {
         withContext(Dispatchers.IO) {
         log.d("获取远程直播源: $sourceUrl")
 
-        val client = OkHttpClient()
+        val client = AppOkHttp.client()
         val headerMap = requestHeadersText.parseHttpHeaderLines()
         val reqBuilder = Request.Builder().url(sourceUrl)
         if (headerMap.isNotEmpty()) {

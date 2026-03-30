@@ -6,6 +6,7 @@ import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import top.yogiczy.mytv.data.utils.Constants
+import top.yogiczy.mytv.utils.Logger
 
 private val spJson = Json { ignoreUnknownKeys = true }
 
@@ -41,6 +42,9 @@ object SP {
 
         /** 播放器详细信息 */
         DEBUG_SHOW_VIDEO_PLAYER_METADATA,
+
+        /** 应用调试日志（网页「日志」页 + HTTP 请求摘要；默认关） */
+        DEBUG_APP_LOG,
 
         /** ==================== 直播源 ==================== */
         /** 上一次直播源序号 */
@@ -158,6 +162,17 @@ object SP {
     var debugShowVideoPlayerMetadata: Boolean
         get() = sp.getBoolean(KEY.DEBUG_SHOW_VIDEO_PLAYER_METADATA.name, false)
         set(value) = sp.edit().putBoolean(KEY.DEBUG_SHOW_VIDEO_PLAYER_METADATA.name, value).apply()
+
+    /** 应用调试日志：写入 Logger 历史并在 OkHttp 中记录请求/响应摘要（响应体仅记录长度） */
+    var debugAppLog: Boolean
+        get() = sp.getBoolean(KEY.DEBUG_APP_LOG.name, false)
+        set(value) {
+            val prev = sp.getBoolean(KEY.DEBUG_APP_LOG.name, false)
+            sp.edit().putBoolean(KEY.DEBUG_APP_LOG.name, value).apply()
+            if (!value && prev) {
+                Logger.clearHistory()
+            }
+        }
 
     /** ==================== 直播源 ==================== */
     /** 上一次直播源序号 */

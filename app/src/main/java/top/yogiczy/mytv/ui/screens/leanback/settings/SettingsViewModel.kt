@@ -50,6 +50,14 @@ class LeanbackSettingsViewModel : ViewModel() {
             SP.debugShowVideoPlayerMetadata = value
         }
 
+    private var _debugAppLog by mutableStateOf(SP.debugAppLog)
+    var debugAppLog: Boolean
+        get() = _debugAppLog
+        set(value) {
+            _debugAppLog = value
+            SP.debugAppLog = value
+        }
+
     private var _iptvLastIptvIdx by mutableIntStateOf(SP.iptvLastIptvIdx)
     var iptvLastIptvIdx: Int
         get() = _iptvLastIptvIdx

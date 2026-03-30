@@ -29,7 +29,7 @@ android {
         minSdk = 21
         targetSdk = 34
         versionCode = 1
-        versionName = releaseVersion.ifEmpty { "1.4.4" }
+        versionName = releaseVersion.ifEmpty { "1.4.5" }
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -156,10 +156,13 @@ dependencies {
     implementation(libs.androidx.tv.foundation)
     implementation(libs.androidx.tv.material)
 
-    // 播放器
+    // 播放器（HLS / DASH / SmoothStreaming / RTSP + FFmpeg 扩展软解，体积主要在 native .so）
     implementation(libs.androidx.media3.exoplayer)
     implementation(libs.androidx.media3.exoplayer.hls)
+    implementation(libs.androidx.media3.exoplayer.dash)
+    implementation(libs.androidx.media3.exoplayer.smoothstreaming)
     implementation(libs.androidx.media3.exoplayer.rtsp)
+    implementation(libs.androidx.media3.decoder.ffmpeg)
 
     // 序列化
     implementation(libs.kotlinx.serialization)

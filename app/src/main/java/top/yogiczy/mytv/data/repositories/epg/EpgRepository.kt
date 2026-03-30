@@ -5,7 +5,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.xmlpull.v1.XmlPullParser
 import top.yogiczy.mytv.data.entities.Epg
@@ -14,6 +13,7 @@ import top.yogiczy.mytv.data.entities.EpgProgramme
 import top.yogiczy.mytv.data.entities.EpgProgrammeList
 import top.yogiczy.mytv.data.repositories.FileCacheRepository
 import top.yogiczy.mytv.data.repositories.epg.fetcher.EpgFetcher
+import top.yogiczy.mytv.utils.AppOkHttp
 import top.yogiczy.mytv.utils.Logger
 import java.io.StringReader
 import java.text.SimpleDateFormat
@@ -130,7 +130,7 @@ private class EpgXmlRepository : FileCacheRepository("epg.xml") {
     private suspend fun fetchXml(url: String): String = withContext(Dispatchers.IO) {
         log.d("获取远程节目单xml: $url")
 
-        val client = OkHttpClient()
+        val client = AppOkHttp.client()
         val request = Request.Builder().url(url).build()
 
         try {

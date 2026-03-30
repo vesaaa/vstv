@@ -3,16 +3,19 @@ package top.yogiczy.mytv.utils
 import android.util.Log
 import kotlinx.serialization.Serializable
 import top.yogiczy.mytv.data.utils.Constants
+import top.yogiczy.mytv.ui.utils.SP
 
 /**
  * 日志工具类
+ *
+ * 写入 [history] 仅在 [SP.debugAppLog] 为 true 时生效（默认关闭），供网页「日志」页与调测使用；Logcat 始终输出。
  */
 class Logger private constructor(
     private val tag: String
 ) {
     fun d(message: String, throwable: Throwable? = null) {
         Log.d(tag, message, throwable)
-        // addHistoryItem(HistoryItem(LevelType.DEBUG, tag, message, throwable?.message))
+        addHistoryItem(HistoryItem(LevelType.DEBUG, tag, message, throwable?.message))
     }
 
     fun i(message: String, throwable: Throwable? = null) {
@@ -43,11 +46,22 @@ class Logger private constructor(
             get() = _history
 
         fun addHistoryItem(item: HistoryItem) {
-            _history.add(item)
-            if (_history.size > Constants.LOG_HISTORY_MAX_SIZE) _history.removeAt(0)
+            val enabled = runCatching { SP.debugAppLog }.getOrDefault(false)
+            if (!enabled) return
+            synchronized(_history) {
+                _history.add(item)
+                while (_history.size > Constants.LOG_HISTORY_MAX_SIZE) _history.removeAt(0)
+            }
+        }
+
+        fun clearHistory() {
+            synchronized(_history) {
+                _history.clear()
+            }
         }
     }
 
+    @Serializable
     enum class LevelType {
         DEBUG, INFO, WARN, ERROR
     }

@@ -119,6 +119,14 @@
                     </van-cell-group>
 
                     <van-cell-group inset title="调试">
+                        <van-cell center title="应用调试日志">
+                            <template #label>
+                                <span class="text-gray text-12px">开启后记录订阅/节目单等 HTTP 请求 URL、请求头与响应码及数据体大小（不记录正文）；关闭后清空已缓存日志。网页底部「日志」查看。</span>
+                            </template>
+                            <template #right-icon>
+                                <van-switch v-model="settings.debugAppLog" @change="confirmSettings" />
+                            </template>
+                        </van-cell>
                         <van-cell title="上传apk">
                             <template #extra>
                                 <van-uploader :after-read="uploaderAfterRead" accept=".apk" />
@@ -128,20 +136,22 @@
                 </template>
 
                 <template v-else-if="tabActive === 'log'">
-                    <van-list>
-                        <van-cell v-for="item in settings.logHistory" :key="item.time" :label="item.cause">
+                    <van-empty v-if="!settings.debugAppLog" description="调试日志已关闭，请在「配置」→「调试」中开启" />
+                    <van-empty v-else-if="!settings.logHistory || !settings.logHistory.length" description="暂无日志，触发订阅刷新或节目单加载后可查看" />
+                    <van-list v-else>
+                        <van-cell v-for="(item, idx) in settings.logHistory" :key="item.time + '-' + idx" :label="item.cause">
                             <template #title>
                                 <div class="flex flex-col gap-1">
                                     <div class="flex gap-1 items-center">
                                         <van-tag plain>{{ item.tag }}</van-tag>
                                         <van-tag plain>{{ item.level }}</van-tag>
                                     </div>
-                                    <span>{{ item.message }}</span>
+                                    <span style="white-space: pre-wrap; word-break: break-all;">{{ item.message }}</span>
                                 </div>
                             </template>
 
                             <template #extra>
-                                <span text="gray">{{ dayjs(item.time).format('HH:mm:ss') }}</span>
+                                <span class="text-gray">{{ dayjs(item.time).format('HH:mm:ss') }}</span>
                             </template>
                         </van-cell>
                     </van-list>
@@ -202,7 +212,9 @@
                     try {
                         vant.showLoadingToast({ message: '加载中...', forbidClick: true, duration: 0 })
                         settings.value = await (await requestApi('/api/settings')).json()
-                        settings.value.logHistory = settings.value.logHistory.reverse()
+                        if (!settings.value.debugAppLog) settings.value.debugAppLog = false
+                        const lh = settings.value.logHistory || []
+                        settings.value.logHistory = [...lh].reverse()
                         vant.closeToast()
                     } catch (e) {
                         vant.showFailToast('无法获取设置')

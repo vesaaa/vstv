@@ -18,8 +18,10 @@ import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.analytics.AnalyticsListener
+import androidx.media3.exoplayer.dash.DashMediaSource
 import androidx.media3.exoplayer.hls.HlsMediaSource
 import androidx.media3.exoplayer.rtsp.RtspMediaSource
+import androidx.media3.exoplayer.smoothstreaming.SsMediaSource
 import androidx.media3.exoplayer.source.ProgressiveMediaSource
 import androidx.media3.exoplayer.util.EventLogger
 import kotlinx.coroutines.CoroutineScope
@@ -60,6 +62,14 @@ class LeanbackMedia3VideoPlayer(
         val mediaSource = when (val type = contentType ?: Util.inferContentType(uri)) {
             C.CONTENT_TYPE_HLS -> {
                 HlsMediaSource.Factory(dataSourceFactory).createMediaSource(mediaItem)
+            }
+
+            C.CONTENT_TYPE_DASH -> {
+                DashMediaSource.Factory(dataSourceFactory).createMediaSource(mediaItem)
+            }
+
+            C.CONTENT_TYPE_SS -> {
+                SsMediaSource.Factory(dataSourceFactory).createMediaSource(mediaItem)
             }
 
             C.CONTENT_TYPE_RTSP -> {
@@ -105,12 +115,15 @@ class LeanbackMedia3VideoPlayer(
             else if (ex.errorCode == Media3PlaybackException.ERROR_CODE_PARSING_CONTAINER_UNSUPPORTED) {
                 val uri = videoPlayer.currentMediaItem?.localConfiguration?.uri
                 if (uri != null) {
-                    if (contentTypeAttempts[C.CONTENT_TYPE_HLS] != true) {
-                        prepare(uri, C.CONTENT_TYPE_HLS)
-                    } else if (contentTypeAttempts[C.CONTENT_TYPE_OTHER] != true) {
-                        prepare(uri, C.CONTENT_TYPE_OTHER)
-                    } else if (contentTypeAttempts[C.CONTENT_TYPE_OTHER] != true) {
-                        prepare(uri, C.CONTENT_TYPE_OTHER)
+                    val tryOrder = listOf(
+                        C.CONTENT_TYPE_HLS,
+                        C.CONTENT_TYPE_DASH,
+                        C.CONTENT_TYPE_SS,
+                        C.CONTENT_TYPE_OTHER,
+                    )
+                    val next = tryOrder.firstOrNull { contentTypeAttempts[it] != true }
+                    if (next != null) {
+                        prepare(uri, next)
                     } else {
                         triggerError(PlaybackException.UNSUPPORTED_TYPE)
                     }
