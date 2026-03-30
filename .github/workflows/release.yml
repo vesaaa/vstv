@@ -7,7 +7,7 @@
 #   KEYSTORE_PASSWORD、KEY_ALIAS、KEY_PASSWORD
 #
 # 当前工程仅一种安装包（系统 WebView），产物命名为：
-#   tv-<版本>-all-sdk21-original.apk
+#   vstv-<版本>-all-sdk21-original.apk
 # 若日后增加 disguised（包名伪装）或 X5（腾讯 TBS WebView）等 productFlavor，可在此 workflow 中追加 assemble 与复制步骤。
 
 name: Release
@@ -18,7 +18,7 @@ on:
       # 例如 v1.4.5、v1.4.5-beta.1
       - "v*.*.*"
       - "v*.*.*-*"
-      # 例如 tv-3.3.9（与常见发行包名一致）
+      # 例如 tv-3.3.9（仅作标签习惯，与 APK 前缀 vstv- 无关）
       - "tv-*.*.*"
       - "tv-*.*.*-*"
 
@@ -87,8 +87,8 @@ jobs:
             echo "::error::未找到 release APK"
             exit 1
           fi
-          # 当前仅单产物，命名与常见 mytv 发行一致；多 flavor 时可改为循环命名
-          cp "${apks[0]}" "artifacts/tv-${{ steps.ver.outputs.version }}-all-sdk21-original.apk"
+          # 当前仅单产物；多 flavor 时可改为循环命名
+          cp "${apks[0]}" "artifacts/vstv-${{ steps.ver.outputs.version }}-all-sdk21-original.apk"
           ls -la artifacts/
 
       - name: Create GitHub Release
