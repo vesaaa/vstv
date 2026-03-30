@@ -2,6 +2,11 @@
 
 应用展示名 **VsTV**；仓库与构建标识仍为 **vstv**。发行线使用 **`v0.0.x`** 标签与版本号。历史 `v1.x` / `tv*` 等标签已从本 fork 移除（原为上游同步残留）。
 
+## [0.0.11] - 2026-03-30
+
+- 修复：`LeanbackPanelIptvInfo` 在 **`urlList` 为空**（无订阅、占位频道、解析异常）时仍读 `urlList[iptvUrlIdx]`，导致与此前相同的 `Empty list doesn't contain element at index 0`（快捷面板、节目面板底栏等均会组合该组件）
+- 加固：节目单弹窗左右切换当前频道时，**空 `iptvList`** 不再做下标访问
+
 ## [0.0.10] - 2026-03-30
 
 - 修复：经典频道面板在 **无订阅 / 分组列表为空** 时打开会 `IndexOutOfBoundsException`（误用 `iptvGroupList[0]`）；空列表时回退为 `IptvGroup()`

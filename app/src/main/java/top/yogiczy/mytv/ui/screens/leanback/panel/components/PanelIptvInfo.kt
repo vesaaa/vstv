@@ -68,11 +68,14 @@ fun LeanbackPanelIptvInfo(
                         )
                     }
 
-                    // ipv4、iptv6标识
-                    Text(
-                        text = if (iptv.urlList[iptvUrlIdx].isIPv6()) "IPV6" else "IPV4",
-                        modifier = textModifier,
-                    )
+                    // ipv4/ipv6（无播放地址时不访问 urlList[0]，避免空列表崩溃）
+                    if (iptv.urlList.isNotEmpty()) {
+                        val urlIdx = iptvUrlIdx.coerceIn(iptv.urlList.indices)
+                        Text(
+                            text = if (iptv.urlList[urlIdx].isIPv6()) "IPV6" else "IPV4",
+                            modifier = textModifier,
+                        )
+                    }
                 }
             }
         }

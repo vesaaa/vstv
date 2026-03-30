@@ -143,11 +143,16 @@ fun LeanbackPanelIptvFavoriteList(
         modifier = Modifier
             .handleLeanbackKeyEvents(
                 onLeft = {
-                    currentShowEpgIptv = iptvList[max(0, iptvList.indexOf(currentShowEpgIptv) - 1)]
+                    if (iptvList.isNotEmpty()) {
+                        currentShowEpgIptv =
+                            iptvList[max(0, iptvList.indexOf(currentShowEpgIptv) - 1)]
+                    }
                 },
                 onRight = {
-                    currentShowEpgIptv =
-                        iptvList[min(iptvList.size - 1, iptvList.indexOf(currentShowEpgIptv) + 1)]
+                    if (iptvList.isNotEmpty()) {
+                        currentShowEpgIptv =
+                            iptvList[min(iptvList.size - 1, iptvList.indexOf(currentShowEpgIptv) + 1)]
+                    }
                 },
             ),
         onUserAction = onUserAction,
