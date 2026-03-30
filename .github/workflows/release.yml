@@ -91,13 +91,26 @@ jobs:
         run: |
           mkdir -p artifacts
           shopt -s nullglob
-          apks=(app/build/outputs/apk/release/*.apk)
+          cd app/build/outputs/apk/release
+          apks=(*.apk)
           if [ ${#apks[@]} -eq 0 ]; then
             echo "::error::未找到 release APK"
             exit 1
           fi
-          cp "${apks[0]}" "artifacts/vstv-${{ steps.ver.outputs.version }}-all-sdk21-original.apk"
-          ls -la artifacts/
+          echo "=== release 目录内 APK（用于核对体积）==="
+          ls -lh *.apk
+          # 优先使用标准单包名，避免误选其它产物
+          if [ -f app-release.apk ]; then
+            SRC="app-release.apk"
+          else
+            SRC="${apks[0]}"
+            echo "::notice::未找到 app-release.apk，使用: $SRC"
+          fi
+          SO_COUNT=$(unzip -l "$SRC" 2>/dev/null | grep -c '\.so$' || true)
+          echo "选中文件: $SRC，内含 .so 数量: $SO_COUNT"
+          cd "$GITHUB_WORKSPACE"
+          cp "app/build/outputs/apk/release/$SRC" "artifacts/vstv-${{ steps.ver.outputs.version }}-all-sdk21-original.apk"
+          ls -lh artifacts/
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
