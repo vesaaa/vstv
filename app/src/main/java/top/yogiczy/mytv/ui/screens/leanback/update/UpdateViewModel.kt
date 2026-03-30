@@ -17,7 +17,9 @@ import java.io.File
 class LeanBackUpdateViewModel : ViewModel() {
     private val log = Logger.create(javaClass.simpleName)
 
-    private var _isChecking = false
+    private var _isChecking by mutableStateOf(false)
+    val isChecking: Boolean get() = _isChecking
+
     private var _isUpdating = false
 
     private var _isUpdateAvailable by mutableStateOf(false)
@@ -29,18 +31,33 @@ class LeanBackUpdateViewModel : ViewModel() {
     private var _latestRelease by mutableStateOf(GitRelease())
     val latestRelease get() = _latestRelease
 
+    /** 是否至少成功拉取过一次 GitHub Latest（用于设置页展示「上游版本」） */
+    private var _hasRetrievedRemoteVersion by mutableStateOf(false)
+    val hasRetrievedRemoteVersion: Boolean get() = _hasRetrievedRemoteVersion
+
+    private var _lastCheckError by mutableStateOf<String?>(null)
+    val lastCheckError: String? get() = _lastCheckError
+
     var showDialog by mutableStateOf(false)
 
-    suspend fun checkUpdate(currentVersion: String) {
-        if (_isChecking) return
-        if (_isUpdateAvailable) return
-
-        try {
-            _isChecking = true
+    /**
+     * 从 [Constants.GIT_RELEASE_LATEST_URL] 拉取最新 Release，与当前安装版本比较。
+     * @return 是否成功完成请求与解析（网络失败等为 false，见 [lastCheckError]）
+     */
+    suspend fun checkUpdate(currentVersion: String): Boolean {
+        if (_isChecking) return false
+        _isChecking = true
+        _lastCheckError = null
+        return try {
             _latestRelease = GitRepository().latestRelease(Constants.GIT_RELEASE_LATEST_URL)
-            _isUpdateAvailable = _latestRelease.version.compareVersion(currentVersion) > 0
+            val cur = currentVersion.trim().removePrefix("v")
+            _isUpdateAvailable = _latestRelease.version.compareVersion(cur) > 0
+            _hasRetrievedRemoteVersion = true
+            true
         } catch (e: Exception) {
             log.e("检查更新失败", e)
+            _lastCheckError = e.message?.takeIf { it.isNotBlank() } ?: "检查失败，请检查网络"
+            false
         } finally {
             _isChecking = false
         }

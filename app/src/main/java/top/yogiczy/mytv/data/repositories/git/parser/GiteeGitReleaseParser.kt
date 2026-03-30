@@ -18,7 +18,7 @@ class GiteeGitReleaseParser : GitReleaseParser {
         val url = assets.pickVstvDefaultApkBrowserUrl()
             ?: assets[0].jsonObject["browser_download_url"]!!.jsonPrimitive.content
         return GitRelease(
-            version = json.getValue("tag_name").jsonPrimitive.content.substring(1),
+            version = json.getValue("tag_name").jsonPrimitive.content.removePrefix("v").trim(),
             downloadUrl = url,
             description = json.getValue("body").jsonPrimitive.content
         )

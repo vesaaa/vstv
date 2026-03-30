@@ -6,15 +6,19 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Switch
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.tv.foundation.lazy.list.TvLazyColumn
+import top.yogiczy.mytv.data.utils.Constants
 import top.yogiczy.mytv.ui.screens.leanback.settings.LeanbackSettingsViewModel
 import top.yogiczy.mytv.ui.theme.LeanbackTheme
+import top.yogiczy.mytv.ui.utils.SP
+import top.yogiczy.mytv.utils.humanizeMs
 
 @Composable
-fun LeanbackSettingsCategoryDebug(
+fun LeanbackSettingsCategoryNetwork(
     modifier: Modifier = Modifier,
     settingsViewModel: LeanbackSettingsViewModel = viewModel(),
 ) {
@@ -25,8 +29,26 @@ fun LeanbackSettingsCategoryDebug(
     ) {
         item {
             LeanbackSettingsCategoryListItem(
-                headlineContent = "显示FPS",
-                supportingContent = "在屏幕左上角显示fps和柱状图",
+                headlineContent = "HTTP 请求重试次数",
+                supportingContent = "影响直播源、节目单等数据拉取",
+                trailingContent = Constants.HTTP_RETRY_COUNT.toString(),
+                locK = true,
+            )
+        }
+
+        item {
+            LeanbackSettingsCategoryListItem(
+                headlineContent = "HTTP 请求重试间隔",
+                supportingContent = "影响直播源、节目单等数据拉取",
+                trailingContent = Constants.HTTP_RETRY_INTERVAL.humanizeMs(),
+                locK = true,
+            )
+        }
+
+        item {
+            LeanbackSettingsCategoryListItem(
+                headlineContent = "显示 FPS",
+                supportingContent = "在屏幕左上角显示 fps 与柱状图",
                 trailingContent = {
                     Switch(checked = settingsViewModel.debugShowFps, onCheckedChange = null)
                 },
@@ -39,11 +61,11 @@ fun LeanbackSettingsCategoryDebug(
         item {
             LeanbackSettingsCategoryListItem(
                 headlineContent = "显示播放器信息",
-                supportingContent = "显示播放器详细信息（编码、解码器、采样率等）",
+                supportingContent = "显示编码、解码器、采样率等",
                 trailingContent = {
                     Switch(
                         checked = settingsViewModel.debugShowVideoPlayerMetadata,
-                        onCheckedChange = null
+                        onCheckedChange = null,
                     )
                 },
                 onSelected = {
@@ -70,10 +92,9 @@ fun LeanbackSettingsCategoryDebug(
 
 @Preview
 @Composable
-private fun LeanbackSettingsCategoryDebugPreview() {
+private fun LeanbackSettingsCategoryNetworkPreview() {
+    SP.init(LocalContext.current)
     LeanbackTheme {
-        LeanbackSettingsCategoryDebug(
-            modifier = Modifier.padding(20.dp)
-        )
+        LeanbackSettingsCategoryNetwork(modifier = Modifier.padding(20.dp))
     }
 }

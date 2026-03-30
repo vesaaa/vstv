@@ -30,9 +30,8 @@ fun LeanbackSettingsCategoryContent(
             LeanbackSettingsCategories.EPG -> LeanbackSettingsCategoryEpg()
             LeanbackSettingsCategories.UI -> LeanbackSettingsCategoryUI()
             LeanbackSettingsCategories.FAVORITE -> LeanbackSettingsCategoryFavorite()
-            LeanbackSettingsCategories.UPDATE -> LeanbackSettingsCategoryUpdate()
             LeanbackSettingsCategories.VIDEO_PLAYER -> LeanbackSettingsCategoryVideoPlayer()
-            LeanbackSettingsCategories.DEBUG -> LeanbackSettingsCategoryDebug()
+            LeanbackSettingsCategories.NETWORK -> LeanbackSettingsCategoryNetwork()
             LeanbackSettingsCategories.LOG -> LeanbackSettingsCategoryLog(
                 history = Logger.history,
             )

@@ -1,18 +1,23 @@
 package top.yogiczy.mytv.ui.screens.leanback.settings.components
 
+import android.content.pm.PackageInfo
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Switch
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.tv.foundation.lazy.list.TvLazyColumn
+import kotlinx.coroutines.launch
 import top.yogiczy.mytv.ui.screens.leanback.settings.LeanbackSettingsViewModel
+import top.yogiczy.mytv.ui.screens.leanback.toast.LeanbackToastState
 import top.yogiczy.mytv.ui.screens.leanback.update.LeanBackUpdateViewModel
 import top.yogiczy.mytv.ui.theme.LeanbackTheme
 import top.yogiczy.mytv.ui.utils.SP
@@ -23,6 +28,12 @@ fun LeanbackSettingsCategoryApp(
     settingsViewModel: LeanbackSettingsViewModel = viewModel(),
     updateViewModel: LeanBackUpdateViewModel = viewModel(),
 ) {
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    val packageInfo: PackageInfo = remember(context) {
+        context.packageManager.getPackageInfo(context.packageName, 0)
+    }
+    val localVer = packageInfo.versionName ?: "0.0.0"
 
     TvLazyColumn(
         modifier = modifier,
@@ -43,8 +54,6 @@ fun LeanbackSettingsCategoryApp(
         }
 
         item {
-            val context = LocalContext.current
-
             LeanbackSettingsCategoryListItem(
                 headlineContent = "显示模式",
                 supportingContent = "短按切换应用显示模式",
@@ -55,9 +64,6 @@ fun LeanbackSettingsCategoryApp(
                 },
                 onSelected = {
                     Toast.makeText(context, "暂未开放", Toast.LENGTH_SHORT).show()
-//                    settingsViewModel.appDeviceDisplayType = SP.AppDeviceDisplayType.entries[
-//                        (settingsViewModel.appDeviceDisplayType.ordinal + 1) % SP.AppDeviceDisplayType.entries.size
-//                    ]
                 },
             )
         }
@@ -65,11 +71,37 @@ fun LeanbackSettingsCategoryApp(
         item {
             LeanbackSettingsCategoryListItem(
                 headlineContent = "应用更新",
-                supportingContent = "最新版本：v${updateViewModel.latestRelease.version}",
-                trailingContent = if (updateViewModel.isUpdateAvailable) "发现新版本" else "无更新",
+                supportingContent = when {
+                    updateViewModel.isChecking -> "正在连接 GitHub Releases…"
+                    updateViewModel.hasRetrievedRemoteVersion -> {
+                        "当前安装 v$localVer；上游最新 v${updateViewModel.latestRelease.version}"
+                    }
+                    else -> "短按从 GitHub 检查新版本（不再在启动时自动检查）"
+                },
+                trailingContent = when {
+                    updateViewModel.isChecking -> "…"
+                    updateViewModel.hasRetrievedRemoteVersion && updateViewModel.isUpdateAvailable -> "可更新"
+                    updateViewModel.hasRetrievedRemoteVersion -> "已最新"
+                    else -> "检查更新"
+                },
                 onSelected = {
-                    if (updateViewModel.isUpdateAvailable)
-                        updateViewModel.showDialog = true
+                    coroutineScope.launch {
+                        val ok = updateViewModel.checkUpdate(localVer)
+                        if (!ok) {
+                            LeanbackToastState.I.showToast(
+                                updateViewModel.lastCheckError ?: "检查失败",
+                            )
+                            return@launch
+                        }
+                        if (updateViewModel.isUpdateAvailable) {
+                            LeanbackToastState.I.showToast(
+                                "发现新版本：v${updateViewModel.latestRelease.version}",
+                            )
+                            updateViewModel.showDialog = true
+                        } else {
+                            LeanbackToastState.I.showToast("当前已是最新版本")
+                        }
+                    }
                 },
             )
         }

@@ -88,10 +88,16 @@ fun LeanbackSettingsCategoryEpg(
 
             LeanbackSettingsCategoryListItem(
                 headlineContent = "节目单与默认",
-                supportingContent = if (SP.isEpgXmlUrlStoredBlank) {
-                    "当前默认：应用内置"
-                } else {
-                    settingsViewModel.epgXmlUrl
+                supportingContent = buildString {
+                    append("内置默认地址：")
+                    append(Constants.EPG_XML_URL)
+                    append("\n")
+                    if (SP.isEpgXmlUrlStoredBlank) {
+                        append("当前使用：内置默认")
+                    } else {
+                        append("当前使用：")
+                        append(settingsViewModel.epgXmlUrl)
+                    }
                 },
                 trailingContent = if (SP.isEpgXmlUrlStoredBlank) "内置默认" else "自定义地址",
                 onSelected = { showDialog = true },
