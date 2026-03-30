@@ -1,10 +1,8 @@
-# 打标签后构建 4 个 release APK 并发布到 GitHub Releases。
+# 打标签后构建 2 个 release APK 并发布到 GitHub Releases。
 #
 # 产物（与常见 mytv 命名对齐，前缀为 vstv）：
 #   vstv-<ver>-all-sdk21-original.apk
 #   vstv-<ver>-all-sdk21-disguised.apk
-#   vstv-<ver>-arm64-v8a-sdk21-original-X5.apk
-#   vstv-<ver>-armeabi-v7a-sdk21-original-X5.apk
 #
 # 标签：v*.*.*、v*.*.*-*（本 fork 仅使用 v0.0.x 发行线）
 # Secret（可选）：KEYSTORE_BASE64、KEYSTORE_PASSWORD、KEY_ALIAS、KEY_PASSWORD；未配置则用 Debug 签名。
@@ -143,8 +141,6 @@ jobs:
 
           copy_flavor "original" "$ROOT/artifacts/vstv-${VER}-all-sdk21-original.apk"
           copy_flavor "disguised" "$ROOT/artifacts/vstv-${VER}-all-sdk21-disguised.apk"
-          copy_flavor "originalX5Arm64" "$ROOT/artifacts/vstv-${VER}-arm64-v8a-sdk21-original-X5.apk"
-          copy_flavor "originalX5Armeabi" "$ROOT/artifacts/vstv-${VER}-armeabi-v7a-sdk21-original-X5.apk"
 
           echo "=== 即将上传的 artifacts ==="
           ls -lh "$ROOT/artifacts/"

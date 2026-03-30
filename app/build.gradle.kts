@@ -27,7 +27,7 @@ fun semverToVersionCode(versionName: String): Int {
         parts[2].coerceIn(0, 999)
 }
 
-val defaultVersionName = "0.0.11"
+val defaultVersionName = "0.0.12"
 val resolvedVersionName = releaseVersion.ifEmpty { defaultVersionName }
 val resolvedVersionCode =
     (project.findProperty("versionCode") as String?)?.toIntOrNull()
@@ -61,7 +61,6 @@ android {
     productFlavors {
         create("original") {
             dimension = "dist"
-            buildConfigField("boolean", "USE_X5", "false")
             ndk {
                 abiFilters.clear()
                 abiFilters.addAll(listOf("armeabi-v7a", "arm64-v8a", "x86_64"))
@@ -70,37 +69,11 @@ android {
         create("disguised") {
             dimension = "dist"
             applicationId = "com.chinablue.tv"
-            buildConfigField("boolean", "USE_X5", "false")
             resValue("string", "app_name", "Z视介")
             ndk {
                 abiFilters.clear()
                 abiFilters.addAll(listOf("armeabi-v7a", "arm64-v8a", "x86_64"))
             }
-        }
-        create("originalX5Arm64") {
-            dimension = "dist"
-            buildConfigField("boolean", "USE_X5", "true")
-            ndk {
-                abiFilters.clear()
-                abiFilters.add("arm64-v8a")
-            }
-        }
-        create("originalX5Armeabi") {
-            dimension = "dist"
-            buildConfigField("boolean", "USE_X5", "true")
-            ndk {
-                abiFilters.clear()
-                abiFilters.add("armeabi-v7a")
-            }
-        }
-    }
-
-    sourceSets {
-        getByName("originalX5Arm64") {
-            java.srcDir("src/x5/java")
-        }
-        getByName("originalX5Armeabi") {
-            java.srcDir("src/x5/java")
         }
     }
 
@@ -190,10 +163,6 @@ dependencies {
     implementation(libs.qrose)
 
     implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.aar"))))
-
-    val tbsSdk = "com.tencent.tbs:tbssdk:44286"
-    add("originalX5Arm64Implementation", tbsSdk)
-    add("originalX5ArmeabiImplementation", tbsSdk)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

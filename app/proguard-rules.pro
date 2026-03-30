@@ -19,7 +19,3 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
-
-# 腾讯 X5（TBS）
--keep class com.tencent.smtt.** { *; }
--dontwarn com.tencent.smtt.**

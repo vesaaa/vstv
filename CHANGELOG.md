@@ -2,6 +2,10 @@
 
 应用展示名 **VsTV**；仓库与构建标识仍为 **vstv**。发行线使用 **`v0.0.x`** 标签与版本号。历史 `v1.x` / `tv*` 等标签已从本 fork 移除（原为上游同步残留）。
 
+## [0.0.12] - 2026-03-30
+
+- 构建：移除腾讯 **X5（TBS）** 相关 productFlavor（`originalX5Arm64` / `originalX5Armeabi`）、`tbssdk` 依赖、`src/x5`、`USE_X5` / `BuildConfig` 字段、ProGuard 保留规则、`settings` 中腾讯 Maven 镜像；Release 工作流仅上传 **original** 与 **disguised** 两个 APK
+
 ## [0.0.11] - 2026-03-30
 
 - 修复：`LeanbackPanelIptvInfo` 在 **`urlList` 为空**（无订阅、占位频道、解析异常）时仍读 `urlList[iptvUrlIdx]`，导致与此前相同的 `Empty list doesn't contain element at index 0`（快捷面板、节目面板底栏等均会组合该组件）
