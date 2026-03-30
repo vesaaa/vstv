@@ -11,6 +11,7 @@ import top.yogiczy.mytv.data.repositories.FileCacheRepository
 import top.yogiczy.mytv.data.repositories.iptv.parser.IptvParser
 import top.yogiczy.mytv.utils.AppOkHttp
 import top.yogiczy.mytv.utils.Logger
+import top.yogiczy.mytv.utils.normalizeIptvRequestHeadersInput
 import top.yogiczy.mytv.utils.parseHttpHeaderLines
 import top.yogiczy.mytv.utils.toOkHttpHeaders
 
@@ -28,7 +29,7 @@ class IptvRepository : FileCacheRepository("iptv.txt") {
         log.d("获取远程直播源: $sourceUrl")
 
         val client = AppOkHttp.client()
-        val headerMap = requestHeadersText.parseHttpHeaderLines()
+        val headerMap = normalizeIptvRequestHeadersInput(requestHeadersText).parseHttpHeaderLines()
         val reqBuilder = Request.Builder().url(sourceUrl)
         if (headerMap.isNotEmpty()) {
             reqBuilder.headers(headerMap.toOkHttpHeaders())

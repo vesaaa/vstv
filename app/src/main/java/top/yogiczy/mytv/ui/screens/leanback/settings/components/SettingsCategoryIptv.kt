@@ -122,13 +122,13 @@ fun LeanbackSettingsCategoryIptv(
             var showDialog by remember { mutableStateOf(false) }
 
             LeanbackSettingsCategoryListItem(
-                headlineContent = "自定义直播源",
+                headlineContent = "直播源与默认",
                 supportingContent = if (settingsViewModel.iptvSourceUrl.isNotBlank()) {
                     settingsViewModel.iptvSourceUrl
                 } else {
-                    "未配置，请扫码或网页推送 m3u/tvbox 链接"
+                    "未设置默认：请扫码或网页推送；多源时在列表中选「当前默认」"
                 },
-                trailingContent = if (settingsViewModel.iptvSourceUrl.isNotBlank()) "已配置" else "未配置",
+                trailingContent = if (settingsViewModel.iptvSourceUrl.isNotBlank()) "当前默认" else "未设置",
                 onSelected = { showDialog = true },
                 remoteConfig = true,
             )
@@ -136,7 +136,8 @@ fun LeanbackSettingsCategoryIptv(
             LeanbackSettingsIptvSourceHistoryDialog(showDialogProvider = { showDialog },
                 onDismissRequest = { showDialog = false },
                 iptvSourceHistoryProvider = {
-                    settingsViewModel.iptvSourceUrlHistoryList.filter { it.isNotBlank() }.toImmutableList()
+                    settingsViewModel.iptvSourceUrlHistoryList.filter { it.isNotBlank() }.sorted()
+                        .toImmutableList()
                 },
                 currentIptvSourceProvider = { settingsViewModel.iptvSourceUrl },
                 onSelected = {
@@ -185,8 +186,8 @@ private fun LeanbackSettingsIptvSourceHistoryDialog(
             properties = DialogProperties(usePlatformDefaultWidth = false),
             modifier = modifier,
             onDismissRequest = onDismissRequest,
-            confirmButton = { Text(text = "短按切换；长按删除历史记录") },
-            title = { Text("历史直播源") },
+            confirmButton = { Text(text = "短按设为当前默认；长按从列表删除") },
+            title = { Text("选择默认直播源") },
             text = {
                 var hasFocused by remember { mutableStateOf(false) }
 
@@ -227,7 +228,7 @@ private fun LeanbackSettingsIptvSourceHistoryDialog(
                             headlineContent = {
                                 androidx.tv.material3.Text(
                                     text = if (source.isBlank()) {
-                                        "未配置直播源（扫码或网页添加）"
+                                        "无（清除当前默认订阅）"
                                     } else {
                                         source
                                     },

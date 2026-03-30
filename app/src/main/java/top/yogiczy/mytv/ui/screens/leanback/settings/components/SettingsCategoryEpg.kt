@@ -87,10 +87,13 @@ fun LeanbackSettingsCategoryEpg(
             var showDialog by remember { mutableStateOf(false) }
 
             LeanbackSettingsCategoryListItem(
-                headlineContent = "自定义节目单",
-                supportingContent = if (settingsViewModel.epgXmlUrl != Constants.EPG_XML_URL)
-                    settingsViewModel.epgXmlUrl else null,
-                trailingContent = if (settingsViewModel.epgXmlUrl != Constants.EPG_XML_URL) "已启用" else "未启用",
+                headlineContent = "节目单与默认",
+                supportingContent = if (SP.isEpgXmlUrlStoredBlank) {
+                    "当前默认：应用内置"
+                } else {
+                    settingsViewModel.epgXmlUrl
+                },
+                trailingContent = if (SP.isEpgXmlUrlStoredBlank) "内置默认" else "自定义地址",
                 onSelected = { showDialog = true },
                 remoteConfig = true,
             )
@@ -148,8 +151,8 @@ private fun LeanbackSettingsEpgSourceHistoryDialog(
             properties = DialogProperties(usePlatformDefaultWidth = false),
             modifier = modifier,
             onDismissRequest = onDismissRequest,
-            confirmButton = { Text(text = "短按切换；长按删除历史记录") },
-            title = { Text("历史节目单") },
+            confirmButton = { Text(text = "短按设为当前默认；长按从列表删除") },
+            title = { Text("选择默认节目单") },
             text = {
                 var hasFocused by remember { mutableStateOf(false) }
 
@@ -189,7 +192,7 @@ private fun LeanbackSettingsEpgSourceHistoryDialog(
                             onClick = { },
                             headlineContent = {
                                 androidx.tv.material3.Text(
-                                    text = if (url == Constants.EPG_XML_URL) "默认节目单" else url,
+                                    text = if (url == Constants.EPG_XML_URL) "应用内置默认" else url,
                                     modifier = Modifier.fillMaxWidth(),
                                     maxLines = if (isFocused) Int.MAX_VALUE else 2,
                                 )

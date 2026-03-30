@@ -195,7 +195,7 @@ object SP {
         get() = sp.getString(KEY.IPTV_SOURCE_URL.name, "") ?: ""
         set(value) = sp.edit().putString(KEY.IPTV_SOURCE_URL.name, value).apply()
 
-    /** 拉取 m3u/tvbox 订阅时使用的额外请求头（每行「Name: Value」） */
+    /** 拉取 m3u/tvbox 订阅时使用的额外请求头（每行「Name: Value」；单行无冒号时视为仅 User-Agent 取值） */
     var iptvSourceRequestHeaders: String
         get() = sp.getString(KEY.IPTV_SOURCE_REQUEST_HEADERS.name, "") ?: ""
         set(value) = sp.edit().putString(KEY.IPTV_SOURCE_REQUEST_HEADERS.name, value).apply()

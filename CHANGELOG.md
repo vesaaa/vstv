@@ -2,6 +2,12 @@
 
 应用展示名 **VsTV**；仓库与构建标识仍为 **vstv**。发行线使用 **`v0.0.x`** 标签与版本号。历史 `v1.x` / `tv*` 等标签已从本 fork 移除（原为上游同步残留）。
 
+## [0.0.18] - 2026-03-30
+
+- 订阅请求头：`normalizeIptvRequestHeadersInput`，单行无冒号视为仅填 **User-Agent 取值**；网页与 `IptvRepository` / `HttpServer` / `MainViewModel` 写入一致
+- 网页：UA 表单只填取值（如 `okHttp/Mod-1.5.0.0`）；`GET /api/settings` 不再返回节目单 URL；节目单仅在有填写时推送，留空不修改；文案强调默认在电视端选择
+- 设置：移除「网络」分类（`SettingsCategoryHttp`）；直播源 / 节目单对话框与列表文案突出 **选择默认**；历史直播源列表排序展示
+
 ## [0.0.17] - 2026-03-30
 
 - 网页：移除调试区、日志 Tab、APK 上传；`GET /api/settings` 不再返回历史列表与调试日志；`POST /api/settings` 仅更新 JSON 中出现的字段，避免网页推送误改电视端调试开关

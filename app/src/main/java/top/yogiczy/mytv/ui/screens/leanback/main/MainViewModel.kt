@@ -20,6 +20,7 @@ import top.yogiczy.mytv.data.repositories.epg.EpgRepository
 import top.yogiczy.mytv.data.repositories.iptv.IptvRepository
 import top.yogiczy.mytv.data.utils.Constants
 import top.yogiczy.mytv.ui.utils.SP
+import top.yogiczy.mytv.utils.normalizeIptvRequestHeadersInput
 
 class LeanbackMainViewModel : ViewModel() {
     private val iptvRepository = IptvRepository()
@@ -69,7 +70,11 @@ class LeanbackMainViewModel : ViewModel() {
                 _uiState.value = LeanbackMainUiState.Ready(iptvGroupList = it)
                 if (SP.iptvSourceUrl.isNotBlank()) {
                     SP.iptvSourceUrlHistoryList += SP.iptvSourceUrl
-                    SP.putIptvSourceHeadersForUrl(SP.iptvSourceUrl, SP.iptvSourceRequestHeaders)
+                    val headersNorm = normalizeIptvRequestHeadersInput(SP.iptvSourceRequestHeaders)
+                    if (headersNorm != SP.iptvSourceRequestHeaders) {
+                        SP.iptvSourceRequestHeaders = headersNorm
+                    }
+                    SP.putIptvSourceHeadersForUrl(SP.iptvSourceUrl, headersNorm)
                 }
                 it
             }

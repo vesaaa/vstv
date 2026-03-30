@@ -20,6 +20,7 @@ import top.yogiczy.mytv.data.repositories.iptv.IptvRepository
 import top.yogiczy.mytv.data.utils.Constants
 import top.yogiczy.mytv.utils.LanIpResolver
 import top.yogiczy.mytv.utils.Loggable
+import top.yogiczy.mytv.utils.normalizeIptvRequestHeadersInput
 
 object HttpServer : Loggable() {
     const val SERVER_PORT = 1616
@@ -124,8 +125,6 @@ object HttpServer : Loggable() {
                         httpServerAdvertiseIp = SP.httpServerAdvertiseIp,
                         lanIPv4Candidates = LanIpResolver.lanIPv4Candidates(ctx),
                         settingsPageUrl = serverUrl(),
-                        epgXmlUrl = SP.epgXmlUrl,
-                        epgXmlUrlUsesBuiltinDefault = SP.isEpgXmlUrlStoredBlank,
                         videoPlayerUserAgent = SP.videoPlayerUserAgent,
                     )
                 )
@@ -162,7 +161,7 @@ object HttpServer : Loggable() {
                 if (body.has("iptvSourceUrl")) body.optString("iptvSourceUrl", "") else SP.iptvSourceUrl
             val iptvSourceRequestHeaders =
                 if (body.has("iptvSourceRequestHeaders")) {
-                    body.optString("iptvSourceRequestHeaders", "")
+                    normalizeIptvRequestHeadersInput(body.optString("iptvSourceRequestHeaders", ""))
                 } else {
                     SP.iptvSourceRequestHeaders
                 }
@@ -212,8 +211,6 @@ private data class AllSettings(
     val httpServerAdvertiseIp: String = "",
     val lanIPv4Candidates: List<String> = emptyList(),
     val settingsPageUrl: String = "",
-    val epgXmlUrl: String,
-    val epgXmlUrlUsesBuiltinDefault: Boolean = false,
     val videoPlayerUserAgent: String,
 )
 
