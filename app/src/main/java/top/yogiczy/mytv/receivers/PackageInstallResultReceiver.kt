@@ -4,13 +4,16 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageInstaller
-import android.content.pm.PackageManager
 import android.os.Handler
 import android.os.Looper
 import android.widget.Toast
 import top.yogiczy.mytv.ui.screens.leanback.toast.LeanbackToastProperty
 import top.yogiczy.mytv.ui.screens.leanback.toast.LeanbackToastState
 import top.yogiczy.mytv.utils.ApkInstaller
+
+// PackageManager.INSTALL_FAILED_* 在应用 SDK 存根中可能不可见，数值与 AOSP 一致
+private const val LEGACY_INSTALL_FAILED_UPDATE_INCOMPATIBLE = -7
+private const val LEGACY_INSTALL_FAILED_SHARED_USER_INCOMPATIBLE = -8
 
 private val installConflictHint = buildString {
     append("无法覆盖安装：新安装包与当前已装应用的签名不一致。")
@@ -52,8 +55,8 @@ class PackageInstallResultReceiver : BroadcastReceiver() {
     }
 
     private fun buildFailureMessage(status: Int, legacy: Int, systemMsg: String?): String {
-        if (legacy == PackageManager.INSTALL_FAILED_UPDATE_INCOMPATIBLE ||
-            legacy == PackageManager.INSTALL_FAILED_SHARED_USER_INCOMPATIBLE
+        if (legacy == LEGACY_INSTALL_FAILED_UPDATE_INCOMPATIBLE ||
+            legacy == LEGACY_INSTALL_FAILED_SHARED_USER_INCOMPATIBLE
         ) {
             return installConflictHint
         }
