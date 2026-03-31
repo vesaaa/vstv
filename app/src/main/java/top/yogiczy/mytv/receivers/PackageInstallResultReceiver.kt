@@ -11,7 +11,12 @@ import top.yogiczy.mytv.ui.screens.leanback.toast.LeanbackToastProperty
 import top.yogiczy.mytv.ui.screens.leanback.toast.LeanbackToastState
 import top.yogiczy.mytv.utils.ApkInstaller
 
-// PackageManager.INSTALL_FAILED_* 在应用 SDK 存根中可能不可见，数值与 AOSP 一致
+// 部分 PackageInstaller 常量在 compileSdk 应用存根中不可见，与 AOSP 一致
+private const val EXTRA_STATUS = "android.content.pm.extra.STATUS"
+private const val EXTRA_STATUS_MESSAGE = "android.content.pm.extra.STATUS_MESSAGE"
+private const val EXTRA_LEGACY_STATUS = "android.content.pm.extra.LEGACY_STATUS"
+
+// PackageManager.INSTALL_FAILED_* 同理，数值与 AOSP 一致
 private const val LEGACY_INSTALL_FAILED_UPDATE_INCOMPATIBLE = -7
 private const val LEGACY_INSTALL_FAILED_SHARED_USER_INCOMPATIBLE = -8
 
@@ -29,12 +34,9 @@ class PackageInstallResultReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != ApkInstaller.ACTION_INSTALL_RESULT) return
 
-        val status = intent.getIntExtra(
-            PackageInstaller.EXTRA_STATUS,
-            PackageInstaller.STATUS_FAILURE,
-        )
-        val legacy = intent.getIntExtra(PackageInstaller.EXTRA_LEGACY_STATUS, 0)
-        val systemMsg = intent.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE)
+        val status = intent.getIntExtra(EXTRA_STATUS, PackageInstaller.STATUS_FAILURE)
+        val legacy = intent.getIntExtra(EXTRA_LEGACY_STATUS, 0)
+        val systemMsg = intent.getStringExtra(EXTRA_STATUS_MESSAGE)
 
         if (status == PackageInstaller.STATUS_SUCCESS) return
 
