@@ -5,12 +5,13 @@ import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.LiveTv
 import androidx.compose.material3.Icon
@@ -19,7 +20,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -28,19 +28,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.focusRestorer
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.tv.foundation.lazy.grid.TvGridCells
-import androidx.tv.foundation.lazy.grid.TvLazyVerticalGrid
-import androidx.tv.foundation.lazy.grid.itemsIndexed
+import top.yogiczy.mytv.ui.screens.leanback.settings.LeanbackSettingsCategories
 import top.yogiczy.mytv.ui.screens.leanback.settings.LeanbackSettingsMenuItem
 import top.yogiczy.mytv.ui.theme.LeanbackTheme
 import top.yogiczy.mytv.ui.utils.handleLeanbackKeyEvents
@@ -49,55 +45,59 @@ import top.yogiczy.mytv.ui.utils.handleLeanbackKeyEvents
 @Composable
 fun LeanbackSettingsCategoryList(
     modifier: Modifier = Modifier,
-    focusedMenuItemProvider: () -> LeanbackSettingsMenuItem = { LeanbackSettingsMenuItem.ReturnLive },
-    onMenuItemFocused: (LeanbackSettingsMenuItem) -> Unit = {},
+    onCategoryOpen: (LeanbackSettingsCategories) -> Unit = {},
     onReturnLive: () -> Unit = {},
 ) {
     val menuItems = remember { LeanbackSettingsMenuItem.all() }
     var hasInitialFocus by rememberSaveable { mutableStateOf(false) }
+    val scrollState = rememberScrollState()
 
-    TvLazyVerticalGrid(
-        columns = TvGridCells.Fixed(2),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-        contentPadding = PaddingValues(vertical = 4.dp),
-        modifier = modifier.focusRestorer(),
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .focusRestorer()
+            .verticalScroll(scrollState),
     ) {
-        itemsIndexed(menuItems) { index, item ->
-            val isSelected by remember {
-                derivedStateOf { focusedMenuItemProvider() == item }
-            }
-            val focusRequester = remember { FocusRequester() }
-            LaunchedEffect(Unit) {
-                if (index == 0 && !hasInitialFocus) {
-                    focusRequester.requestFocus()
-                    hasInitialFocus = true
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(20.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp),
+        ) {
+            menuItems.forEachIndexed { index, item ->
+                val focusRequester = remember { FocusRequester() }
+                LaunchedEffect(Unit) {
+                    if (index == 0 && !hasInitialFocus) {
+                        focusRequester.requestFocus()
+                        hasInitialFocus = true
+                    }
                 }
-            }
 
-            val icon: ImageVector
-            val title: String
-            when (item) {
-                LeanbackSettingsMenuItem.ReturnLive -> {
-                    icon = Icons.Default.LiveTv
-                    title = "返回直播"
+                val icon: ImageVector
+                val title: String
+                when (item) {
+                    LeanbackSettingsMenuItem.ReturnLive -> {
+                        icon = Icons.Default.LiveTv
+                        title = "返回直播"
+                    }
+                    is LeanbackSettingsMenuItem.Category -> {
+                        icon = item.value.icon
+                        title = item.value.title
+                    }
                 }
-                is LeanbackSettingsMenuItem.Category -> {
-                    icon = item.value.icon
-                    title = item.value.title
-                }
-            }
 
-            SettingsMenuTile(
-                modifier = Modifier.fillMaxWidth(),
-                tileFocusRequester = focusRequester,
-                icon = icon,
-                title = title,
-                selected = isSelected,
-                onFocused = { onMenuItemFocused(item) },
-                isReturnLive = item is LeanbackSettingsMenuItem.ReturnLive,
-                onReturnLive = onReturnLive,
-            )
+                SettingsMenuTile(
+                    modifier = Modifier.size(120.dp),
+                    tileFocusRequester = focusRequester,
+                    icon = icon,
+                    title = title,
+                    onActivate = {
+                        when (item) {
+                            LeanbackSettingsMenuItem.ReturnLive -> onReturnLive()
+                            is LeanbackSettingsMenuItem.Category -> onCategoryOpen(item.value)
+                        }
+                    },
+                )
+            }
         }
     }
 }
@@ -108,69 +108,54 @@ private fun SettingsMenuTile(
     tileFocusRequester: FocusRequester,
     icon: ImageVector,
     title: String,
-    selected: Boolean,
-    onFocused: () -> Unit,
-    isReturnLive: Boolean,
-    onReturnLive: () -> Unit,
+    onActivate: () -> Unit,
 ) {
-    val focusManager = LocalFocusManager.current
     var isFocused by remember { mutableStateOf(false) }
 
     Surface(
         modifier = modifier
-            .aspectRatio(1f)
             .focusRequester(tileFocusRequester)
             .focusable()
             .onFocusChanged {
                 isFocused = it.isFocused || it.hasFocus
-                if (isFocused) onFocused()
             }
             .handleLeanbackKeyEvents(
                 onSelect = {
                     if (!isFocused) {
                         tileFocusRequester.requestFocus()
-                    } else if (isReturnLive) {
-                        onReturnLive()
                     } else {
-                        focusManager.moveFocus(FocusDirection.Right)
-                    }
-                },
-                onRight = {
-                    if (isFocused && !isReturnLive) {
-                        focusManager.moveFocus(FocusDirection.Right)
+                        onActivate()
                     }
                 },
             ),
-        shape = MaterialTheme.shapes.medium,
+        shape = MaterialTheme.shapes.large,
         color = when {
             isFocused -> MaterialTheme.colorScheme.primaryContainer
-            selected -> MaterialTheme.colorScheme.secondaryContainer
             else -> MaterialTheme.colorScheme.surfaceVariant
         },
         border = BorderStroke(
-            width = if (isFocused) 2.dp else 1.dp,
+            width = if (isFocused) 3.dp else 1.dp,
             color = when {
                 isFocused -> MaterialTheme.colorScheme.primary
-                selected -> MaterialTheme.colorScheme.outline
                 else -> MaterialTheme.colorScheme.outlineVariant
             },
         ),
-        tonalElevation = if (isFocused) 4.dp else 0.dp,
+        tonalElevation = if (isFocused) 6.dp else 0.dp,
     ) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(10.dp),
+                .padding(12.dp),
             contentAlignment = Alignment.Center,
         ) {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
-                    modifier = Modifier.size(32.dp),
+                    modifier = Modifier.size(40.dp),
                 )
                 Text(
                     text = title,
