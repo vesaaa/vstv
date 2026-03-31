@@ -122,6 +122,8 @@ object HttpServer : Loggable() {
                         serverPort = SERVER_PORT,
                         iptvSourceUrl = SP.iptvSourceUrl,
                         iptvSourceRequestHeaders = SP.iptvSourceRequestHeaders,
+                        epgXmlUrl = SP.epgXmlUrl,
+                        epgXmlRequestHeaders = SP.epgXmlRequestHeaders,
                         httpServerAdvertiseIp = SP.httpServerAdvertiseIp,
                         lanIPv4Candidates = LanIpResolver.lanIPv4Candidates(ctx),
                         settingsPageUrl = serverUrl(),
@@ -179,15 +181,34 @@ object HttpServer : Loggable() {
             }
         }
 
-        if (body.has("epgXmlUrl")) {
-            val epgXmlUrl = body.optString("epgXmlUrl", "")
-            if (SP.epgXmlUrl != epgXmlUrl) {
-                SP.epgXmlUrl = epgXmlUrl
-                EpgRepository().clearCache()
+        if (body.has("epgXmlUrl") || body.has("epgXmlRequestHeaders")) {
+            val headersNorm = if (body.has("epgXmlRequestHeaders")) {
+                normalizeIptvRequestHeadersInput(body.optString("epgXmlRequestHeaders", ""))
+            } else {
+                SP.epgXmlRequestHeaders
+            }
+            val urlFromBody = body.optString("epgXmlUrl", "").trim()
+            when {
+                urlFromBody.isNotBlank() -> {
+                    val epgChanged = SP.epgXmlUrl != urlFromBody || SP.epgXmlRequestHeaders != headersNorm
+                    if (epgChanged) {
+                        SP.commitEpgWebSettings(urlFromBody, headersNorm)
+                        EpgRepository().clearCache()
+                    }
+                }
+                body.has("epgXmlRequestHeaders") -> {
+                    val u = SP.epgXmlUrl
+                    if (SP.epgXmlRequestHeaders != headersNorm) {
+                        SP.commitEpgWebSettings(u, headersNorm)
+                        EpgRepository().clearCache()
+                    }
+                }
             }
         }
 
-        if (body.has("iptvSourceUrl") || body.has("iptvSourceRequestHeaders") || body.has("epgXmlUrl")) {
+        if (body.has("iptvSourceUrl") || body.has("iptvSourceRequestHeaders") ||
+            body.has("epgXmlUrl") || body.has("epgXmlRequestHeaders")
+        ) {
             WebPushConfigNotifier.notifyConfigMayHaveChanged()
         }
 
@@ -203,6 +224,8 @@ private data class AllSettings(
     val serverPort: Int = HttpServer.SERVER_PORT,
     val iptvSourceUrl: String,
     val iptvSourceRequestHeaders: String = "",
+    val epgXmlUrl: String = "",
+    val epgXmlRequestHeaders: String = "",
     val httpServerAdvertiseIp: String = "",
     val lanIPv4Candidates: List<String> = emptyList(),
     val settingsPageUrl: String = "",

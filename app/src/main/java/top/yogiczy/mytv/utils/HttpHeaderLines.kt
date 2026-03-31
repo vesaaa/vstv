@@ -46,3 +46,12 @@ fun Map<String, String>.toOkHttpHeaders(): Headers {
     }
     return b.build()
 }
+
+/** 从多行请求头文本中提取 User-Agent 取值（用于设置页摘要）；未配置时返回空串 */
+fun userAgentValueFromHeadersText(text: String): String {
+    val norm = normalizeIptvRequestHeadersInput(text)
+    if (norm.isBlank()) return ""
+    return norm.parseHttpHeaderLines().entries
+        .firstOrNull { it.key.equals("User-Agent", ignoreCase = true) }
+        ?.value?.trim().orEmpty()
+}

@@ -104,6 +104,12 @@ object SP {
         /** 节目单历史列表 */
         EPG_XML_URL_HISTORY_LIST,
 
+        /** 节目单拉取时附加的 HTTP 请求头（与当前节目单 URL 绑定；多行 Name: Value） */
+        EPG_XML_REQUEST_HEADERS,
+
+        /** 各节目单 URL 对应的请求头（JSON 对象） */
+        EPG_XML_HEADERS_BY_URL_JSON,
+
         /** ==================== 界面 ==================== */
         /** 显示节目进度 */
         UI_SHOW_EPG_PROGRAMME_PROGRESS,
@@ -324,6 +330,60 @@ object SP {
     var epgXmlUrlHistoryList: Set<String>
         get() = sp.getStringSet(KEY.EPG_XML_URL_HISTORY_LIST.name, emptySet()) ?: emptySet()
         set(value) = sp.edit().putStringSet(KEY.EPG_XML_URL_HISTORY_LIST.name, value).apply()
+
+    /** 拉取节目单 XML 时使用的额外请求头（与 [epgXmlUrl] 成对；格式同 [iptvSourceRequestHeaders]） */
+    var epgXmlRequestHeaders: String
+        get() = sp.getString(KEY.EPG_XML_REQUEST_HEADERS.name, "") ?: ""
+        set(value) = sp.edit().putString(KEY.EPG_XML_REQUEST_HEADERS.name, value).apply()
+
+    private var epgXmlHeadersByUrlJsonRaw: String
+        get() = sp.getString(KEY.EPG_XML_HEADERS_BY_URL_JSON.name, "{}") ?: "{}"
+        set(value) = sp.edit().putString(KEY.EPG_XML_HEADERS_BY_URL_JSON.name, value).apply()
+
+    /** 读取某节目单 URL 已保存的请求头文本 */
+    fun getEpgHeadersForUrl(url: String): String {
+        if (url.isBlank()) return ""
+        val map = runCatching {
+            spJson.decodeFromString<Map<String, String>>(epgXmlHeadersByUrlJsonRaw)
+        }.getOrElse { emptyMap() }
+        return map[url].orEmpty()
+    }
+
+    /** 将请求头文本与节目单 URL 绑定保存 */
+    fun putEpgHeadersForUrl(url: String, headers: String) {
+        if (url.isBlank()) return
+        val map = runCatching {
+            spJson.decodeFromString<Map<String, String>>(epgXmlHeadersByUrlJsonRaw).toMutableMap()
+        }.getOrElse { mutableMapOf() }
+        if (headers.isBlank()) {
+            map.remove(url)
+        } else {
+            map[url] = headers
+        }
+        epgXmlHeadersByUrlJsonRaw = spJson.encodeToString(map)
+    }
+
+    /**
+     * 网页/扫码推送节目单后同步落盘（地址与请求头一组；[apply] 异步可能导致未写入即杀进程）。
+     */
+    fun commitEpgWebSettings(url: String, requestHeaders: String) {
+        val rawJson = sp.getString(KEY.EPG_XML_HEADERS_BY_URL_JSON.name, "{}") ?: "{}"
+        val map = runCatching {
+            spJson.decodeFromString<Map<String, String>>(rawJson).toMutableMap()
+        }.getOrElse { mutableMapOf() }
+        if (url.isNotBlank()) {
+            if (requestHeaders.isBlank()) {
+                map.remove(url)
+            } else {
+                map[url] = requestHeaders
+            }
+        }
+        sp.edit()
+            .putString(KEY.EPG_XML_URL.name, url)
+            .putString(KEY.EPG_XML_REQUEST_HEADERS.name, requestHeaders)
+            .putString(KEY.EPG_XML_HEADERS_BY_URL_JSON.name, spJson.encodeToString(map))
+            .commit()
+    }
 
     /** ==================== 界面 ==================== */
     /** 显示节目进度 */

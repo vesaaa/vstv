@@ -56,6 +56,12 @@ class LeanbackMainViewModel : ViewModel() {
         return SP.getIptvSourceHeadersForUrl(SP.iptvSourceUrl)
     }
 
+    private fun epgRequestHeadersForFetch(): String {
+        val global = SP.epgXmlRequestHeaders
+        if (global.isNotBlank()) return global
+        return SP.getEpgHeadersForUrl(SP.epgXmlUrl)
+    }
+
     private suspend fun refreshIptv() {
         if (SP.iptvSourceUrl.isBlank()) {
             _uiState.value = LeanbackMainUiState.Ready(iptvGroupList = IptvGroupList())
@@ -112,6 +118,7 @@ class LeanbackMainViewModel : ViewModel() {
             return
         }
         val iptvGroupList = readyState.iptvGroupList
+        val headersForEpg = epgRequestHeadersForFetch()
 
         flow {
             emit(
@@ -119,6 +126,7 @@ class LeanbackMainViewModel : ViewModel() {
                     xmlUrl = SP.epgXmlUrl,
                     iptvChannels = iptvGroupList.iptvList,
                     refreshTimeThreshold = SP.epgRefreshTimeThreshold,
+                    requestHeadersText = headersForEpg,
                 )
             )
         }
@@ -131,6 +139,14 @@ class LeanbackMainViewModel : ViewModel() {
                 val r = _uiState.value as? LeanbackMainUiState.Ready ?: return@map
                 _uiState.value = r.copy(epgList = epgList)
                 SP.epgXmlUrlHistoryList += SP.epgXmlUrl
+                val headersNorm = normalizeIptvRequestHeadersInput(headersForEpg)
+                if (SP.epgXmlRequestHeaders.isNotBlank()) {
+                    val gNorm = normalizeIptvRequestHeadersInput(SP.epgXmlRequestHeaders)
+                    if (gNorm != SP.epgXmlRequestHeaders) {
+                        SP.epgXmlRequestHeaders = gNorm
+                    }
+                }
+                SP.putEpgHeadersForUrl(SP.epgXmlUrl, headersNorm)
             }
             .collect()
     }

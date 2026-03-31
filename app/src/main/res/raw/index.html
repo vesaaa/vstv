@@ -74,14 +74,24 @@
                 </van-cell-group>
 
                 <van-cell-group inset title="节目单（可选）">
-                    <van-cell title="推送自定义节目单地址">
+                    <van-cell title="地址 + User-Agent 一组推送">
                         <template #label>
                             <van-space class="w-full" direction="vertical" size="small">
-                                <span><strong>默认节目单请在电视端「设置 → 节目单」选择</strong>（内置或历史中的某条）。此处输入框<strong>始终留空</strong>也可正常推送其它项；仅当填写了地址并点推送时才会覆盖存储中的节目单 URL。</span>
+                                <span>与直播源一致：<strong>节目单地址</strong>与请求头中的 <strong>User-Agent</strong> 绑定保存；<strong>拉取节目单 XML</strong>时使用该头（未配置 UA 时不附加）。默认节目单也可在电视端「设置 → 节目单」切换。</span>
+                                <div class="text-13px" style="word-break:break-all;">
+                                    <div class="text-gray text-12px">当前表单（与下方输入同步）</div>
+                                    <div class="mt-4px"><span class="text-gray">地址：</span>{{ summaryEpgUrl(settings) }}</div>
+                                    <div class="mt-4px"><span class="text-gray">User-Agent：</span>{{ summaryEpgUserAgent(settings) }}</div>
+                                </div>
+                                <span class="text-gray text-12px"><strong>User-Agent 非必填</strong>；只填取值时不要写 <code>User-Agent:</code> 前缀。多行其它请求头仍用每行 <code>Name: Value</code>。</span>
                                 <span class="text-gray text-12px">支持 xml、xml.gz</span>
-                                <van-field class="!p-0" placeholder="留空则不修改节目单"
-                                    v-model="epgDraft" type="textarea" rows="2"></van-field>
-                                <van-button @click="pushEpg()" block type="primary" class="mt-8px">推送节目单（仅在有地址时生效）</van-button>
+                                <span class="text-gray text-12px">节目单地址</span>
+                                <van-field class="!p-0" placeholder="粘贴节目单 URL"
+                                    v-model="settings.epgXmlUrl" type="textarea" rows="2"></van-field>
+                                <span class="text-gray text-12px">User-Agent 或其它请求头（可留空）</span>
+                                <van-field class="!p-0" placeholder="如 okHttp/Mod-1.5.0.0；多行头请每行 Name: Value"
+                                    v-model="settings.epgXmlRequestHeaders" type="textarea" rows="3"></van-field>
+                                <van-button @click="pushEpg()" block type="primary" class="mt-8px">推送（地址与请求头一起生效）</van-button>
                             </van-space>
                         </template>
                     </van-cell>
@@ -151,7 +161,6 @@
             setup() {
                 const isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
                 const settings = ref()
-                const epgDraft = ref('')
 
                 function summaryIptvUrl(s) {
                     return displayEmptyText(s && s.iptvSourceUrl)
@@ -160,6 +169,17 @@
                 function summaryUserAgent(s) {
                     if (!s) return '（空）'
                     const canon = iptvFormDisplayToHeaders(s.iptvSourceRequestHeaders)
+                    return displayEmptyText(userAgentFromHeaderLines(canon))
+                }
+
+                function summaryEpgUrl(s) {
+                    return displayEmptyText(s && s.epgXmlUrl)
+                }
+
+                function summaryEpgUserAgent(s) {
+                    if (!s) return '（空）'
+                    const h = s.epgXmlRequestHeaders
+                    const canon = iptvFormDisplayToHeaders(h == null ? '' : h)
                     return displayEmptyText(userAgentFromHeaderLines(canon))
                 }
 
@@ -192,12 +212,14 @@
                         settings.value.iptvSourceRequestHeaders = iptvHeadersToFormDisplay(
                             settings.value.iptvSourceRequestHeaders
                         )
+                        settings.value.epgXmlRequestHeaders = iptvHeadersToFormDisplay(
+                            settings.value.epgXmlRequestHeaders == null ? '' : settings.value.epgXmlRequestHeaders
+                        )
                         if (showLoading) {
                             const uh = settings.value.iptvSourceRequestHeaders
                             if (uh == null || String(uh).trim() === '') {
                                 settings.value.iptvSourceRequestHeaders = DEFAULT_IPTV_UA_VALUE
                             }
-                            epgDraft.value = ''
                         }
                         if (showLoading) vant.closeToast()
                     } catch (e) {
@@ -222,14 +244,19 @@
                     postPartial({ httpServerAdvertiseIp: settings.value.httpServerAdvertiseIp ?? '' })
                 }
 
-                async function pushEpg() {
-                    const url = (epgDraft.value || '').trim()
+                function pushEpg() {
+                    if (!settings.value) return
+                    const url = (settings.value.epgXmlUrl || '').trim()
                     if (!url) {
-                        vant.showToast('未填写节目单地址，未修改（默认请在电视端选择）')
+                        vant.showToast('未填写节目单地址，未修改')
                         return
                     }
-                    await postPartial({ epgXmlUrl: url })
-                    epgDraft.value = ''
+                    postPartial({
+                        epgXmlUrl: url,
+                        epgXmlRequestHeaders: iptvFormDisplayToHeaders(
+                            settings.value.epgXmlRequestHeaders
+                        ),
+                    })
                 }
 
                 onMounted(async () => {
@@ -239,9 +266,10 @@
                 return {
                     isDark,
                     settings,
-                    epgDraft,
                     summaryIptvUrl,
                     summaryUserAgent,
+                    summaryEpgUrl,
+                    summaryEpgUserAgent,
                     pushIptv,
                     saveAdvertiseIp,
                     pushEpg,

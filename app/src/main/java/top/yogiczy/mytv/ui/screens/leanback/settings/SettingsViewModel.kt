@@ -178,6 +178,14 @@ class LeanbackSettingsViewModel : ViewModel() {
             SP.epgXmlUrl = value
         }
 
+    private var _epgXmlRequestHeaders by mutableStateOf(SP.epgXmlRequestHeaders)
+    var epgXmlRequestHeaders: String
+        get() = _epgXmlRequestHeaders
+        set(value) {
+            _epgXmlRequestHeaders = value
+            SP.epgXmlRequestHeaders = value
+        }
+
     private var _epgRefreshTimeThreshold by mutableIntStateOf(SP.epgRefreshTimeThreshold)
     var epgRefreshTimeThreshold: Int
         get() = _epgRefreshTimeThreshold

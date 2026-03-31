@@ -16,6 +16,8 @@ import top.yogiczy.mytv.data.repositories.FileCacheRepository
 import top.yogiczy.mytv.data.repositories.epg.fetcher.EpgFetcher
 import top.yogiczy.mytv.utils.AppOkHttp
 import top.yogiczy.mytv.utils.Logger
+import top.yogiczy.mytv.utils.normalizeIptvRequestHeadersInput
+import top.yogiczy.mytv.utils.parseHttpHeaderLines
 import java.io.StringReader
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -125,6 +127,7 @@ class EpgRepository : FileCacheRepository("epg.json") {
         xmlUrl: String,
         iptvChannels: List<Iptv> = emptyList(),
         refreshTimeThreshold: Int,
+        requestHeadersText: String = "",
     ) = withContext(Dispatchers.Default) {
         try {
             // 原逻辑在「未到刷新钟点」时直接返回空列表，既不读缓存也不拉网，导致 0～(阈值-1) 点整晚无节目单。
@@ -142,7 +145,7 @@ class EpgRepository : FileCacheRepository("epg.json") {
             val xmlJson = getOrRefresh({ lastModified, _ ->
                 dateFormat.format(System.currentTimeMillis()) != dateFormat.format(lastModified)
             }) {
-                val xmlString = epgXmlRepository.getEpgXml(xmlUrl)
+                val xmlString = epgXmlRepository.getEpgXml(xmlUrl, requestHeadersText)
                 Json.encodeToString(parseFromXml(xmlString, iptvChannels).value)
             }
 
@@ -163,11 +166,15 @@ private class EpgXmlRepository : FileCacheRepository("epg.xml") {
     /**
      * 获取远程xml
      */
-    private suspend fun fetchXml(url: String): String = withContext(Dispatchers.IO) {
+    private suspend fun fetchXml(url: String, requestHeadersText: String): String = withContext(Dispatchers.IO) {
         log.d("获取远程节目单xml: $url")
 
         val client = AppOkHttp.client()
-        val request = Request.Builder().url(url).build()
+        val builder = Request.Builder().url(url)
+        normalizeIptvRequestHeadersInput(requestHeadersText).parseHttpHeaderLines().forEach { (k, v) ->
+            if (k.isNotBlank()) builder.addHeader(k, v)
+        }
+        val request = builder.build()
 
         try {
             with(client.newCall(request).execute()) {
@@ -187,9 +194,9 @@ private class EpgXmlRepository : FileCacheRepository("epg.xml") {
     /**
      * 获取xml
      */
-    suspend fun getEpgXml(url: String): String {
+    suspend fun getEpgXml(url: String, requestHeadersText: String = ""): String {
         return getOrRefresh(0) {
-            fetchXml(url)
+            fetchXml(url, requestHeadersText)
         }
     }
 }

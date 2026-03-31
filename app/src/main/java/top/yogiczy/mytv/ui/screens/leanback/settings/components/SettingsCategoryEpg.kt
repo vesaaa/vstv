@@ -42,6 +42,7 @@ import top.yogiczy.mytv.ui.utils.HttpServer
 import top.yogiczy.mytv.ui.utils.SP
 import top.yogiczy.mytv.ui.utils.WebPushConfigNotifier
 import top.yogiczy.mytv.ui.utils.handleLeanbackKeyEvents
+import top.yogiczy.mytv.utils.userAgentValueFromHeadersText
 import kotlin.math.max
 
 @Composable
@@ -96,12 +97,16 @@ fun LeanbackSettingsCategoryEpg(
                     append("内置默认地址：")
                     append(Constants.EPG_XML_URL)
                     append("\n")
-                    if (SP.isEpgXmlUrlStoredBlank) {
-                        append("当前使用：内置默认")
-                    } else {
-                        append("当前使用：")
-                        append(settingsViewModel.epgXmlUrl)
-                    }
+                    append("当前地址：")
+                    append(settingsViewModel.epgXmlUrl)
+                    append("\n")
+                    append("User-Agent：")
+                    val ua = userAgentValueFromHeadersText(
+                        settingsViewModel.epgXmlRequestHeaders.ifBlank {
+                            SP.getEpgHeadersForUrl(settingsViewModel.epgXmlUrl)
+                        },
+                    )
+                    append(if (ua.isBlank()) "（未配置）" else ua)
                 },
                 trailingContent = if (SP.isEpgXmlUrlStoredBlank) "内置默认" else "自定义地址",
                 onSelected = { showDialog = true },
@@ -117,17 +122,30 @@ fun LeanbackSettingsCategoryEpg(
                     }.toImmutableList()
                 },
                 currentEpgXmlUrlProvider = { settingsViewModel.epgXmlUrl },
+                currentEpgRequestHeadersProvider = { settingsViewModel.epgXmlRequestHeaders },
                 onSelected = {
                     showDialog = false
                     if (settingsViewModel.epgXmlUrl != it) {
                         settingsViewModel.epgXmlUrl = it
+                        settingsViewModel.epgXmlRequestHeaders = SP.getEpgHeadersForUrl(it)
                         coroutineScope.launch { EpgRepository().clearCache() }
                         WebPushConfigNotifier.notifyConfigMayHaveChanged()
                     }
                 },
-                onDeleted = {
-                    settingsViewModel.epgXmlUrlHistoryList -= it
-                }
+                onDeleted = { urlKey ->
+                    SP.putEpgHeadersForUrl(urlKey, "")
+                    if (urlKey != Constants.EPG_XML_URL) {
+                        settingsViewModel.epgXmlUrlHistoryList -= urlKey
+                    }
+                    if (settingsViewModel.epgXmlUrl == urlKey) {
+                        settingsViewModel.epgXmlRequestHeaders = ""
+                        if (urlKey != Constants.EPG_XML_URL) {
+                            settingsViewModel.epgXmlUrl = ""
+                        }
+                    }
+                    coroutineScope.launch { EpgRepository().clearCache() }
+                    WebPushConfigNotifier.notifyConfigMayHaveChanged()
+                },
             )
         }
 
@@ -152,18 +170,20 @@ private fun LeanbackSettingsEpgSourceHistoryDialog(
     onDismissRequest: () -> Unit = {},
     epgXmlUrlHistoryProvider: () -> ImmutableList<String> = { persistentListOf() },
     currentEpgXmlUrlProvider: () -> String = { Constants.EPG_XML_URL },
+    currentEpgRequestHeadersProvider: () -> String = { "" },
     onSelected: (String) -> Unit = {},
     onDeleted: (String) -> Unit = {},
 ) {
     val epgXmlUrlHistory = listOf(Constants.EPG_XML_URL) + epgXmlUrlHistoryProvider()
     val currentEpgXmlUrl = currentEpgXmlUrlProvider()
+    val currentEpgRequestHeaders = currentEpgRequestHeadersProvider()
 
     if (showDialogProvider()) {
         AlertDialog(
             properties = DialogProperties(usePlatformDefaultWidth = false),
             modifier = modifier,
             onDismissRequest = onDismissRequest,
-            confirmButton = { Text(text = "短按设为当前默认；长按从列表删除") },
+            confirmButton = { Text(text = "短按设为当前默认；长按删除该组（地址+请求头）") },
             title = { Text("选择默认节目单") },
             text = {
                 var hasFocused by remember { mutableStateOf(false) }
@@ -178,6 +198,15 @@ private fun LeanbackSettingsEpgSourceHistoryDialog(
                     items(epgXmlUrlHistory) { url ->
                         val focusRequester = remember { FocusRequester() }
                         var isFocused by remember { mutableStateOf(false) }
+
+                        val headersText =
+                            if (url == currentEpgXmlUrl) {
+                                currentEpgRequestHeaders.ifBlank { SP.getEpgHeadersForUrl(url) }
+                            } else {
+                                SP.getEpgHeadersForUrl(url)
+                            }
+                        val uaDisplay = userAgentValueFromHeadersText(headersText)
+                            .let { v -> if (v.isBlank()) "（未配置）" else v }
 
                         LaunchedEffect(Unit) {
                             if (url == currentEpgXmlUrl && !hasFocused) {
@@ -204,7 +233,14 @@ private fun LeanbackSettingsEpgSourceHistoryDialog(
                             onClick = { },
                             headlineContent = {
                                 androidx.tv.material3.Text(
-                                    text = if (url == Constants.EPG_XML_URL) "应用内置默认" else url,
+                                    text = url,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    maxLines = if (isFocused) Int.MAX_VALUE else 2,
+                                )
+                            },
+                            supportingContent = {
+                                androidx.tv.material3.Text(
+                                    text = "User-Agent：$uaDisplay",
                                     modifier = Modifier.fillMaxWidth(),
                                     maxLines = if (isFocused) Int.MAX_VALUE else 2,
                                 )
