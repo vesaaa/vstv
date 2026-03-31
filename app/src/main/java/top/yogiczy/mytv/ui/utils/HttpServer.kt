@@ -167,11 +167,7 @@ object HttpServer : Loggable() {
             val iptvChanged = SP.iptvSourceUrl != iptvSourceUrl ||
                 SP.iptvSourceRequestHeaders != iptvSourceRequestHeaders
             if (iptvChanged) {
-                SP.iptvSourceUrl = iptvSourceUrl
-                SP.iptvSourceRequestHeaders = iptvSourceRequestHeaders
-                if (iptvSourceUrl.isNotBlank()) {
-                    SP.putIptvSourceHeadersForUrl(iptvSourceUrl, iptvSourceRequestHeaders)
-                }
+                SP.commitIptvWebSettings(iptvSourceUrl, iptvSourceRequestHeaders)
                 IptvRepository().clearCache()
             }
         }

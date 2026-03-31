@@ -74,21 +74,24 @@ class IptvRepository : FileCacheRepository("iptv.txt") {
                 fetchSource(sourceUrl, requestHeadersText)
             }
 
-            val parser = IptvParser.instances.first { it.isSupport(sourceUrl, sourceData) }
-            val groupList = parser.parse(sourceData)
-            log.i("解析直播源完成：${groupList.size}个分组，${groupList.flatMap { it.iptvList }.size}个频道")
+            // 大文件解析耗 CPU，避免在 viewModel 主线程上执行导致界面长期停在「加载中」
+            return withContext(Dispatchers.Default) {
+                val parser = IptvParser.instances.first { it.isSupport(sourceUrl, sourceData) }
+                var groupList = parser.parse(sourceData)
+                log.i("解析直播源完成：${groupList.size}个分组，${groupList.flatMap { it.iptvList }.size}个频道")
 
-            if (simplify) {
-                return IptvGroupList(groupList.map { group ->
-                    IptvGroup(
-                        name = group.name, iptvList = IptvList(group.iptvList.filter { iptv ->
-                            simplifyTest(group, iptv)
-                        })
-                    )
-                }.filter { it.iptvList.isNotEmpty() })
+                if (simplify) {
+                    groupList = IptvGroupList(groupList.map { group ->
+                        IptvGroup(
+                            name = group.name, iptvList = IptvList(group.iptvList.filter { iptv ->
+                                simplifyTest(group, iptv)
+                            })
+                        )
+                    }.filter { it.iptvList.isNotEmpty() })
+                }
+
+                groupList
             }
-
-            return groupList
         } catch (ex: Exception) {
             log.e("获取直播源失败", ex)
             throw Exception(ex)

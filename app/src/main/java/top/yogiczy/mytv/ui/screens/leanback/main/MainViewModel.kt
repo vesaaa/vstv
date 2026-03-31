@@ -36,19 +36,27 @@ class LeanbackMainViewModel : ViewModel() {
         }
     }
 
+    /** 全局请求头为空时回退到按订阅 URL 保存的头（与设置页从历史选择行为一致） */
+    private fun iptvRequestHeadersForFetch(): String {
+        val global = SP.iptvSourceRequestHeaders
+        if (global.isNotBlank()) return global
+        return SP.getIptvSourceHeadersForUrl(SP.iptvSourceUrl)
+    }
+
     private suspend fun refreshIptv() {
         if (SP.iptvSourceUrl.isBlank()) {
             _uiState.value = LeanbackMainUiState.Ready(iptvGroupList = IptvGroupList())
             return
         }
 
+        val headersForFetch = iptvRequestHeadersForFetch()
         flow {
             emit(
                 iptvRepository.getIptvGroupList(
                     sourceUrl = SP.iptvSourceUrl,
                     cacheTime = SP.iptvSourceCacheTime,
                     simplify = SP.iptvSourceSimplify,
-                    requestHeadersText = SP.iptvSourceRequestHeaders,
+                    requestHeadersText = headersForFetch,
                 )
             )
         }
@@ -70,9 +78,12 @@ class LeanbackMainViewModel : ViewModel() {
                 _uiState.value = LeanbackMainUiState.Ready(iptvGroupList = it)
                 if (SP.iptvSourceUrl.isNotBlank()) {
                     SP.iptvSourceUrlHistoryList += SP.iptvSourceUrl
-                    val headersNorm = normalizeIptvRequestHeadersInput(SP.iptvSourceRequestHeaders)
-                    if (headersNorm != SP.iptvSourceRequestHeaders) {
-                        SP.iptvSourceRequestHeaders = headersNorm
+                    val headersNorm = normalizeIptvRequestHeadersInput(headersForFetch)
+                    if (SP.iptvSourceRequestHeaders.isNotBlank()) {
+                        val gNorm = normalizeIptvRequestHeadersInput(SP.iptvSourceRequestHeaders)
+                        if (gNorm != SP.iptvSourceRequestHeaders) {
+                            SP.iptvSourceRequestHeaders = gNorm
+                        }
                     }
                     SP.putIptvSourceHeadersForUrl(SP.iptvSourceUrl, headersNorm)
                 }
@@ -82,30 +93,33 @@ class LeanbackMainViewModel : ViewModel() {
     }
 
     private suspend fun refreshEpg() {
-        if (_uiState.value is LeanbackMainUiState.Ready) {
-            val iptvGroupList = (_uiState.value as LeanbackMainUiState.Ready).iptvGroupList
-
-            flow {
-                emit(
-                    epgRepository.getEpgList(
-                        xmlUrl = SP.epgXmlUrl,
-                        filteredChannels = iptvGroupList.iptvList.map { it.channelName },
-                        refreshTimeThreshold = SP.epgRefreshTimeThreshold,
-                    )
-                )
-            }
-                .retry(Constants.HTTP_RETRY_COUNT) { delay(Constants.HTTP_RETRY_INTERVAL); true }
-                .catch {
-                    emit(EpgList())
-                    SP.epgXmlUrlHistoryList -= SP.epgXmlUrl
-                }
-                .map { epgList ->
-                    _uiState.value =
-                        (_uiState.value as LeanbackMainUiState.Ready).copy(epgList = epgList)
-                    SP.epgXmlUrlHistoryList += SP.epgXmlUrl
-                }
-                .collect()
+        val readyState = _uiState.value as? LeanbackMainUiState.Ready ?: return
+        if (!SP.epgEnable) {
+            _uiState.value = readyState.copy(epgList = EpgList())
+            return
         }
+        val iptvGroupList = readyState.iptvGroupList
+
+        flow {
+            emit(
+                epgRepository.getEpgList(
+                    xmlUrl = SP.epgXmlUrl,
+                    filteredChannels = iptvGroupList.iptvList.map { it.channelName },
+                    refreshTimeThreshold = SP.epgRefreshTimeThreshold,
+                )
+            )
+        }
+            .retry(Constants.HTTP_RETRY_COUNT) { delay(Constants.HTTP_RETRY_INTERVAL); true }
+            .catch {
+                emit(EpgList())
+                SP.epgXmlUrlHistoryList -= SP.epgXmlUrl
+            }
+            .map { epgList ->
+                val r = _uiState.value as? LeanbackMainUiState.Ready ?: return@map
+                _uiState.value = r.copy(epgList = epgList)
+                SP.epgXmlUrlHistoryList += SP.epgXmlUrl
+            }
+            .collect()
     }
 }
 

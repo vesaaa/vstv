@@ -242,6 +242,28 @@ object SP {
         iptvSourceHeadersByUrlJsonRaw = spJson.encodeToString(map)
     }
 
+    /**
+     * 网页/扫码推送直播源后同步落盘（[apply] 异步可能导致用户立刻杀进程时配置未写入）。
+     */
+    fun commitIptvWebSettings(url: String, requestHeaders: String) {
+        val rawJson = sp.getString(KEY.IPTV_SOURCE_HEADERS_BY_URL_JSON.name, "{}") ?: "{}"
+        val map = runCatching {
+            spJson.decodeFromString<Map<String, String>>(rawJson).toMutableMap()
+        }.getOrElse { mutableMapOf() }
+        if (url.isNotBlank()) {
+            if (requestHeaders.isBlank()) {
+                map.remove(url)
+            } else {
+                map[url] = requestHeaders
+            }
+        }
+        sp.edit()
+            .putString(KEY.IPTV_SOURCE_URL.name, url)
+            .putString(KEY.IPTV_SOURCE_REQUEST_HEADERS.name, requestHeaders)
+            .putString(KEY.IPTV_SOURCE_HEADERS_BY_URL_JSON.name, spJson.encodeToString(map))
+            .commit()
+    }
+
     /** 直播源缓存时间（毫秒） */
     var iptvSourceCacheTime: Long
         get() = sp.getLong(KEY.IPTV_SOURCE_CACHE_TIME.name, Constants.IPTV_SOURCE_CACHE_TIME)
