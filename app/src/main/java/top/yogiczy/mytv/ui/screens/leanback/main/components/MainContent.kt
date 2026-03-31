@@ -1,5 +1,6 @@
 package top.yogiczy.mytv.ui.screens.leanback.main.components
 
+import android.view.KeyEvent
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -130,8 +131,24 @@ fun LeanbackMainContent(
             !mainContentState.isSettingsVisible &&
             !mainContentState.isQuickPanelVisible
 
+    val liveDpadVerticalChannel: ((isUp: Boolean) -> Unit)? =
+        if (videoFocusEnabled && panelChannelNoSelectState.channelNo.isEmpty()) {
+            { isUp ->
+                if (isUp) {
+                    if (settingsViewModel.iptvChannelChangeFlip) mainContentState.changeCurrentIptvToNext()
+                    else mainContentState.changeCurrentIptvToPrev()
+                } else {
+                    if (settingsViewModel.iptvChannelChangeFlip) mainContentState.changeCurrentIptvToPrev()
+                    else mainContentState.changeCurrentIptvToNext()
+                }
+            }
+        } else {
+            null
+        }
+
     LeanbackBackPressHandledArea(
         modifier = modifier,
+        onLiveDpadVertical = liveDpadVerticalChannel,
         onBackPressed = {
             if (mainContentState.isPanelVisible) mainContentState.isPanelVisible = false
             else if (mainContentState.isSettingsVisible) mainContentState.isSettingsVisible = false
@@ -147,14 +164,6 @@ fun LeanbackMainContent(
                 .focusRequester(focusRequester)
                 .focusable(videoFocusEnabled)
                 .handleLeanbackKeyEvents(
-                    onUp = {
-                        if (settingsViewModel.iptvChannelChangeFlip) mainContentState.changeCurrentIptvToNext()
-                        else mainContentState.changeCurrentIptvToPrev()
-                    },
-                    onDown = {
-                        if (settingsViewModel.iptvChannelChangeFlip) mainContentState.changeCurrentIptvToPrev()
-                        else mainContentState.changeCurrentIptvToNext()
-                    },
                     onLeft = {
                         if (mainContentState.currentIptv.urlList.size > 1) {
                             mainContentState.changeCurrentIptv(
@@ -356,16 +365,31 @@ fun LeanbackMainContent(
 fun LeanbackBackPressHandledArea(
     onBackPressed: () -> Unit,
     modifier: Modifier = Modifier,
+    /** 直播全屏时上下键换台；在根节点拦截，避免 SurfaceView/AndroidView 抢走按键后 Compose 收不到 */
+    onLiveDpadVertical: ((isUp: Boolean) -> Unit)? = null,
     content: @Composable BoxScope.() -> Unit,
 ) = Box(
     modifier = Modifier
         .onPreviewKeyEvent {
             if (it.key == Key.Back && it.type == KeyEventType.KeyUp) {
                 onBackPressed()
-                true
-            } else {
-                false
+                return@onPreviewKeyEvent true
             }
+            val vertical = onLiveDpadVertical
+            if (vertical != null && it.type == KeyEventType.KeyUp) {
+                val isUp = when {
+                    it.key == Key.DirectionUp ||
+                        it.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_CHANNEL_UP -> true
+                    it.key == Key.DirectionDown ||
+                        it.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_CHANNEL_DOWN -> false
+                    else -> null
+                }
+                if (isUp != null) {
+                    vertical(isUp)
+                    return@onPreviewKeyEvent true
+                }
+            }
+            false
         }
         .then(modifier),
     content = content,
