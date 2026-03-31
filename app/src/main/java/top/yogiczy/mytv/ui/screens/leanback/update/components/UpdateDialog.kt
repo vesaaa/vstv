@@ -1,12 +1,15 @@
 package top.yogiczy.mytv.ui.screens.leanback.update.components
 
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.tooling.preview.Preview
@@ -64,6 +67,14 @@ fun LeanbackUpdateDialog(
                 LazyColumn {
                     item {
                         Text(text = release.description)
+                    }
+                    item {
+                        Text(
+                            text = "若安装时提示与已装应用冲突，多为签名不一致（例如本机为调试包而更新来自正式构建）。需先卸载本应用再安装，卸载会清除本应用数据。",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = 12.dp),
+                        )
                     }
                 }
             }

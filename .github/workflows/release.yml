@@ -5,7 +5,9 @@
 #   vstv-<ver>-all-sdk21-HarmonyOS.apk — 鸿蒙/兼容向（包名 com.chinablue.tv，桌面名 Z视介）
 #
 # 标签：v*.*.*、v*.*.*-*（本 fork 仅使用 v0.0.x 发行线）
-# Secret（可选）：KEYSTORE_BASE64、KEYSTORE_PASSWORD、KEY_ALIAS、KEY_PASSWORD；未配置则用 Debug 签名。
+# Secrets（正式发版请配置齐）：KEYSTORE_BASE64、KEYSTORE_PASSWORD、KEY_ALIAS、KEY_PASSWORD
+# 未配置 KEYSTORE_BASE64 时仍用 Debug 签名（各次 CI 证书可能不同，无法稳定覆盖安装）。
+# PKCS12 密钥库需在 Assemble 步骤传入 KEYSTORE_TYPE（与 app/build.gradle.kts 一致）。
 
 name: Release
 
@@ -71,6 +73,7 @@ jobs:
       - name: Assemble all release variants
         env:
           KEYSTORE: ${{ github.workspace }}/app/keystore.jks
+          KEYSTORE_TYPE: PKCS12
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}

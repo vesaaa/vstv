@@ -113,6 +113,11 @@ android {
                 keyAlias = System.getenv("KEY_ALIAS") ?: keystoreProperties.getProperty("keyAlias")
                 keyPassword =
                     System.getenv("KEY_PASSWORD") ?: keystoreProperties.getProperty("keyPassword")
+                val storeTypeEnv = System.getenv("KEYSTORE_TYPE")?.takeIf { it.isNotBlank() }
+                    ?: keystoreProperties.getProperty("storeType")?.takeIf { it.isNotBlank() }
+                if (storeTypeEnv != null) {
+                    storeType = storeTypeEnv
+                }
             }
         }
     }

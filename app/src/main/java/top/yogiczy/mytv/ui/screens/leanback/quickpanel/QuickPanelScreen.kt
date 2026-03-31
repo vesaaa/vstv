@@ -36,6 +36,8 @@ import top.yogiczy.mytv.ui.screens.leanback.panel.components.LeanbackPanelIptvIn
 import top.yogiczy.mytv.ui.screens.leanback.panel.components.LeanbackPanelPlayerInfo
 import top.yogiczy.mytv.ui.screens.leanback.panel.rememberPanelAutoCloseState
 import top.yogiczy.mytv.ui.screens.leanback.quickpanel.components.LeanbackQuickPanelIptvChannelsDialog
+import top.yogiczy.mytv.ui.screens.leanback.toast.LeanbackToastProperty
+import top.yogiczy.mytv.ui.screens.leanback.toast.LeanbackToastState
 import top.yogiczy.mytv.ui.screens.leanback.video.player.LeanbackVideoPlayer
 import top.yogiczy.mytv.ui.theme.LeanbackTheme
 import top.yogiczy.mytv.ui.utils.handleLeanbackKeyEvents
@@ -52,7 +54,6 @@ fun LeanbackQuickPanelScreen(
     videoPlayerAspectRatioProvider: () -> Float = { 16f / 9f },
     onChangeVideoPlayerAspectRatio: (Float) -> Unit = {},
     onIptvUrlIdxChange: (Int) -> Unit = {},
-    onClearCache: () -> Unit = {},
     onMoreSettings: () -> Unit = {},
     onClose: () -> Unit = {},
     autoCloseState: PanelAutoCloseState = rememberPanelAutoCloseState(
@@ -113,14 +114,42 @@ fun LeanbackQuickPanelScreen(
                         onUserAction = { autoCloseState.active() },
                     )
 
-                    LeanbackQuickPanelButton(
-                        titleProvider = { "清除缓存" },
-                        onSelect = onClearCache,
-                    )
-
                     LeanbackQuickPanelActionVideoAspectRatio(
                         videoPlayerAspectRatioProvider = videoPlayerAspectRatioProvider,
                         onChangeVideoPlayerAspectRatio = onChangeVideoPlayerAspectRatio,
+                    )
+
+                    LeanbackQuickPanelButton(
+                        titleProvider = { "视频信息" },
+                        onSelect = {
+                            LeanbackToastState.I.showToast(
+                                formatQuickPanelVideoLine(videoPlayerMetadataProvider()),
+                                duration = LeanbackToastProperty.Duration.Custom(9000),
+                            )
+                            autoCloseState.active()
+                        },
+                    )
+
+                    LeanbackQuickPanelButton(
+                        titleProvider = { "音频信息" },
+                        onSelect = {
+                            LeanbackToastState.I.showToast(
+                                formatQuickPanelAudioLine(videoPlayerMetadataProvider()),
+                                duration = LeanbackToastProperty.Duration.Custom(9000),
+                            )
+                            autoCloseState.active()
+                        },
+                    )
+
+                    LeanbackQuickPanelButton(
+                        titleProvider = { "解码与码流" },
+                        onSelect = {
+                            LeanbackToastState.I.showToast(
+                                formatQuickPanelStreamExtraLine(videoPlayerMetadataProvider()),
+                                duration = LeanbackToastProperty.Duration.Custom(10000),
+                            )
+                            autoCloseState.active()
+                        },
                     )
 
                     LeanbackQuickPanelButton(

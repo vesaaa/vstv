@@ -10,7 +10,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -26,8 +25,6 @@ import androidx.compose.ui.unit.Density
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import top.yogiczy.mytv.AppGlobal
 import top.yogiczy.mytv.data.entities.EpgList
 import top.yogiczy.mytv.data.entities.EpgList.Companion.currentProgrammes
 import top.yogiczy.mytv.data.entities.IptvGroupList
@@ -61,7 +58,6 @@ fun LeanbackMainContent(
     settingsViewModel: LeanbackSettingsViewModel = viewModel(),
 ) {
     val configuration = LocalConfiguration.current
-    val coroutineScope = rememberCoroutineScope()
 
     val videoPlayerState = rememberLeanbackVideoPlayerState(
         defaultAspectRatioProvider = {
@@ -331,13 +327,6 @@ fun LeanbackMainContent(
                         iptv = mainContentState.currentIptv,
                         urlIdx = it,
                     )
-                },
-                onClearCache = {
-                    settingsViewModel.iptvPlayableHostList = emptySet()
-                    coroutineScope.launch {
-                        AppGlobal.cacheDir.deleteRecursively()
-                    }
-                    LeanbackToastState.I.showToast("缓存已清除，请重启应用")
                 },
                 onMoreSettings = { mainContentState.isSettingsVisible = true },
                 onClose = { mainContentState.isQuickPanelVisible = false },

@@ -1,3 +1,7 @@
 /build
 keystore.jks
 /release
+# Release 签名（勿提交）
+release-upload.keystore
+release-upload.keystore.b64.txt
+signing-secrets.local.env

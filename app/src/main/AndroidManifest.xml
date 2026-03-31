@@ -91,6 +91,14 @@
             </intent-filter>
         </receiver>
 
+        <receiver
+            android:name=".receivers.PackageInstallResultReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="top.yogiczy.mytv.action.PACKAGE_INSTALL_RESULT" />
+            </intent-filter>
+        </receiver>
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.FileProvider"
