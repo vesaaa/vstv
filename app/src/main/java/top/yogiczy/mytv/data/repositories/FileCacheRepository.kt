@@ -19,6 +19,9 @@ abstract class FileCacheRepository(
         else null
     }
 
+    /** 子类在「跳过网络刷新」等场景下读取当前缓存（不触发拉取）。 */
+    protected suspend fun readCacheDataOrNull(): String? = getCacheData()
+
     private suspend fun setCacheData(data: String) = withContext(Dispatchers.IO) {
         val file = getCacheFile()
         file.writeText(data)

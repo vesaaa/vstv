@@ -4,6 +4,7 @@ import okhttp3.Response
 import java.io.BufferedReader
 import java.io.ByteArrayInputStream
 import java.io.InputStreamReader
+import java.nio.charset.StandardCharsets
 import java.util.zip.GZIPInputStream
 
 class XmlGzEpgFetcher : EpgFetcher {
@@ -15,7 +16,7 @@ class XmlGzEpgFetcher : EpgFetcher {
         val gzData = response.body!!.bytes()
         val stringBuilder = StringBuilder()
         GZIPInputStream(ByteArrayInputStream(gzData)).use { gzipInputStream ->
-            BufferedReader(InputStreamReader(gzipInputStream)).use { reader ->
+            BufferedReader(InputStreamReader(gzipInputStream, StandardCharsets.UTF_8)).use { reader ->
                 var line: String?
                 while (reader.readLine().also { line = it } != null) {
                     stringBuilder.append(line).append("\n")
