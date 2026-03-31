@@ -5,7 +5,7 @@ import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -32,10 +32,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.tv.foundation.lazy.grid.TvGridCells
-import androidx.tv.foundation.lazy.grid.TvLazyVerticalGrid
-import androidx.tv.foundation.lazy.grid.itemsIndexed
-import androidx.tv.foundation.lazy.grid.rememberTvLazyGridState
 import kotlinx.coroutines.delay
 import top.yogiczy.mytv.ui.screens.leanback.settings.LeanbackSettingsCategories
 import top.yogiczy.mytv.ui.screens.leanback.settings.LeanbackSettingsMenuItem
@@ -54,49 +50,55 @@ fun LeanbackSettingsCategoryList(
     val focusRequesters = remember(menuItems.size) {
         List(menuItems.size) { FocusRequester() }
     }
-    val gridState = rememberTvLazyGridState()
-
     LaunchedEffect(menuItems.size) {
         delay(48)
         focusRequesters.firstOrNull()?.requestFocus()
     }
 
-    TvLazyVerticalGrid(
-        modifier = modifier.fillMaxSize(),
-        state = gridState,
-        columns = TvGridCells.Fixed(SETTINGS_MENU_COLUMNS),
-        horizontalArrangement = Arrangement.spacedBy(20.dp),
+    // 不用 TvLazyVerticalGrid：Lazy 列表会把方向键用于滚动整块区域，导致无法像在网格里那样切换焦点。
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(vertical = 4.dp),
         verticalArrangement = Arrangement.spacedBy(20.dp),
-        contentPadding = PaddingValues(vertical = 4.dp),
     ) {
-        itemsIndexed(menuItems) { index, item ->
-            val focusRequester = focusRequesters[index]
+        var flatIndex = 0
+        menuItems.chunked(SETTINGS_MENU_COLUMNS).forEach { rowItems ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(20.dp),
+            ) {
+                rowItems.forEach { item ->
+                    val index = flatIndex++
+                    val focusRequester = focusRequesters[index]
 
-            val icon: ImageVector
-            val title: String
-            when (item) {
-                LeanbackSettingsMenuItem.ReturnLive -> {
-                    icon = Icons.Default.LiveTv
-                    title = "返回直播"
-                }
-                is LeanbackSettingsMenuItem.Category -> {
-                    icon = item.value.icon
-                    title = item.value.title
+                    val icon: ImageVector
+                    val title: String
+                    when (item) {
+                        LeanbackSettingsMenuItem.ReturnLive -> {
+                            icon = Icons.Default.LiveTv
+                            title = "返回直播"
+                        }
+                        is LeanbackSettingsMenuItem.Category -> {
+                            icon = item.value.icon
+                            title = item.value.title
+                        }
+                    }
+
+                    SettingsMenuTile(
+                        modifier = Modifier.size(120.dp),
+                        tileFocusRequester = focusRequester,
+                        icon = icon,
+                        title = title,
+                        onActivate = {
+                            when (item) {
+                                LeanbackSettingsMenuItem.ReturnLive -> onReturnLive()
+                                is LeanbackSettingsMenuItem.Category -> onCategoryOpen(item.value)
+                            }
+                        },
+                    )
                 }
             }
-
-            SettingsMenuTile(
-                modifier = Modifier.size(120.dp),
-                tileFocusRequester = focusRequester,
-                icon = icon,
-                title = title,
-                onActivate = {
-                    when (item) {
-                        LeanbackSettingsMenuItem.ReturnLive -> onReturnLive()
-                        is LeanbackSettingsMenuItem.Category -> onCategoryOpen(item.value)
-                    }
-                },
-            )
         }
     }
 }
