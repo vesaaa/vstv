@@ -5,14 +5,12 @@ import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.LiveTv
 import androidx.compose.material3.Icon
@@ -24,25 +22,28 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.focus.focusRestorer
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.tv.foundation.lazy.grid.TvGridCells
+import androidx.tv.foundation.lazy.grid.TvLazyVerticalGrid
+import androidx.tv.foundation.lazy.grid.itemsIndexed
+import androidx.tv.foundation.lazy.grid.rememberTvLazyGridState
+import kotlinx.coroutines.delay
 import top.yogiczy.mytv.ui.screens.leanback.settings.LeanbackSettingsCategories
 import top.yogiczy.mytv.ui.screens.leanback.settings.LeanbackSettingsMenuItem
 import top.yogiczy.mytv.ui.theme.LeanbackTheme
 import top.yogiczy.mytv.ui.utils.handleLeanbackKeyEvents
 
-@OptIn(ExperimentalComposeUiApi::class, ExperimentalLayoutApi::class)
+private const val SETTINGS_MENU_COLUMNS = 5
+
 @Composable
 fun LeanbackSettingsCategoryList(
     modifier: Modifier = Modifier,
@@ -50,55 +51,52 @@ fun LeanbackSettingsCategoryList(
     onReturnLive: () -> Unit = {},
 ) {
     val menuItems = remember { LeanbackSettingsMenuItem.all() }
-    var hasInitialFocus by rememberSaveable { mutableStateOf(false) }
-    val scrollState = rememberScrollState()
+    val focusRequesters = remember(menuItems.size) {
+        List(menuItems.size) { FocusRequester() }
+    }
+    val gridState = rememberTvLazyGridState()
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .focusRestorer()
-            .verticalScroll(scrollState),
+    LaunchedEffect(menuItems.size) {
+        delay(48)
+        focusRequesters.firstOrNull()?.requestFocus()
+    }
+
+    TvLazyVerticalGrid(
+        modifier = modifier.fillMaxSize(),
+        state = gridState,
+        columns = TvGridCells.Fixed(SETTINGS_MENU_COLUMNS),
+        horizontalArrangement = Arrangement.spacedBy(20.dp),
+        verticalArrangement = Arrangement.spacedBy(20.dp),
+        contentPadding = PaddingValues(vertical = 4.dp),
     ) {
-        FlowRow(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(20.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp),
-        ) {
-            menuItems.forEachIndexed { index, item ->
-                val focusRequester = remember { FocusRequester() }
-                LaunchedEffect(Unit) {
-                    if (index == 0 && !hasInitialFocus) {
-                        focusRequester.requestFocus()
-                        hasInitialFocus = true
-                    }
-                }
+        itemsIndexed(menuItems) { index, item ->
+            val focusRequester = focusRequesters[index]
 
-                val icon: ImageVector
-                val title: String
-                when (item) {
-                    LeanbackSettingsMenuItem.ReturnLive -> {
-                        icon = Icons.Default.LiveTv
-                        title = "返回直播"
-                    }
-                    is LeanbackSettingsMenuItem.Category -> {
-                        icon = item.value.icon
-                        title = item.value.title
-                    }
+            val icon: ImageVector
+            val title: String
+            when (item) {
+                LeanbackSettingsMenuItem.ReturnLive -> {
+                    icon = Icons.Default.LiveTv
+                    title = "返回直播"
                 }
-
-                SettingsMenuTile(
-                    modifier = Modifier.size(120.dp),
-                    tileFocusRequester = focusRequester,
-                    icon = icon,
-                    title = title,
-                    onActivate = {
-                        when (item) {
-                            LeanbackSettingsMenuItem.ReturnLive -> onReturnLive()
-                            is LeanbackSettingsMenuItem.Category -> onCategoryOpen(item.value)
-                        }
-                    },
-                )
+                is LeanbackSettingsMenuItem.Category -> {
+                    icon = item.value.icon
+                    title = item.value.title
+                }
             }
+
+            SettingsMenuTile(
+                modifier = Modifier.size(120.dp),
+                tileFocusRequester = focusRequester,
+                icon = icon,
+                title = title,
+                onActivate = {
+                    when (item) {
+                        LeanbackSettingsMenuItem.ReturnLive -> onReturnLive()
+                        is LeanbackSettingsMenuItem.Category -> onCategoryOpen(item.value)
+                    }
+                },
+            )
         }
     }
 }
@@ -174,7 +172,10 @@ private fun SettingsMenuTile(
 private fun LeanbackSettingsCategoryListPreview() {
     LeanbackTheme {
         LeanbackSettingsCategoryList(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 420.dp)
+                .padding(16.dp),
         )
     }
 }

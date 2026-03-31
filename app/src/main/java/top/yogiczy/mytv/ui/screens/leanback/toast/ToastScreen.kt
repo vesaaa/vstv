@@ -12,16 +12,20 @@ import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Info
+import android.view.WindowManager
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.window.DialogWindowProvider
 import androidx.tv.material3.Icon
 import androidx.tv.material3.MaterialTheme
 import kotlinx.coroutines.delay
@@ -43,6 +47,14 @@ fun LeanbackToastScreen(
                 decorFitsSystemWindows = false,
             ),
         ) {
+            val view = LocalView.current
+            DisposableEffect(Unit) {
+                val window = (view.parent as? DialogWindowProvider)?.window
+                window?.addFlags(WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE)
+                onDispose {
+                    window?.clearFlags(WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE)
+                }
+            }
             Box(
                 modifier = Modifier
                     .fillMaxSize()

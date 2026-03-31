@@ -77,7 +77,7 @@ class LeanbackDoubleBackPressedExitState internal constructor(
  * 退出应用二次确认状态
  */
 @Composable
-fun rememberLeanbackDoubleBackPressedExitState(@IntRange(from = 0) resetSeconds: Int = 2) =
+fun rememberLeanbackDoubleBackPressedExitState(@IntRange(from = 0) resetSeconds: Int = 3) =
     remember { LeanbackDoubleBackPressedExitState(resetSeconds = resetSeconds) }
         .also { LaunchedEffect(it) { it.observe() } }
 

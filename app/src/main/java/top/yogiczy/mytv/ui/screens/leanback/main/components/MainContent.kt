@@ -125,6 +125,11 @@ fun LeanbackMainContent(
         }
     }
 
+    val videoFocusEnabled =
+        !mainContentState.isPanelVisible &&
+            !mainContentState.isSettingsVisible &&
+            !mainContentState.isQuickPanelVisible
+
     LeanbackBackPressHandledArea(
         modifier = modifier,
         onBackPressed = {
@@ -140,7 +145,7 @@ fun LeanbackMainContent(
             showMetadataProvider = { settingsViewModel.debugShowVideoPlayerMetadata },
             modifier = Modifier
                 .focusRequester(focusRequester)
-                .focusable()
+                .focusable(videoFocusEnabled)
                 .handleLeanbackKeyEvents(
                     onUp = {
                         if (settingsViewModel.iptvChannelChangeFlip) mainContentState.changeCurrentIptvToNext()

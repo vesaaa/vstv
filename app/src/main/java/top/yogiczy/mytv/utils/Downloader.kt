@@ -54,7 +54,11 @@ object Downloader : Loggable() {
                 override fun read(sink: okio.Buffer, byteCount: Long): Long {
                     val bytesRead = super.read(sink, byteCount)
                     totalBytesRead += if (bytesRead != -1L) bytesRead else 0
-                    val progress = (totalBytesRead * 100 / contentLength()).toInt()
+                    val len = contentLength()
+                    val progress = when {
+                        len <= 0L -> 0
+                        else -> ((totalBytesRead * 100L) / len).toInt().coerceIn(0, 100)
+                    }
                     CoroutineScope(Dispatchers.IO).launch {
                         onProgressCb?.invoke(progress)
                     }

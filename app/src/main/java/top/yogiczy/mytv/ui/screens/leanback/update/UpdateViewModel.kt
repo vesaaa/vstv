@@ -86,7 +86,9 @@ class LeanBackUpdateViewModel : ViewModel() {
             _updateDownloaded = true
             LeanbackToastState.I.showToast("下载更新成功")
         } catch (ex: Exception) {
-            LeanbackToastState.I.showToast("下载更新失败")
+            log.e("下载更新失败", ex)
+            val hint = ex.message?.trim()?.take(120)?.takeIf { it.isNotBlank() } ?: "请检查网络与 GitHub 访问"
+            LeanbackToastState.I.showToast("下载失败：$hint")
         } finally {
             _isUpdating = false
         }
