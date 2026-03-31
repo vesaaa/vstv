@@ -41,7 +41,6 @@ import top.yogiczy.mytv.ui.screens.leanback.panel.LeanbackPanelScreen
 import top.yogiczy.mytv.ui.screens.leanback.panel.LeanbackPanelTempScreen
 import top.yogiczy.mytv.ui.screens.leanback.panel.rememberLeanbackPanelChannelNoSelectState
 import top.yogiczy.mytv.ui.screens.leanback.quickpanel.LeanbackQuickPanelScreen
-import top.yogiczy.mytv.ui.screens.leanback.settings.LeanbackSettingsCategories
 import top.yogiczy.mytv.ui.screens.leanback.settings.LeanbackSettingsScreen
 import top.yogiczy.mytv.ui.screens.leanback.settings.LeanbackSettingsViewModel
 import top.yogiczy.mytv.ui.screens.leanback.toast.LeanbackToastState
@@ -81,18 +80,11 @@ fun LeanbackMainContent(
     )
 
     var sessionOnboardingDismissed by remember { mutableStateOf(false) }
-    val needsLeanbackOnboarding =
-        settingsViewModel.iptvSourceUrl.isBlank() ||
-            (settingsViewModel.epgEnable && settingsViewModel.isEpgXmlUrlStoredBlank)
+    /** 仅直播源未配置时引导进入设置首页；节目单为可选，不参与引导 */
+    val needsLeanbackOnboarding = settingsViewModel.iptvSourceUrl.isBlank()
 
-    LaunchedEffect(
-        settingsViewModel.iptvSourceUrl,
-        settingsViewModel.epgEnable,
-        settingsViewModel.isEpgXmlUrlStoredBlank,
-    ) {
-        val needs =
-            settingsViewModel.iptvSourceUrl.isBlank() ||
-                (settingsViewModel.epgEnable && settingsViewModel.isEpgXmlUrlStoredBlank)
+    LaunchedEffect(settingsViewModel.iptvSourceUrl) {
+        val needs = settingsViewModel.iptvSourceUrl.isBlank()
         if (!needs) {
             sessionOnboardingDismissed = false
             return@LaunchedEffect
@@ -339,21 +331,7 @@ fun LeanbackMainContent(
         }
 
         LeanbackVisible({ mainContentState.isSettingsVisible }) {
-            val guidedInitialCategory =
-                if (needsLeanbackOnboarding && !sessionOnboardingDismissed) {
-                    when {
-                        settingsViewModel.iptvSourceUrl.isBlank() ->
-                            LeanbackSettingsCategories.IPTV
-                        settingsViewModel.epgEnable &&
-                            settingsViewModel.isEpgXmlUrlStoredBlank ->
-                            LeanbackSettingsCategories.EPG
-                        else -> null
-                    }
-                } else {
-                    null
-                }
             LeanbackSettingsScreen(
-                initialOpenCategory = guidedInitialCategory,
                 onRequestClose = {
                     mainContentState.isSettingsVisible = false
                     if (needsLeanbackOnboarding) sessionOnboardingDismissed = true

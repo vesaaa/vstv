@@ -171,18 +171,11 @@ class LeanbackSettingsViewModel : ViewModel() {
         }
 
     private var _epgXmlUrl by mutableStateOf(SP.epgXmlUrl)
-    private var _isEpgXmlUrlStoredBlank by mutableStateOf(SP.isEpgXmlUrlStoredBlank)
-
-    /** 与 SP 中原始键一致：是否从未写入自定义节目单地址（内置默认不算用户配置） */
-    val isEpgXmlUrlStoredBlank: Boolean
-        get() = _isEpgXmlUrlStoredBlank
-
     var epgXmlUrl: String
         get() = _epgXmlUrl
         set(value) {
             _epgXmlUrl = value
             SP.epgXmlUrl = value
-            _isEpgXmlUrlStoredBlank = SP.isEpgXmlUrlStoredBlank
         }
 
     private var _epgRefreshTimeThreshold by mutableIntStateOf(SP.epgRefreshTimeThreshold)
