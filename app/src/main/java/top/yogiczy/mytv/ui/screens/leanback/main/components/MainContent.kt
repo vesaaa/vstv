@@ -75,6 +75,18 @@ fun LeanbackMainContent(
         videoPlayerState = videoPlayerState,
         iptvGroupList = iptvGroupList,
     )
+
+    LaunchedEffect(SP.iptvSourceUrl) {
+        if (SP.iptvSourceUrl.isBlank()) {
+            mainContentState.isQuickPanelVisible = true
+        }
+    }
+    LaunchedEffect(SP.iptvSourceUrl, iptvGroupList.iptvList.size) {
+        if (SP.iptvSourceUrl.isNotBlank() && iptvGroupList.iptvList.isNotEmpty()) {
+            mainContentState.isQuickPanelVisible = false
+        }
+    }
+
     val panelChannelNoSelectState = rememberLeanbackPanelChannelNoSelectState(
         onChannelNoConfirm = {
             val channelNo = it.toInt() - 1

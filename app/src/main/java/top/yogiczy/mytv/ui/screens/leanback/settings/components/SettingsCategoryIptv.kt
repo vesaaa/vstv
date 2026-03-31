@@ -39,6 +39,7 @@ import top.yogiczy.mytv.ui.screens.leanback.toast.LeanbackToastState
 import top.yogiczy.mytv.ui.theme.LeanbackTheme
 import top.yogiczy.mytv.ui.utils.HttpServer
 import top.yogiczy.mytv.ui.utils.SP
+import top.yogiczy.mytv.ui.utils.WebPushConfigNotifier
 import top.yogiczy.mytv.ui.utils.handleLeanbackKeyEvents
 import top.yogiczy.mytv.utils.humanizeMs
 import kotlin.math.max
@@ -99,6 +100,7 @@ fun LeanbackSettingsCategoryIptv(
                 },
                 onSelected = {
                     settingsViewModel.iptvSourceSimplify = !settingsViewModel.iptvSourceSimplify
+                    WebPushConfigNotifier.notifyConfigMayHaveChanged()
                 },
             )
         }
@@ -111,9 +113,11 @@ fun LeanbackSettingsCategoryIptv(
                 onSelected = {
                     settingsViewModel.iptvSourceCacheTime =
                         (settingsViewModel.iptvSourceCacheTime + 1 * 1000 * 60 * 60) % (1000 * 60 * 60 * 24)
+                    WebPushConfigNotifier.notifyConfigMayHaveChanged()
                 },
                 onLongSelected = {
                     settingsViewModel.iptvSourceCacheTime = 0
+                    WebPushConfigNotifier.notifyConfigMayHaveChanged()
                 },
             )
         }
@@ -147,6 +151,7 @@ fun LeanbackSettingsCategoryIptv(
                         settingsViewModel.iptvSourceRequestHeaders =
                             if (it.isBlank()) "" else SP.getIptvSourceHeadersForUrl(it)
                         coroutineScope.launch { IptvRepository().clearCache() }
+                        WebPushConfigNotifier.notifyConfigMayHaveChanged()
                     }
                 },
                 onDeleted = {
@@ -161,6 +166,7 @@ fun LeanbackSettingsCategoryIptv(
                 onSelected = {
                     settingsViewModel.iptvPlayableHostList = emptySet()
                     coroutineScope.launch { IptvRepository().clearCache() }
+                    WebPushConfigNotifier.notifyConfigMayHaveChanged()
                     LeanbackToastState.I.showToast("清除缓存成功")
                 },
             )

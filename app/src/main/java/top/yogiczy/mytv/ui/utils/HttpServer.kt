@@ -187,6 +187,10 @@ object HttpServer : Loggable() {
             }
         }
 
+        if (body.has("iptvSourceUrl") || body.has("iptvSourceRequestHeaders") || body.has("epgXmlUrl")) {
+            WebPushConfigNotifier.notifyConfigMayHaveChanged()
+        }
+
         wrapResponse(response).send("success")
     }
 

@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.retry
 import kotlinx.coroutines.flow.retryWhen
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import top.yogiczy.mytv.data.entities.EpgList
 import top.yogiczy.mytv.data.entities.IptvGroupList
@@ -20,6 +21,7 @@ import top.yogiczy.mytv.data.repositories.epg.EpgRepository
 import top.yogiczy.mytv.data.repositories.iptv.IptvRepository
 import top.yogiczy.mytv.data.utils.Constants
 import top.yogiczy.mytv.ui.utils.SP
+import top.yogiczy.mytv.ui.utils.WebPushConfigNotifier
 import top.yogiczy.mytv.utils.normalizeIptvRequestHeadersInput
 
 class LeanbackMainViewModel : ViewModel() {
@@ -29,10 +31,21 @@ class LeanbackMainViewModel : ViewModel() {
     private val _uiState = MutableStateFlow<LeanbackMainUiState>(LeanbackMainUiState.Loading())
     val uiState: StateFlow<LeanbackMainUiState> = _uiState.asStateFlow()
 
+    private var externalReloadJob: Job? = null
+
     init {
         viewModelScope.launch {
             refreshIptv()
             refreshEpg()
+        }
+        viewModelScope.launch {
+            WebPushConfigNotifier.updates.collect {
+                externalReloadJob?.cancel()
+                externalReloadJob = viewModelScope.launch {
+                    refreshIptv()
+                    refreshEpg()
+                }
+            }
         }
     }
 

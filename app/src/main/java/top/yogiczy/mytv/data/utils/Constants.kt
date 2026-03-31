@@ -25,9 +25,9 @@ object Constants {
     const val IPTV_SOURCE_CACHE_TIME = 1000 * 60 * 60 * 24L // 24小时
 
     /**
-     * 节目单默认地址（明文 XML）。亦可配置同站 GZIP：`http://epg.51zmt.top:8000/e.xml.gz`。
+     * 节目单默认地址（gzip XMLTV）。亦可改为同站明文：`http://epg.51zmt.top:8000/e.xml`。
      */
-    const val EPG_XML_URL = "http://epg.51zmt.top:8000/e.xml"
+    const val EPG_XML_URL = "http://epg.51zmt.top:8000/e1.xml.gz"
 
     /**
      * 节目单刷新时间阈值（小时）

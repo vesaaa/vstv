@@ -40,6 +40,7 @@ import top.yogiczy.mytv.ui.screens.leanback.toast.LeanbackToastState
 import top.yogiczy.mytv.ui.theme.LeanbackTheme
 import top.yogiczy.mytv.ui.utils.HttpServer
 import top.yogiczy.mytv.ui.utils.SP
+import top.yogiczy.mytv.ui.utils.WebPushConfigNotifier
 import top.yogiczy.mytv.ui.utils.handleLeanbackKeyEvents
 import kotlin.math.max
 
@@ -64,6 +65,7 @@ fun LeanbackSettingsCategoryEpg(
                 },
                 onSelected = {
                     settingsViewModel.epgEnable = !settingsViewModel.epgEnable
+                    WebPushConfigNotifier.notifyConfigMayHaveChanged()
                 },
             )
         }
@@ -76,9 +78,11 @@ fun LeanbackSettingsCategoryEpg(
                 onSelected = {
                     settingsViewModel.epgRefreshTimeThreshold =
                         (settingsViewModel.epgRefreshTimeThreshold + 1) % 12
+                    WebPushConfigNotifier.notifyConfigMayHaveChanged()
                 },
                 onLongSelected = {
                     settingsViewModel.epgRefreshTimeThreshold = 0
+                    WebPushConfigNotifier.notifyConfigMayHaveChanged()
                 },
             )
         }
@@ -118,6 +122,7 @@ fun LeanbackSettingsCategoryEpg(
                     if (settingsViewModel.epgXmlUrl != it) {
                         settingsViewModel.epgXmlUrl = it
                         coroutineScope.launch { EpgRepository().clearCache() }
+                        WebPushConfigNotifier.notifyConfigMayHaveChanged()
                     }
                 },
                 onDeleted = {
@@ -132,6 +137,7 @@ fun LeanbackSettingsCategoryEpg(
                 supportingContent = "短按清除节目单缓存文件",
                 onSelected = {
                     coroutineScope.launch { EpgRepository().clearCache() }
+                    WebPushConfigNotifier.notifyConfigMayHaveChanged()
                     LeanbackToastState.I.showToast("清除缓存成功")
                 },
             )
