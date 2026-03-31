@@ -2,6 +2,8 @@ package top.yogiczy.mytv.ui.screens.leanback.settings.components
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.focusable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,14 +22,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -111,24 +110,14 @@ private fun SettingsMenuTile(
     title: String,
     onActivate: () -> Unit,
 ) {
-    var isFocused by remember { mutableStateOf(false) }
+    val interactionSource = remember { MutableInteractionSource() }
+    val isFocused by interactionSource.collectIsFocusedAsState()
 
     Surface(
         modifier = modifier
             .focusRequester(tileFocusRequester)
-            .focusable()
-            .onFocusChanged {
-                isFocused = it.isFocused || it.hasFocus
-            }
-            .handleLeanbackKeyEvents(
-                onSelect = {
-                    if (!isFocused) {
-                        tileFocusRequester.requestFocus()
-                    } else {
-                        onActivate()
-                    }
-                },
-            ),
+            .focusable(interactionSource = interactionSource)
+            .handleLeanbackKeyEvents(onSelect = { onActivate() }),
         shape = MaterialTheme.shapes.large,
         color = when {
             isFocused -> MaterialTheme.colorScheme.primaryContainer

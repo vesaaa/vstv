@@ -29,9 +29,15 @@ fun LeanbackVideoScreen(
                 .aspectRatio(state.aspectRatio),
             factory = {
                 // PlayerView 切换视频时黑屏闪烁，使用 SurfaceView 代替
-                SurfaceView(context)
+                SurfaceView(context).apply {
+                    // 避免 SurfaceView 抢走窗口焦点，导致外层 Compose 收不到方向键换台
+                    isFocusable = false
+                    isFocusableInTouchMode = false
+                }
             },
             update = { surfaceView ->
+                surfaceView.isFocusable = false
+                surfaceView.isFocusableInTouchMode = false
                 state.setVideoSurfaceView(surfaceView)
             },
         )
