@@ -17,6 +17,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -36,10 +37,20 @@ import top.yogiczy.mytv.ui.theme.LeanbackTheme
 @Composable
 fun LeanbackSettingsScreen(
     modifier: Modifier = Modifier,
+    /** 首次进入设置时自动打开的详情分类（如引导进入直播源/节目单） */
+    initialOpenCategory: LeanbackSettingsCategories? = null,
     onRequestClose: () -> Unit = {},
 ) {
     val childPadding = rememberLeanbackChildPadding()
     var openCategory by remember { mutableStateOf<LeanbackSettingsCategories?>(null) }
+    var appliedInitialCategory by remember { mutableStateOf(false) }
+
+    LaunchedEffect(initialOpenCategory) {
+        if (!appliedInitialCategory && initialOpenCategory != null) {
+            openCategory = initialOpenCategory
+            appliedInitialCategory = true
+        }
+    }
 
     Box(
         modifier = modifier

@@ -6,8 +6,11 @@ import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -38,6 +41,7 @@ import top.yogiczy.mytv.ui.screens.leanback.panel.LeanbackPanelScreen
 import top.yogiczy.mytv.ui.screens.leanback.panel.LeanbackPanelTempScreen
 import top.yogiczy.mytv.ui.screens.leanback.panel.rememberLeanbackPanelChannelNoSelectState
 import top.yogiczy.mytv.ui.screens.leanback.quickpanel.LeanbackQuickPanelScreen
+import top.yogiczy.mytv.ui.screens.leanback.settings.LeanbackSettingsCategories
 import top.yogiczy.mytv.ui.screens.leanback.settings.LeanbackSettingsScreen
 import top.yogiczy.mytv.ui.screens.leanback.settings.LeanbackSettingsViewModel
 import top.yogiczy.mytv.ui.screens.leanback.toast.LeanbackToastState
@@ -76,11 +80,28 @@ fun LeanbackMainContent(
         iptvGroupList = iptvGroupList,
     )
 
-    LaunchedEffect(SP.iptvSourceUrl) {
-        if (SP.iptvSourceUrl.isBlank()) {
-            mainContentState.isQuickPanelVisible = true
+    var sessionOnboardingDismissed by remember { mutableStateOf(false) }
+    val needsLeanbackOnboarding =
+        settingsViewModel.iptvSourceUrl.isBlank() ||
+            (settingsViewModel.epgEnable && settingsViewModel.isEpgXmlUrlStoredBlank)
+
+    LaunchedEffect(
+        settingsViewModel.iptvSourceUrl,
+        settingsViewModel.epgEnable,
+        settingsViewModel.isEpgXmlUrlStoredBlank,
+    ) {
+        val needs =
+            settingsViewModel.iptvSourceUrl.isBlank() ||
+                (settingsViewModel.epgEnable && settingsViewModel.isEpgXmlUrlStoredBlank)
+        if (!needs) {
+            sessionOnboardingDismissed = false
+            return@LaunchedEffect
         }
+        if (sessionOnboardingDismissed) return@LaunchedEffect
+        mainContentState.isSettingsVisible = true
+        mainContentState.isQuickPanelVisible = false
     }
+
     LaunchedEffect(SP.iptvSourceUrl, iptvGroupList.iptvList.size) {
         if (SP.iptvSourceUrl.isNotBlank() && iptvGroupList.iptvList.isNotEmpty()) {
             mainContentState.isQuickPanelVisible = false
@@ -318,8 +339,25 @@ fun LeanbackMainContent(
         }
 
         LeanbackVisible({ mainContentState.isSettingsVisible }) {
+            val guidedInitialCategory =
+                if (needsLeanbackOnboarding && !sessionOnboardingDismissed) {
+                    when {
+                        settingsViewModel.iptvSourceUrl.isBlank() ->
+                            LeanbackSettingsCategories.IPTV
+                        settingsViewModel.epgEnable &&
+                            settingsViewModel.isEpgXmlUrlStoredBlank ->
+                            LeanbackSettingsCategories.EPG
+                        else -> null
+                    }
+                } else {
+                    null
+                }
             LeanbackSettingsScreen(
-                onRequestClose = { mainContentState.isSettingsVisible = false },
+                initialOpenCategory = guidedInitialCategory,
+                onRequestClose = {
+                    mainContentState.isSettingsVisible = false
+                    if (needsLeanbackOnboarding) sessionOnboardingDismissed = true
+                },
             )
         }
 
