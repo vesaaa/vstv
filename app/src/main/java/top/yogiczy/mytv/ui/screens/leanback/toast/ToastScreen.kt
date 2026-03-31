@@ -1,14 +1,11 @@
 package top.yogiczy.mytv.ui.screens.leanback.toast
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
@@ -21,11 +18,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.tv.material3.Icon
 import androidx.tv.material3.MaterialTheme
 import kotlinx.coroutines.delay
@@ -36,17 +32,28 @@ fun LeanbackToastScreen(
     modifier: Modifier = Modifier,
     state: LeanbackToastState = rememberLeanbackToastState(),
 ) {
-    Popup(
-        alignment = Alignment.TopCenter,
-        offset = IntOffset(0, with(LocalDensity.current) { 52.dp.toPx().toInt() }),
-    ) {
-        AnimatedVisibility(
-            visible = state.visible,
-            enter = fadeIn() + scaleIn(),
-            exit = fadeOut() + scaleOut(),
-            modifier = modifier,
+    // 必须用独立 Dialog 窗口：Popup 画在 Activity 内容层，会被「设置」等 Dialog 盖住，导致看起来像「点了没反应」
+    if (state.visible) {
+        Dialog(
+            onDismissRequest = {},
+            properties = DialogProperties(
+                dismissOnBackPress = false,
+                dismissOnClickOutside = false,
+                usePlatformDefaultWidth = false,
+                decorFitsSystemWindows = false,
+            ),
         ) {
-            LeanbackToastItem(property = state.current)
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .focusable(false),
+                contentAlignment = Alignment.TopCenter,
+            ) {
+                LeanbackToastItem(
+                    property = state.current,
+                    modifier = modifier.padding(top = 52.dp),
+                )
+            }
         }
     }
 }
