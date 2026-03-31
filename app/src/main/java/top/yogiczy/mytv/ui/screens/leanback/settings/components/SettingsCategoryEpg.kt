@@ -42,6 +42,7 @@ import top.yogiczy.mytv.ui.utils.HttpServer
 import top.yogiczy.mytv.ui.utils.SP
 import top.yogiczy.mytv.ui.utils.WebPushConfigNotifier
 import top.yogiczy.mytv.ui.utils.handleLeanbackKeyEvents
+import top.yogiczy.mytv.utils.builtinEpgDefaultRequestHeaders
 import top.yogiczy.mytv.utils.userAgentValueFromHeadersText
 import kotlin.math.max
 
@@ -94,17 +95,20 @@ fun LeanbackSettingsCategoryEpg(
             LeanbackSettingsCategoryListItem(
                 headlineContent = "节目单与默认",
                 supportingContent = buildString {
-                    append("内置默认地址：")
+                    append("内置：")
                     append(Constants.EPG_XML_URL)
-                    append("\n")
+                    append("（默认，UA 空）\n")
+                    append(Constants.EPG_XML_URL_APTV)
+                    append("（默认 UA：aptv）\n")
                     append("当前地址：")
                     append(settingsViewModel.epgXmlUrl)
                     append("\n")
                     append("User-Agent：")
+                    val raw = settingsViewModel.epgXmlRequestHeaders.ifBlank {
+                        SP.getEpgHeadersForUrl(settingsViewModel.epgXmlUrl)
+                    }
                     val ua = userAgentValueFromHeadersText(
-                        settingsViewModel.epgXmlRequestHeaders.ifBlank {
-                            SP.getEpgHeadersForUrl(settingsViewModel.epgXmlUrl)
-                        },
+                        raw.ifBlank { builtinEpgDefaultRequestHeaders(settingsViewModel.epgXmlUrl) },
                     )
                     append(if (ua.isBlank()) "（未配置）" else ua)
                 },
@@ -118,7 +122,7 @@ fun LeanbackSettingsCategoryEpg(
                 onDismissRequest = { showDialog = false },
                 epgXmlUrlHistoryProvider = {
                     settingsViewModel.epgXmlUrlHistoryList.filter {
-                        it != Constants.EPG_XML_URL
+                        it !in Constants.EPG_BUILTIN_XML_URLS
                     }.toImmutableList()
                 },
                 currentEpgXmlUrlProvider = { settingsViewModel.epgXmlUrl },
@@ -127,21 +131,20 @@ fun LeanbackSettingsCategoryEpg(
                     showDialog = false
                     if (settingsViewModel.epgXmlUrl != it) {
                         settingsViewModel.epgXmlUrl = it
-                        settingsViewModel.epgXmlRequestHeaders = SP.getEpgHeadersForUrl(it)
+                        settingsViewModel.epgXmlRequestHeaders =
+                            SP.getEpgHeadersForUrl(it).ifBlank { builtinEpgDefaultRequestHeaders(it) }
                         coroutineScope.launch { EpgRepository().clearCache() }
                         WebPushConfigNotifier.notifyConfigMayHaveChanged()
                     }
                 },
                 onDeleted = { urlKey ->
                     SP.putEpgHeadersForUrl(urlKey, "")
-                    if (urlKey != Constants.EPG_XML_URL) {
+                    if (urlKey !in Constants.EPG_BUILTIN_XML_URLS) {
                         settingsViewModel.epgXmlUrlHistoryList -= urlKey
                     }
                     if (settingsViewModel.epgXmlUrl == urlKey) {
                         settingsViewModel.epgXmlRequestHeaders = ""
-                        if (urlKey != Constants.EPG_XML_URL) {
-                            settingsViewModel.epgXmlUrl = ""
-                        }
+                        settingsViewModel.epgXmlUrl = ""
                     }
                     coroutineScope.launch { EpgRepository().clearCache() }
                     WebPushConfigNotifier.notifyConfigMayHaveChanged()
@@ -174,7 +177,8 @@ private fun LeanbackSettingsEpgSourceHistoryDialog(
     onSelected: (String) -> Unit = {},
     onDeleted: (String) -> Unit = {},
 ) {
-    val epgXmlUrlHistory = listOf(Constants.EPG_XML_URL) + epgXmlUrlHistoryProvider()
+    val epgXmlUrlHistory =
+        Constants.EPG_BUILTIN_XML_URLS + epgXmlUrlHistoryProvider().filter { it !in Constants.EPG_BUILTIN_XML_URLS }
     val currentEpgXmlUrl = currentEpgXmlUrlProvider()
     val currentEpgRequestHeaders = currentEpgRequestHeadersProvider()
 
@@ -205,8 +209,9 @@ private fun LeanbackSettingsEpgSourceHistoryDialog(
                             } else {
                                 SP.getEpgHeadersForUrl(url)
                             }
-                        val uaDisplay = userAgentValueFromHeadersText(headersText)
-                            .let { v -> if (v.isBlank()) "（未配置）" else v }
+                        val uaDisplay = userAgentValueFromHeadersText(
+                            headersText.ifBlank { builtinEpgDefaultRequestHeaders(url) },
+                        ).let { v -> if (v.isBlank()) "（未配置）" else v }
 
                         LaunchedEffect(Unit) {
                             if (url == currentEpgXmlUrl && !hasFocused) {

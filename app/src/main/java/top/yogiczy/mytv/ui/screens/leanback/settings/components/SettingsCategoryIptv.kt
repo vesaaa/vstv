@@ -42,6 +42,7 @@ import top.yogiczy.mytv.ui.utils.SP
 import top.yogiczy.mytv.ui.utils.WebPushConfigNotifier
 import top.yogiczy.mytv.ui.utils.handleLeanbackKeyEvents
 import top.yogiczy.mytv.utils.humanizeMs
+import top.yogiczy.mytv.utils.userAgentValueFromHeadersText
 import kotlin.math.max
 
 @Composable
@@ -128,7 +129,16 @@ fun LeanbackSettingsCategoryIptv(
             LeanbackSettingsCategoryListItem(
                 headlineContent = "直播源与默认",
                 supportingContent = if (settingsViewModel.iptvSourceUrl.isNotBlank()) {
-                    settingsViewModel.iptvSourceUrl
+                    buildString {
+                        append(settingsViewModel.iptvSourceUrl)
+                        append("\n")
+                        append("User-Agent：")
+                        val raw = settingsViewModel.iptvSourceRequestHeaders.ifBlank {
+                            SP.getIptvSourceHeadersForUrl(settingsViewModel.iptvSourceUrl)
+                        }
+                        val ua = userAgentValueFromHeadersText(raw)
+                        append(if (ua.isBlank()) "（未配置）" else ua)
+                    }
                 } else {
                     "未设置默认：请扫码或网页推送；多源时在列表中选「当前默认」"
                 },
@@ -144,6 +154,7 @@ fun LeanbackSettingsCategoryIptv(
                         .toImmutableList()
                 },
                 currentIptvSourceProvider = { settingsViewModel.iptvSourceUrl },
+                currentIptvRequestHeadersProvider = { settingsViewModel.iptvSourceRequestHeaders },
                 onSelected = {
                     showDialog = false
                     if (settingsViewModel.iptvSourceUrl != it) {
@@ -181,11 +192,13 @@ private fun LeanbackSettingsIptvSourceHistoryDialog(
     onDismissRequest: () -> Unit = {},
     iptvSourceHistoryProvider: () -> ImmutableList<String> = { persistentListOf() },
     currentIptvSourceProvider: () -> String = { "" },
+    currentIptvRequestHeadersProvider: () -> String = { "" },
     onSelected: (String) -> Unit = {},
     onDeleted: (String) -> Unit = {},
 ) {
     val iptvSourceHistory = listOf("") + iptvSourceHistoryProvider()
     val currentIptvSource = currentIptvSourceProvider()
+    val currentIptvRequestHeaders = currentIptvRequestHeadersProvider()
 
     if (showDialogProvider()) {
         AlertDialog(
@@ -207,6 +220,16 @@ private fun LeanbackSettingsIptvSourceHistoryDialog(
                     items(iptvSourceHistory) { source ->
                         val focusRequester = remember { FocusRequester() }
                         var isFocused by remember { mutableStateOf(false) }
+
+                        val headersText = when {
+                            source.isBlank() -> ""
+                            source == currentIptvSource -> {
+                                currentIptvRequestHeaders.ifBlank { SP.getIptvSourceHeadersForUrl(source) }
+                            }
+                            else -> SP.getIptvSourceHeadersForUrl(source)
+                        }
+                        val uaDisplay = userAgentValueFromHeadersText(headersText)
+                            .let { v -> if (v.isBlank()) "（未配置）" else v }
 
                         LaunchedEffect(Unit) {
                             if (source == currentIptvSource && !hasFocused) {
@@ -237,6 +260,17 @@ private fun LeanbackSettingsIptvSourceHistoryDialog(
                                         "无（清除当前默认订阅）"
                                     } else {
                                         source
+                                    },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    maxLines = if (isFocused) Int.MAX_VALUE else 2,
+                                )
+                            },
+                            supportingContent = {
+                                androidx.tv.material3.Text(
+                                    text = if (source.isBlank()) {
+                                        "User-Agent：（无订阅，不适用）"
+                                    } else {
+                                        "User-Agent：$uaDisplay"
                                     },
                                     modifier = Modifier.fillMaxWidth(),
                                     maxLines = if (isFocused) Int.MAX_VALUE else 2,

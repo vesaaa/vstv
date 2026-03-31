@@ -1,6 +1,7 @@
 package top.yogiczy.mytv.utils
 
 import okhttp3.Headers
+import top.yogiczy.mytv.data.utils.Constants
 
 /**
  * 规范化订阅拉取用的请求头文本。
@@ -45,6 +46,14 @@ fun Map<String, String>.toOkHttpHeaders(): Headers {
         }
     }
     return b.build()
+}
+
+/** 内置节目单 URL 在未写入自定义请求头时的默认头（与网页/设置中成组逻辑一致） */
+fun builtinEpgDefaultRequestHeaders(xmlUrl: String): String {
+    return when (xmlUrl.trim()) {
+        Constants.EPG_XML_URL_APTV -> normalizeIptvRequestHeadersInput("aptv")
+        else -> ""
+    }
 }
 
 /** 从多行请求头文本中提取 User-Agent 取值（用于设置页摘要）；未配置时返回空串 */

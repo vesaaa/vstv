@@ -26,8 +26,15 @@ object Constants {
 
     /**
      * 节目单默认地址（gzip XMLTV）。亦可改为同站明文：`http://epg.51zmt.top:8000/e.xml`。
+     * 存储为空时生效；默认无自定义 UA。
      */
     const val EPG_XML_URL = "http://epg.51zmt.top:8000/e1.xml.gz"
+
+    /** 内置 APTV 节目单；未单独配置 UA 时拉取使用 User-Agent: aptv */
+    const val EPG_XML_URL_APTV = "https://epg.aptv.app/pp.xml.gz"
+
+    /** 内置节目单地址列表（顺序：默认 51zmt → APTV），勿写入历史 URL 集合 */
+    val EPG_BUILTIN_XML_URLS: List<String> = listOf(EPG_XML_URL, EPG_XML_URL_APTV)
 
     /**
      * 节目单刷新时间阈值（小时）

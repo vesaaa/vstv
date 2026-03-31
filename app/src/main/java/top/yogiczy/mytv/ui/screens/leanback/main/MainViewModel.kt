@@ -22,6 +22,7 @@ import top.yogiczy.mytv.data.repositories.iptv.IptvRepository
 import top.yogiczy.mytv.data.utils.Constants
 import top.yogiczy.mytv.ui.utils.SP
 import top.yogiczy.mytv.ui.utils.WebPushConfigNotifier
+import top.yogiczy.mytv.utils.builtinEpgDefaultRequestHeaders
 import top.yogiczy.mytv.utils.normalizeIptvRequestHeadersInput
 
 class LeanbackMainViewModel : ViewModel() {
@@ -57,9 +58,10 @@ class LeanbackMainViewModel : ViewModel() {
     }
 
     private fun epgRequestHeadersForFetch(): String {
-        val global = SP.epgXmlRequestHeaders
-        if (global.isNotBlank()) return global
-        return SP.getEpgHeadersForUrl(SP.epgXmlUrl)
+        val url = SP.epgXmlUrl
+        val user = SP.epgXmlRequestHeaders.ifBlank { SP.getEpgHeadersForUrl(url) }
+        if (user.isNotBlank()) return user
+        return builtinEpgDefaultRequestHeaders(url)
     }
 
     private suspend fun refreshIptv() {

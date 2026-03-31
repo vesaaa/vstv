@@ -32,7 +32,6 @@ fun LeanbackApp(
     val context = LocalContext.current
     val doubleBackPressedExitState = rememberLeanbackDoubleBackPressedExitState()
 
-    LeanbackToastScreen()
     LeanbackMainScreen(
         modifier = modifier,
         onBackPressed = {
@@ -44,6 +43,8 @@ fun LeanbackApp(
             }
         },
     )
+    // 后绘制，避免被设置页 Dialog 等遮挡
+    LeanbackToastScreen()
 }
 
 

@@ -37,8 +37,8 @@ fun LeanbackToastScreen(
     state: LeanbackToastState = rememberLeanbackToastState(),
 ) {
     Popup(
-        alignment = Alignment.BottomCenter,
-        offset = IntOffset(0, with(LocalDensity.current) { -28.dp.toPx().toInt() }),
+        alignment = Alignment.TopCenter,
+        offset = IntOffset(0, with(LocalDensity.current) { 52.dp.toPx().toInt() }),
     ) {
         AnimatedVisibility(
             visible = state.visible,
