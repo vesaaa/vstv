@@ -11,6 +11,7 @@ import top.yogiczy.mytv.data.entities.Epg
 import top.yogiczy.mytv.data.entities.EpgList
 import top.yogiczy.mytv.data.entities.EpgProgramme
 import top.yogiczy.mytv.data.entities.EpgProgrammeList
+import top.yogiczy.mytv.data.entities.Iptv
 import top.yogiczy.mytv.data.repositories.FileCacheRepository
 import top.yogiczy.mytv.data.repositories.epg.fetcher.EpgFetcher
 import top.yogiczy.mytv.utils.AppOkHttp
@@ -19,6 +20,7 @@ import java.io.StringReader
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
+import java.util.TimeZone
 
 /**
  * 节目单获取
@@ -32,48 +34,77 @@ class EpgRepository : FileCacheRepository("epg.json") {
      */
     private suspend fun parseFromXml(
         xmlString: String,
-        filteredChannels: List<String> = emptyList(),
+        iptvChannels: List<Iptv> = emptyList(),
     ) = withContext(Dispatchers.Default) {
+        val nameCandidates = iptvChannels.map { it.channelName.trim() }.filter { it.isNotEmpty() }.toSet()
+        val idCandidates = iptvChannels.map { it.tvgId.trim() }.filter { it.isNotEmpty() }.toSet()
+        val restrict = nameCandidates.isNotEmpty() || idCandidates.isNotEmpty()
+
         val parser: XmlPullParser = Xml.newPullParser()
         parser.setFeature(XmlPullParser.FEATURE_PROCESS_NAMESPACES, false)
         parser.setInput(StringReader(xmlString))
 
         val epgMap = mutableMapOf<String, Epg>()
 
+        fun parseTime(raw: String): Long {
+            val time = raw.trim()
+            if (time.isEmpty()) return 0
+            if (time.length >= 14) {
+                val normalized = if (time.length > 14 && time[14] != ' ') {
+                    time.take(14) + " " + time.drop(14).trim()
+                } else {
+                    time
+                }
+                SimpleDateFormat("yyyyMMddHHmmss Z", Locale.US).parse(normalized)?.time?.let { return it }
+                // 无时区后缀时按中国时区解析本地节目单时间
+                val core = time.take(14)
+                val local = SimpleDateFormat("yyyyMMddHHmmss", Locale.US).apply {
+                    timeZone = TimeZone.getTimeZone("Asia/Shanghai")
+                }
+                local.parse(core)?.time?.let { return it }
+            }
+            return 0
+        }
+
         var eventType = parser.eventType
         while (eventType != XmlPullParser.END_DOCUMENT) {
             when (eventType) {
                 XmlPullParser.START_TAG -> {
                     if (parser.name == "channel") {
-                        val channelId = parser.getAttributeValue(null, "id")
+                        val channelId = parser.getAttributeValue(null, "id")?.trim().orEmpty()
                         parser.nextTag()
-                        val channelName = parser.nextText()
+                        val channelName = parser.nextText().trim()
 
-                        if (filteredChannels.isEmpty() || filteredChannels.contains(channelName)) {
-                            epgMap[channelId] = Epg(channelName, EpgProgrammeList())
+                        val include = !restrict ||
+                            nameCandidates.any { it.equals(channelName, ignoreCase = true) } ||
+                            (channelId.isNotEmpty() && idCandidates.contains(channelId))
+
+                        if (include) {
+                            epgMap[channelId] = Epg(
+                                channel = channelName,
+                                programmes = EpgProgrammeList(),
+                                channelId = channelId,
+                            )
                         }
                     } else if (parser.name == "programme") {
-                        val channelId = parser.getAttributeValue(null, "channel")
-                        val startTime = parser.getAttributeValue(null, "start")
-                        val stopTime = parser.getAttributeValue(null, "stop")
+                        val channelId = parser.getAttributeValue(null, "channel")?.trim().orEmpty()
+                        val startTime = parser.getAttributeValue(null, "start").orEmpty()
+                        val stopTime = parser.getAttributeValue(null, "stop").orEmpty()
                         parser.nextTag()
                         val title = parser.nextText()
 
-                        fun parseTime(time: String): Long {
-                            if (time.length < 14) return 0
-
-                            return SimpleDateFormat("yyyyMMddHHmmss Z", Locale.getDefault()).parse(
-                                time
-                            )?.time ?: 0
-                        }
-
-                        if (epgMap.containsKey(channelId)) {
+                        if (channelId.isNotEmpty() && epgMap.containsKey(channelId)) {
+                            var startAt = parseTime(startTime)
+                            var endAt = parseTime(stopTime)
+                            if (startAt > 0L && endAt <= startAt) {
+                                endAt = startAt + 3600_000L
+                            }
                             epgMap[channelId] = epgMap[channelId]!!.copy(
                                 programmes = EpgProgrammeList(
                                     epgMap[channelId]!!.programmes + listOf(
                                         EpgProgramme(
-                                            startAt = parseTime(startTime),
-                                            endAt = parseTime(stopTime),
+                                            startAt = startAt,
+                                            endAt = endAt,
                                             title = title,
                                         )
                                     )
@@ -92,7 +123,7 @@ class EpgRepository : FileCacheRepository("epg.json") {
 
     suspend fun getEpgList(
         xmlUrl: String,
-        filteredChannels: List<String> = emptyList(),
+        iptvChannels: List<Iptv> = emptyList(),
         refreshTimeThreshold: Int,
     ) = withContext(Dispatchers.Default) {
         try {
@@ -112,7 +143,7 @@ class EpgRepository : FileCacheRepository("epg.json") {
                 dateFormat.format(System.currentTimeMillis()) != dateFormat.format(lastModified)
             }) {
                 val xmlString = epgXmlRepository.getEpgXml(xmlUrl)
-                Json.encodeToString(parseFromXml(xmlString, filteredChannels).value)
+                Json.encodeToString(parseFromXml(xmlString, iptvChannels).value)
             }
 
             EpgList(Json.decodeFromString<List<Epg>>(xmlJson))

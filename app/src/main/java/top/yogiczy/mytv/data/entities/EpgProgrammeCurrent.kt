@@ -14,6 +14,9 @@ data class EpgProgrammeCurrent(
      */
     val next: EpgProgramme? = null,
 ) {
+    /** 频道条、列表副标题等：优先当前档，仅有下一条时显示下一条 */
+    fun primaryProgramme(): EpgProgramme? = now ?: next
+
     companion object {
         val EXAMPLE = EpgProgrammeCurrent(
             now = EpgProgramme(

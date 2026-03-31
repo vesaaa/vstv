@@ -69,8 +69,9 @@ fun LeanbackPanelIptvList(
             LeanbackPanelIptvItem(
                 iptvProvider = { iptv },
                 currentProgrammeProvider = {
-                    epgListProvider().firstOrNull { epg -> epg.channel == iptv.channelName }
-                        ?.currentProgrammes()?.now
+                    epgListProvider().firstOrNull { epg -> epg.matchesIptv(iptv) }
+                        ?.currentProgrammes()
+                        ?.primaryProgramme()
                 },
                 showProgrammeProgressProvider = { showProgrammeProgressProvider() },
                 onIptvSelected = { onIptvSelected(iptv) },
@@ -91,7 +92,7 @@ fun LeanbackPanelIptvList(
         iptvProvider = { currentShowEpgIptv },
         epgProvider = {
             epgListProvider().firstOrNull { epg ->
-                epg.channel == currentShowEpgIptv.channelName
+                epg.matchesIptv(currentShowEpgIptv)
             } ?: Epg()
         },
         modifier = Modifier

@@ -40,6 +40,7 @@ import androidx.tv.material3.ListItemDefaults
 import kotlinx.coroutines.flow.distinctUntilChanged
 import top.yogiczy.mytv.data.entities.EpgList
 import top.yogiczy.mytv.data.entities.EpgList.Companion.currentProgrammes
+import top.yogiczy.mytv.data.entities.EpgProgramme.Companion.isLive
 import top.yogiczy.mytv.data.entities.EpgProgramme.Companion.progress
 import top.yogiczy.mytv.data.entities.EpgProgrammeCurrent
 import top.yogiczy.mytv.data.entities.Iptv
@@ -162,7 +163,7 @@ private fun LeanbackClassicPanelIptvItem(
 ) {
     val iptv = iptvProvider()
     val focusRequester = focusRequesterProvider()
-    val currentProgramme = epgProgrammeCurrentProvider()?.now
+    val currentProgramme = epgProgrammeCurrentProvider()?.primaryProgramme()
 
     var isFocused by remember { mutableStateOf(false) }
 
@@ -222,7 +223,7 @@ private fun LeanbackClassicPanelIptvItem(
                 },
             )
 
-            if (showProgrammeProgressProvider() && currentProgramme != null) {
+            if (showProgrammeProgressProvider() && currentProgramme != null && currentProgramme.isLive()) {
                 Box(
                     modifier = Modifier
                         .align(Alignment.BottomStart)

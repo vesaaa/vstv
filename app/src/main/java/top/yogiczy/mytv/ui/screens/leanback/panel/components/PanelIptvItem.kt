@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.tv.material3.Border
 import androidx.tv.material3.CardDefaults
 import top.yogiczy.mytv.data.entities.EpgProgramme
+import top.yogiczy.mytv.data.entities.EpgProgramme.Companion.isLive
 import top.yogiczy.mytv.data.entities.EpgProgramme.Companion.progress
 import top.yogiczy.mytv.data.entities.Iptv
 import top.yogiczy.mytv.ui.theme.LeanbackTheme
@@ -126,7 +127,7 @@ fun LeanbackPanelIptvItem(
             }
 
             // 节目进度条
-            if (showProgrammeProgress && currentProgramme != null) {
+            if (showProgrammeProgress && currentProgramme != null && currentProgramme.isLive()) {
                 Box(
                     modifier = Modifier
                         .align(Alignment.BottomStart)

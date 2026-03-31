@@ -223,7 +223,7 @@ private fun LeanbackClassicPanelScreenContent(
 
         LeanbackVisible({ epgListVisible }) {
             LeanbackClassicPanelEpgList(
-                epgProvider = { epgListProvider().firstOrNull { it.channel == focusedIptv.channelName } },
+                epgProvider = { epgListProvider().firstOrNull { it.matchesIptv(focusedIptv) } },
                 exitFocusRequesterProvider = { focusedIptvFocusRequester },
                 onUserAction = onUserAction,
             )

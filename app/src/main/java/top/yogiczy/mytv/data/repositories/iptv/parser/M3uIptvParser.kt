@@ -19,13 +19,15 @@ class M3uIptvParser : IptvParser {
             if (!line.startsWith("#EXTINF")) return@forEachIndexed
 
             val name = line.split(",").last()
-            val channelName = Regex("tvg-name=\"(.+?)\"").find(line)?.groupValues?.get(1) ?: name
-            val groupName = Regex("group-title=\"(.+?)\"").find(line)?.groupValues?.get(1) ?: "其他"
+            val channelName = Regex("""tvg-name="(.+?)"""").find(line)?.groupValues?.get(1) ?: name
+            val tvgId = Regex("""tvg-id="(.+?)"""").find(line)?.groupValues?.get(1)?.trim().orEmpty()
+            val groupName = Regex("""group-title="(.+?)"""").find(line)?.groupValues?.get(1) ?: "其他"
 
             iptvList.add(
                 IptvResponseItem(
                     name = name.trim(),
                     channelName = channelName.trim(),
+                    tvgId = tvgId,
                     groupName = groupName.trim(),
                     url = lines[index + 1].trim(),
                 )
@@ -39,6 +41,7 @@ class M3uIptvParser : IptvParser {
                     Iptv(
                         name = nameEntry.key,
                         channelName = nameEntry.value.first().channelName,
+                        tvgId = nameEntry.value.first().tvgId,
                         urlList = nameEntry.value.map { it.url },
                     )
                 })
@@ -49,6 +52,7 @@ class M3uIptvParser : IptvParser {
     private data class IptvResponseItem(
         val name: String,
         val channelName: String,
+        val tvgId: String,
         val groupName: String,
         val url: String,
     )

@@ -12,7 +12,7 @@ data class EpgList(
          * 当前节目/下一个节目
          */
         fun EpgList.currentProgrammes(iptv: Iptv): EpgProgrammeCurrent? {
-            return firstOrNull { it.channel == iptv.channelName }?.currentProgrammes()
+            return firstOrNull { it.matchesIptv(iptv) }?.currentProgrammes()
         }
     }
 }

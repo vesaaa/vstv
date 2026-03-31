@@ -43,6 +43,7 @@ class TvboxIptvParser : IptvParser {
                     Iptv(
                         name = nameEntry.key,
                         channelName = nameEntry.value.first().channelName,
+                        tvgId = "",
                         urlList = nameEntry.value.map { it.url },
                     )
                 }),

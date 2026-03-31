@@ -117,7 +117,7 @@ class LeanbackMainViewModel : ViewModel() {
             emit(
                 epgRepository.getEpgList(
                     xmlUrl = SP.epgXmlUrl,
-                    filteredChannels = iptvGroupList.iptvList.map { it.channelName },
+                    iptvChannels = iptvGroupList.iptvList,
                     refreshTimeThreshold = SP.epgRefreshTimeThreshold,
                 )
             )

@@ -18,8 +18,8 @@ class DefaultIptvParser : IptvParser {
                     name = "不支持当前直播源链接格式，请切换其他直播源链接；支持的直播源链接格式：m3u、tvbox",
                     iptvList = IptvList(
                         listOf(
-                            Iptv(name = "m3u", channelName = "m3u", urlList = listOf()),
-                            Iptv(name = "tvbox", channelName = "tvbox", urlList = listOf()),
+                            Iptv(name = "m3u", channelName = "m3u", tvgId = "", urlList = listOf()),
+                            Iptv(name = "tvbox", channelName = "tvbox", tvgId = "", urlList = listOf()),
                         )
                     )
                 )
