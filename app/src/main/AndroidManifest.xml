@@ -95,7 +95,7 @@
             android:name=".receivers.PackageInstallResultReceiver"
             android:exported="false">
             <intent-filter>
-                <action android:name="top.yogiczy.mytv.action.PACKAGE_INSTALL_RESULT" />
+                <action android:name="com.vesaa.mytv.action.PACKAGE_INSTALL_RESULT" />
             </intent-filter>
         </receiver>
 

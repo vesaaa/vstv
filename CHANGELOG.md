@@ -4,6 +4,7 @@
 
 ## [0.0.20] - 2026-03-30
 
+- **应用 ID / 包名** 由 `top.yogiczy.mytv` 改为 **`com.vesaa.mytv`**（与旧包名不同签名视为不同应用，需卸载旧版或全新安装；伪装版 `com.chinablue.tv` 不变）
 - 设置页左侧菜单改为 **2 列方块网格**（图标 + 标题）；首格 **「返回直播」**，确认即关闭设置回到全屏播放
 - `LeanbackSettingsScreen(onRequestClose)`；`LeanbackSettingsMenuItem` 区分返回直播与各设置分类；右侧在「返回直播」时显示操作说明
 

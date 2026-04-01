@@ -37,11 +37,11 @@ val resolvedVersionCode =
 val ciUseDebugSigning = project.hasProperty("ciUseDebugSigning")
 
 android {
-    namespace = "top.yogiczy.mytv"
+    namespace = "com.vesaa.mytv"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "top.yogiczy.mytv"
+        applicationId = "com.vesaa.mytv"
         minSdk = 21
         targetSdk = 34
         versionCode = resolvedVersionCode
