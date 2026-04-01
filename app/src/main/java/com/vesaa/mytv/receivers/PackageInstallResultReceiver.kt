@@ -19,6 +19,7 @@ private const val EXTRA_LEGACY_STATUS = "android.content.pm.extra.LEGACY_STATUS"
 // PackageManager.INSTALL_FAILED_* 同理，数值与 AOSP 一致
 private const val LEGACY_INSTALL_FAILED_UPDATE_INCOMPATIBLE = -7
 private const val LEGACY_INSTALL_FAILED_SHARED_USER_INCOMPATIBLE = -8
+private const val LEGACY_INSTALL_FAILED_ALREADY_EXISTS = -1
 
 private val installConflictHint = buildString {
     append("无法覆盖安装：新安装包与当前已装应用的签名不一致。")
@@ -57,6 +58,12 @@ class PackageInstallResultReceiver : BroadcastReceiver() {
     }
 
     private fun buildFailureMessage(status: Int, legacy: Int, systemMsg: String?): String {
+        if (legacy == LEGACY_INSTALL_FAILED_ALREADY_EXISTS ||
+            status == LEGACY_INSTALL_FAILED_ALREADY_EXISTS
+        ) {
+            return "安装被系统判定为「已存在相同应用」，常见于会话安装与系统安装器状态不一致。" +
+                "请删除本应用缓存中的更新包后重新下载，或使用 U 盘/文件管理器覆盖安装同一 APK。"
+        }
         if (legacy == LEGACY_INSTALL_FAILED_UPDATE_INCOMPATIBLE ||
             legacy == LEGACY_INSTALL_FAILED_SHARED_USER_INCOMPATIBLE
         ) {

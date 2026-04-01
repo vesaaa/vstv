@@ -13,6 +13,7 @@ import android.os.Looper
 import android.util.Log
 import android.widget.Toast
 import androidx.core.content.FileProvider
+import com.vesaa.mytv.receivers.PackageInstallResultReceiver
 import java.io.File
 import java.io.FileInputStream
 import java.util.concurrent.Executors
@@ -65,7 +66,11 @@ object ApkInstaller {
                 FileInputStream(apkFile).use { input -> input.copyTo(out) }
                 session.fsync(out)
             }
-            val callback = Intent(ACTION_INSTALL_RESULT).setPackage(appCtx.packageName)
+            // 必须显式指定组件：隐式广播在 Android 12+ 上可能无法投递到 exported=false 的 manifest 接收器，
+            // 导致收不到结果或 extras 异常（用户侧表现为安装失败、状态码错乱）。
+            val callback = Intent(appCtx, PackageInstallResultReceiver::class.java).apply {
+                action = ACTION_INSTALL_RESULT
+            }
             val flags = PendingIntent.FLAG_UPDATE_CURRENT or pendingIntentMutableFlag()
             val pendingIntent = PendingIntent.getBroadcast(
                 appCtx,
