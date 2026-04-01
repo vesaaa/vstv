@@ -25,6 +25,21 @@ object SP {
 
     fun init(context: Context) {
         sp = getInstance(context)
+        seedDefaultIptvSourceIfNeeded()
+    }
+
+    /**
+     * 新安装且从未配置过直播源时，写入内置默认地址与请求头，并加入历史列表（设置页可见）。
+     */
+    private fun seedDefaultIptvSourceIfNeeded() {
+        val url = Constants.IPTV_SOURCE_URL
+        if (url.isBlank()) return
+        val existing = sp.getString(KEY.IPTV_SOURCE_URL.name, "") ?: ""
+        if (existing.isNotBlank()) return
+        val history = sp.getStringSet(KEY.IPTV_SOURCE_URL_HISTORY_LIST.name, emptySet()) ?: emptySet()
+        if (history.isNotEmpty()) return
+        commitIptvWebSettings(url, Constants.IPTV_SOURCE_DEFAULT_REQUEST_HEADERS)
+        iptvSourceUrlHistoryList = linkedSetOf(url)
     }
 
     enum class KEY {

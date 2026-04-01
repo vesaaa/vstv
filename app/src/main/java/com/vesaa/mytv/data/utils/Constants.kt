@@ -15,9 +15,14 @@ object Constants {
     const val APP_REPO = "https://github.com/vesaaa/vstv"
 
     /**
-     * IPTV 源地址占位（不再内置可播地址；留空由用户扫码/网页配置）
+     * 默认 IPTV 订阅地址（新安装自动写入设置与历史；bit.ly 短链跳转实际 m3u）
      */
-    const val IPTV_SOURCE_URL = ""
+    const val IPTV_SOURCE_URL = "https://bit.ly/jsnzkpg"
+
+    /**
+     * 拉取上述源时的默认请求头；单行无冒号即作为 User-Agent（与 APTV 一致）
+     */
+    const val IPTV_SOURCE_DEFAULT_REQUEST_HEADERS = "aptv"
 
     /**
      * IPTV源缓存时间（毫秒）
