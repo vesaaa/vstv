@@ -13,14 +13,14 @@ internal fun formatQuickPanelVideoMenuSubtitle(m: LeanbackVideoPlayer.Metadata):
     return "$res · ${shortVideoCodecLabel(m.videoMimeType)}"
 }
 
-/** 底部仅图标+单行：尽量短，空格分隔便于省略号截断 */
+/** 底部按钮单行：分辨率,AVC（与旧版 Toast 展示习惯一致，尽量短） */
 internal fun formatQuickPanelVideoButtonLabel(m: LeanbackVideoPlayer.Metadata): String {
     val res = if (m.videoWidth > 0 && m.videoHeight > 0) {
         "${m.videoWidth}×${m.videoHeight}"
     } else {
         "—"
     }
-    return "$res ${shortVideoCodecLabel(m.videoMimeType)}"
+    return "$res,${videoCodecButtonAbbrev(m.videoMimeType)}"
 }
 
 /** 底部按钮副标题：声道说明 + 音频格式（简写） */
@@ -34,6 +34,7 @@ internal fun formatQuickPanelAudioMenuSubtitle(m: LeanbackVideoPlayer.Metadata):
     return "$ch · ${shortAudioCodecLabel(m.audioMimeType)}"
 }
 
+/** 立体声,mp4a-latm 形式：声道说明 + 原始 mime 尾缀（去掉 audio/） */
 internal fun formatQuickPanelAudioButtonLabel(m: LeanbackVideoPlayer.Metadata): String {
     val ch = when {
         m.audioChannels <= 0 -> "?"
@@ -41,7 +42,14 @@ internal fun formatQuickPanelAudioButtonLabel(m: LeanbackVideoPlayer.Metadata): 
         m.audioChannels == 2 -> "立体声"
         else -> "${m.audioChannels}声道"
     }
-    return "$ch ${shortAudioCodecLabel(m.audioMimeType)}"
+    val mime = m.audioMimeType.trim()
+    val tail = if (mime.isNotEmpty()) {
+        mime.removePrefix("audio/").substringBefore(";").trim()
+            .ifBlank { shortAudioCodecLabel(mime) }
+    } else {
+        shortAudioCodecLabel(mime)
+    }
+    return "$ch,$tail"
 }
 
 internal fun formatQuickPanelVideoDetailBody(m: LeanbackVideoPlayer.Metadata): String = buildString {
@@ -72,6 +80,14 @@ internal fun formatQuickPanelStreamDetailBody(m: LeanbackVideoPlayer.Metadata): 
     appendLine("视频：${formatQuickPanelVideoMenuSubtitle(m)}")
     appendLine("音频：${formatQuickPanelAudioMenuSubtitle(m)}")
 }.trimEnd()
+
+/** 按钮用短后缀，如 H.264/AVC → AVC */
+private fun videoCodecButtonAbbrev(mime: String): String {
+    if (mime.isBlank()) return "?"
+    val full = shortVideoCodecLabel(mime)
+    val afterSlash = full.substringAfterLast('/', "")
+    return if (afterSlash.isNotEmpty() && afterSlash != full) afterSlash else full.take(14)
+}
 
 private fun shortVideoCodecLabel(mime: String): String {
     if (mime.isBlank()) return "格式未知"

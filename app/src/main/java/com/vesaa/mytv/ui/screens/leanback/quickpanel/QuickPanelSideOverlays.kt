@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -53,21 +52,42 @@ import java.text.SimpleDateFormat
 import java.util.Locale
 import kotlin.math.max
 
-/** 半透明白叠在暗色遮罩上，形成玻璃感，避免与纯黑背景糊成一片 */
-private val glassFill = Color.White.copy(alpha = 0.22f)
-private val glassStroke = Color.White.copy(alpha = 0.30f)
 private val sheetCorner = RoundedCornerShape(14.dp)
 
+/** 与选台界面 `LeanbackClassicPanelEpgList` 一致：background 0.7 透明度 */
 @Composable
-private fun QuickPanelGlassPanel(
+private fun QuickPanelEpgSurfacePanel(
+    modifier: Modifier = Modifier,
+    content: @Composable BoxScope.() -> Unit,
+) {
+    val bg = MaterialTheme.colorScheme.background.copy(alpha = 0.7f)
+    val stroke = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.14f)
+    Box(
+        modifier = modifier
+            .clip(sheetCorner)
+            .background(bg)
+            .border(1.dp, stroke, sheetCorner),
+        content = content,
+    )
+}
+
+/**
+ * 右侧详情：在原先玻璃基础上「减少透明度」约 25%（更不透明、更易辨认）
+ * 原先白填充约 0.22 → 约 0.28
+ */
+private val rightGlassFill = Color.White.copy(alpha = 0.28f)
+private val rightGlassStroke = Color.White.copy(alpha = 0.38f)
+
+@Composable
+private fun QuickPanelGlassPanelRight(
     modifier: Modifier = Modifier,
     content: @Composable BoxScope.() -> Unit,
 ) {
     Box(
         modifier = modifier
             .clip(sheetCorner)
-            .background(glassFill)
-            .border(1.dp, glassStroke, sheetCorner),
+            .background(rightGlassFill)
+            .border(1.dp, rightGlassStroke, sheetCorner),
         content = content,
     )
 }
@@ -99,9 +119,9 @@ fun LeanbackQuickPanelEpgLeftSheet(
         sheetFocus.requestFocus()
     }
 
-    QuickPanelGlassPanel(
-        modifier = modifier,
-    ) {
+    val onBg = MaterialTheme.colorScheme.onBackground
+
+    QuickPanelEpgSurfacePanel(modifier = modifier) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -116,12 +136,12 @@ fun LeanbackQuickPanelEpgLeftSheet(
                 Text(
                     text = iptv.channelName.ifBlank { iptv.name.ifBlank { "当前频道" } },
                     style = MaterialTheme.typography.titleMedium,
-                    color = Color.White,
+                    color = onBg,
                 )
                 Text(
                     text = "节目单",
                     style = MaterialTheme.typography.labelMedium,
-                    color = Color.White.copy(alpha = 0.85f),
+                    color = onBg.copy(alpha = 0.75f),
                     modifier = Modifier.padding(top = 4.dp, bottom = 8.dp),
                 )
                 TvLazyColumn(
@@ -144,7 +164,7 @@ fun LeanbackQuickPanelEpgLeftSheet(
                             Text(
                                 text = "当前频道暂无节目单数据",
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = Color.White.copy(alpha = 0.9f),
+                                color = onBg.copy(alpha = 0.85f),
                                 modifier = Modifier.padding(8.dp),
                             )
                         }
@@ -175,7 +195,7 @@ private fun QuickPanelEpgProgrammeRow(
 
     CompositionLocalProvider(
         LocalContentColor provides if (isFocused) MaterialTheme.colorScheme.background
-        else Color.White,
+        else MaterialTheme.colorScheme.onBackground,
     ) {
         androidx.tv.material3.ListItem(
             modifier = Modifier
@@ -230,12 +250,13 @@ fun LeanbackQuickPanelMetadataRightSheet(
 ) {
     val scroll = rememberScrollState()
     val focusRequester = remember { FocusRequester() }
+    val onSurface = MaterialTheme.colorScheme.onSurface
 
     LaunchedEffect(title, body) {
         focusRequester.requestFocus()
     }
 
-    QuickPanelGlassPanel(modifier = modifier) {
+    QuickPanelGlassPanelRight(modifier = modifier) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -255,12 +276,12 @@ fun LeanbackQuickPanelMetadataRightSheet(
                 Text(
                     text = title,
                     style = MaterialTheme.typography.titleMedium,
-                    color = Color.White,
+                    color = onSurface,
                 )
                 Text(
                     text = body,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = Color.White.copy(alpha = 0.94f),
+                    color = onSurface.copy(alpha = 0.92f),
                     textAlign = TextAlign.Start,
                     modifier = Modifier.padding(top = 12.dp),
                 )

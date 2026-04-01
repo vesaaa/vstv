@@ -18,11 +18,11 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AltRoute
 import androidx.compose.material.icons.filled.AspectRatio
-import androidx.compose.material.icons.filled.GraphicEq
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Memory
-import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.Movie
+import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -44,6 +44,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.tv.material3.ButtonDefaults
 import com.vesaa.mytv.data.entities.Epg
 import com.vesaa.mytv.data.entities.EpgProgrammeCurrent
@@ -61,8 +62,19 @@ import com.vesaa.mytv.ui.theme.LeanbackTheme
 import com.vesaa.mytv.ui.utils.handleLeanbackKeyEvents
 import com.vesaa.mytv.ui.utils.handleLeanbackUserAction
 
-/** 底部频道信息 + 播放信息 + 按钮行的大致预留高度，侧栏底部与之错开避免重叠 */
+/** 底部频道信息 + 播放信息 + 按钮行总高度预留（右侧详情侧栏用，避免盖住底栏） */
 private val QuickPanelBottomToolbarReserve = 252.dp
+
+/**
+ * 右侧详情侧栏底部留白：小于 [QuickPanelBottomToolbarReserve]，侧栏可向下延伸、更贴近底栏区域。
+ */
+private val QuickPanelRightSheetBottomReserve = 168.dp
+
+/** 打开节目单时仅留少量底边距，侧栏尽量占满纵向 */
+private val QuickPanelEpgSheetBottomMargin = 12.dp
+
+/** 图标约比 22dp 缩小 12% */
+private val QuickPanelMenuIconSize = 19.dp
 
 @Composable
 fun LeanbackQuickPanelScreen(
@@ -87,6 +99,7 @@ fun LeanbackQuickPanelScreen(
 ) {
     val childPadding = rememberLeanbackChildPadding()
     val focusRequester = remember { FocusRequester() }
+    val showBottomChrome = subPanel != LeanbackQuickPanelSubPanel.Epg
 
     LaunchedEffect(Unit) {
         focusRequester.requestFocus()
@@ -118,9 +131,13 @@ fun LeanbackQuickPanelScreen(
             },
     ) {
         BoxWithConstraints(Modifier.fillMaxSize()) {
-            val bottomInset = QuickPanelBottomToolbarReserve + childPadding.bottom
+            val bottomInsetRight = QuickPanelRightSheetBottomReserve + childPadding.bottom
+            val bottomInsetEpg = QuickPanelEpgSheetBottomMargin + childPadding.bottom
+            val bottomInsetDefault = QuickPanelBottomToolbarReserve + childPadding.bottom
             val sideTopPad = 12.dp
             val sideStartPad = childPadding.start
+
+            val epgBottom = if (showBottomChrome) bottomInsetDefault else bottomInsetEpg
 
             when (subPanel) {
                 LeanbackQuickPanelSubPanel.Epg ->
@@ -130,7 +147,7 @@ fun LeanbackQuickPanelScreen(
                             .padding(
                                 start = sideStartPad,
                                 top = sideTopPad,
-                                bottom = bottomInset,
+                                bottom = epgBottom,
                             )
                             .fillMaxHeight()
                             .fillMaxWidth(0.40f),
@@ -146,7 +163,7 @@ fun LeanbackQuickPanelScreen(
                             .padding(
                                 end = sideStartPad,
                                 top = sideTopPad,
-                                bottom = bottomInset,
+                                bottom = bottomInsetRight,
                             )
                             .fillMaxHeight()
                             .fillMaxWidth(0.42f),
@@ -162,7 +179,7 @@ fun LeanbackQuickPanelScreen(
                             .padding(
                                 end = sideStartPad,
                                 top = sideTopPad,
-                                bottom = bottomInset,
+                                bottom = bottomInsetRight,
                             )
                             .fillMaxHeight()
                             .fillMaxWidth(0.42f),
@@ -178,7 +195,7 @@ fun LeanbackQuickPanelScreen(
                             .padding(
                                 end = sideStartPad,
                                 top = sideTopPad,
-                                bottom = bottomInset,
+                                bottom = bottomInsetRight,
                             )
                             .fillMaxHeight()
                             .fillMaxWidth(0.42f),
@@ -195,120 +212,122 @@ fun LeanbackQuickPanelScreen(
             channelNoProvider = currentIptvChannelNoProvider,
         )
 
-        Box(
-            modifier = Modifier
-                .align(Alignment.BottomStart)
-                .fillMaxWidth()
-                .padding(
-                    start = childPadding.start,
-                    bottom = childPadding.bottom,
-                    top = 20.dp,
-                ),
-        ) {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(20.dp),
+        if (showBottomChrome) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .fillMaxWidth()
+                    .padding(
+                        start = childPadding.start,
+                        bottom = childPadding.bottom,
+                        top = 20.dp,
+                    ),
             ) {
-                LeanbackPanelIptvInfo(
-                    iptvProvider = currentIptvProvider,
-                    iptvUrlIdxProvider = currentIptvUrlIdxProvider,
-                    currentProgrammesProvider = currentProgrammesProvider,
-                )
-
-                LeanbackPanelPlayerInfo(
-                    metadataProvider = videoPlayerMetadataProvider,
-                )
-
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(14.dp),
-                    verticalAlignment = Alignment.CenterVertically,
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(20.dp),
                 ) {
-                    LeanbackQuickPanelButton(
-                        leadingIcon = Icons.Filled.List,
-                        titleProvider = { "节目单" },
-                        onSelect = {
-                            onSubPanelChange(
-                                if (subPanel == LeanbackQuickPanelSubPanel.Epg) {
-                                    LeanbackQuickPanelSubPanel.None
-                                } else {
-                                    LeanbackQuickPanelSubPanel.Epg
-                                },
-                            )
-                            autoCloseState.active()
-                        },
+                    LeanbackPanelIptvInfo(
+                        iptvProvider = currentIptvProvider,
+                        iptvUrlIdxProvider = currentIptvUrlIdxProvider,
+                        currentProgrammesProvider = currentProgrammesProvider,
                     )
 
-                    LeanbackQuickPanelActionMultipleChannels(
-                        currentIptvProvider = currentIptvProvider,
-                        currentIptvUrlIdxProvider = currentIptvUrlIdxProvider,
-                        onIptvUrlIdxChange = onIptvUrlIdxChange,
-                        onUserAction = { autoCloseState.active() },
+                    LeanbackPanelPlayerInfo(
+                        metadataProvider = videoPlayerMetadataProvider,
                     )
 
-                    LeanbackQuickPanelActionVideoAspectRatio(
-                        videoPlayerAspectRatioProvider = videoPlayerAspectRatioProvider,
-                        onChangeVideoPlayerAspectRatio = onChangeVideoPlayerAspectRatio,
-                    )
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        LeanbackQuickPanelButton(
+                            leadingIcon = Icons.Filled.List,
+                            titleProvider = { "节目单" },
+                            onSelect = {
+                                onSubPanelChange(
+                                    if (subPanel == LeanbackQuickPanelSubPanel.Epg) {
+                                        LeanbackQuickPanelSubPanel.None
+                                    } else {
+                                        LeanbackQuickPanelSubPanel.Epg
+                                    },
+                                )
+                                autoCloseState.active()
+                            },
+                        )
 
-                    LeanbackQuickPanelButton(
-                        leadingIcon = Icons.Filled.Movie,
-                        titleProvider = {
-                            formatQuickPanelVideoButtonLabel(videoPlayerMetadataProvider())
-                        },
-                        titleMaxLines = 1,
-                        titleOverflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.widthIn(max = 168.dp),
-                        onSelect = {
-                            onSubPanelChange(
-                                if (subPanel == LeanbackQuickPanelSubPanel.VideoDetail) {
-                                    LeanbackQuickPanelSubPanel.None
-                                } else {
-                                    LeanbackQuickPanelSubPanel.VideoDetail
-                                },
-                            )
-                            autoCloseState.active()
-                        },
-                    )
+                        LeanbackQuickPanelActionMultipleChannels(
+                            currentIptvProvider = currentIptvProvider,
+                            currentIptvUrlIdxProvider = currentIptvUrlIdxProvider,
+                            onIptvUrlIdxChange = onIptvUrlIdxChange,
+                            onUserAction = { autoCloseState.active() },
+                        )
 
-                    LeanbackQuickPanelButton(
-                        leadingIcon = Icons.Filled.GraphicEq,
-                        titleProvider = {
-                            formatQuickPanelAudioButtonLabel(videoPlayerMetadataProvider())
-                        },
-                        titleMaxLines = 1,
-                        titleOverflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.widthIn(max = 168.dp),
-                        onSelect = {
-                            onSubPanelChange(
-                                if (subPanel == LeanbackQuickPanelSubPanel.AudioDetail) {
-                                    LeanbackQuickPanelSubPanel.None
-                                } else {
-                                    LeanbackQuickPanelSubPanel.AudioDetail
-                                },
-                            )
-                            autoCloseState.active()
-                        },
-                    )
+                        LeanbackQuickPanelActionVideoAspectRatio(
+                            videoPlayerAspectRatioProvider = videoPlayerAspectRatioProvider,
+                            onChangeVideoPlayerAspectRatio = onChangeVideoPlayerAspectRatio,
+                        )
 
-                    LeanbackQuickPanelButton(
-                        leadingIcon = Icons.Filled.Memory,
-                        titleProvider = { "解码与码流" },
-                        onSelect = {
-                            onSubPanelChange(
-                                if (subPanel == LeanbackQuickPanelSubPanel.StreamDetail) {
-                                    LeanbackQuickPanelSubPanel.None
-                                } else {
-                                    LeanbackQuickPanelSubPanel.StreamDetail
-                                },
-                            )
-                            autoCloseState.active()
-                        },
-                    )
+                        LeanbackQuickPanelButton(
+                            leadingIcon = Icons.Filled.Videocam,
+                            titleProvider = {
+                                formatQuickPanelVideoButtonLabel(videoPlayerMetadataProvider())
+                            },
+                            titleMaxLines = 1,
+                            titleOverflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.widthIn(max = 220.dp),
+                            onSelect = {
+                                onSubPanelChange(
+                                    if (subPanel == LeanbackQuickPanelSubPanel.VideoDetail) {
+                                        LeanbackQuickPanelSubPanel.None
+                                    } else {
+                                        LeanbackQuickPanelSubPanel.VideoDetail
+                                    },
+                                )
+                                autoCloseState.active()
+                            },
+                        )
 
-                    LeanbackQuickPanelButton(
-                        leadingIcon = Icons.Filled.Menu,
-                        titleProvider = { "主菜单" },
-                        onSelect = onMoreSettings,
-                    )
+                        LeanbackQuickPanelButton(
+                            leadingIcon = Icons.Filled.MusicNote,
+                            titleProvider = {
+                                formatQuickPanelAudioButtonLabel(videoPlayerMetadataProvider())
+                            },
+                            titleMaxLines = 1,
+                            titleOverflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.widthIn(max = 240.dp),
+                            onSelect = {
+                                onSubPanelChange(
+                                    if (subPanel == LeanbackQuickPanelSubPanel.AudioDetail) {
+                                        LeanbackQuickPanelSubPanel.None
+                                    } else {
+                                        LeanbackQuickPanelSubPanel.AudioDetail
+                                    },
+                                )
+                                autoCloseState.active()
+                            },
+                        )
+
+                        LeanbackQuickPanelButton(
+                            leadingIcon = Icons.Filled.Memory,
+                            titleProvider = { "解码与码流" },
+                            onSelect = {
+                                onSubPanelChange(
+                                    if (subPanel == LeanbackQuickPanelSubPanel.StreamDetail) {
+                                        LeanbackQuickPanelSubPanel.None
+                                    } else {
+                                        LeanbackQuickPanelSubPanel.StreamDetail
+                                    },
+                                )
+                                autoCloseState.active()
+                            },
+                        )
+
+                        LeanbackQuickPanelButton(
+                            leadingIcon = Icons.Filled.Home,
+                            titleProvider = { "主菜单" },
+                            onSelect = onMoreSettings,
+                        )
+                    }
                 }
             }
         }
@@ -327,6 +346,7 @@ private fun LeanbackQuickPanelButton(
 ) {
     val focusRequester = remember { FocusRequester() }
     var isFocused by remember { mutableStateOf(false) }
+    val titleStyle = MaterialTheme.typography.labelMedium.copy(fontSize = 13.sp)
 
     androidx.tv.material3.Button(
         onClick = { },
@@ -348,15 +368,15 @@ private fun LeanbackQuickPanelButton(
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center,
-            modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp),
+            modifier = Modifier.padding(horizontal = 5.dp, vertical = 3.dp),
         ) {
             if (leadingIcon != null) {
                 Icon(
                     imageVector = leadingIcon,
                     contentDescription = null,
-                    modifier = Modifier.size(22.dp),
+                    modifier = Modifier.size(QuickPanelMenuIconSize),
                 )
-                Spacer(Modifier.width(6.dp))
+                Spacer(Modifier.width(5.dp))
             }
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -366,15 +386,15 @@ private fun LeanbackQuickPanelButton(
                     textAlign = TextAlign.Center,
                     maxLines = titleMaxLines,
                     overflow = titleOverflow,
-                    style = MaterialTheme.typography.labelLarge,
+                    style = titleStyle,
                 )
                 if (subtitleProvider != null) {
                     Text(
                         text = subtitleProvider(),
-                        style = MaterialTheme.typography.labelSmall,
+                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
                         textAlign = TextAlign.Center,
                         maxLines = 2,
-                        modifier = Modifier.padding(top = 2.dp),
+                        modifier = Modifier.padding(top = 1.dp),
                     )
                 }
             }
