@@ -44,7 +44,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.tv.material3.ButtonDefaults
 import com.vesaa.mytv.data.entities.Epg
 import com.vesaa.mytv.data.entities.EpgProgrammeCurrent
@@ -73,8 +72,7 @@ private val QuickPanelRightSheetBottomReserve = 168.dp
 /** 打开节目单时仅留少量底边距，侧栏尽量占满纵向 */
 private val QuickPanelEpgSheetBottomMargin = 12.dp
 
-/** 图标约比 22dp 缩小 12% */
-private val QuickPanelMenuIconSize = 19.dp
+private val QuickPanelMenuIconSize = 20.dp
 
 @Composable
 fun LeanbackQuickPanelScreen(
@@ -166,7 +164,7 @@ fun LeanbackQuickPanelScreen(
                                 bottom = bottomInsetRight,
                             )
                             .fillMaxHeight()
-                            .fillMaxWidth(0.42f),
+                            .fillMaxWidth(0.336f),
                         title = "视频信息",
                         body = formatQuickPanelVideoDetailBody(videoPlayerMetadataProvider()),
                         autoCloseState = autoCloseState,
@@ -182,7 +180,7 @@ fun LeanbackQuickPanelScreen(
                                 bottom = bottomInsetRight,
                             )
                             .fillMaxHeight()
-                            .fillMaxWidth(0.42f),
+                            .fillMaxWidth(0.336f),
                         title = "音频信息",
                         body = formatQuickPanelAudioDetailBody(videoPlayerMetadataProvider()),
                         autoCloseState = autoCloseState,
@@ -198,7 +196,7 @@ fun LeanbackQuickPanelScreen(
                                 bottom = bottomInsetRight,
                             )
                             .fillMaxHeight()
-                            .fillMaxWidth(0.42f),
+                            .fillMaxWidth(0.336f),
                         title = "解码与码流",
                         body = formatQuickPanelStreamDetailBody(videoPlayerMetadataProvider()),
                         autoCloseState = autoCloseState,
@@ -346,8 +344,6 @@ private fun LeanbackQuickPanelButton(
 ) {
     val focusRequester = remember { FocusRequester() }
     var isFocused by remember { mutableStateOf(false) }
-    val titleStyle = MaterialTheme.typography.labelMedium.copy(fontSize = 13.sp)
-
     androidx.tv.material3.Button(
         onClick = { },
         shape = ButtonDefaults.shape(
@@ -386,15 +382,15 @@ private fun LeanbackQuickPanelButton(
                     textAlign = TextAlign.Center,
                     maxLines = titleMaxLines,
                     overflow = titleOverflow,
-                    style = titleStyle,
+                    style = MaterialTheme.typography.titleSmall,
                 )
                 if (subtitleProvider != null) {
                     Text(
                         text = subtitleProvider(),
-                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
+                        style = MaterialTheme.typography.labelMedium,
                         textAlign = TextAlign.Center,
                         maxLines = 2,
-                        modifier = Modifier.padding(top = 1.dp),
+                        modifier = Modifier.padding(top = 2.dp),
                     )
                 }
             }

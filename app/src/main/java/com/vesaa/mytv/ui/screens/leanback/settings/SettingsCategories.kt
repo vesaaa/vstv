@@ -3,7 +3,7 @@ package com.vesaa.mytv.ui.screens.leanback.settings
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DisplaySettings
 import androidx.compose.material.icons.filled.FormatListNumbered
-import androidx.compose.material.icons.filled.Http
+import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LiveTv
 import androidx.compose.material.icons.filled.Menu
@@ -24,7 +24,7 @@ enum class LeanbackSettingsCategories(
     UI(Icons.Default.DisplaySettings, "界面"),
     FAVORITE(Icons.Default.Star, "收藏"),
     VIDEO_PLAYER(Icons.Default.SmartDisplay, "播放器"),
-    NETWORK(Icons.Default.Http, "网络"),
+    NETWORK(Icons.Default.Wifi, "网络"),
     LOG(Icons.Default.FormatListNumbered, "日志"),
     MORE(Icons.Default.MoreHoriz, "更多设置"),
 }
