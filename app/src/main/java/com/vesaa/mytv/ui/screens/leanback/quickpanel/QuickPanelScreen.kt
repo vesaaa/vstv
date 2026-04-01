@@ -4,12 +4,28 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AltRoute
+import androidx.compose.material.icons.filled.AspectRatio
+import androidx.compose.material.icons.filled.GraphicEq
+import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.filled.Memory
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Movie
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -21,9 +37,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.tv.material3.ButtonDefaults
@@ -42,6 +60,9 @@ import com.vesaa.mytv.ui.screens.leanback.video.player.LeanbackVideoPlayer
 import com.vesaa.mytv.ui.theme.LeanbackTheme
 import com.vesaa.mytv.ui.utils.handleLeanbackKeyEvents
 import com.vesaa.mytv.ui.utils.handleLeanbackUserAction
+
+/** 底部频道信息 + 播放信息 + 按钮行的大致预留高度，侧栏底部与之错开避免重叠 */
+private val QuickPanelBottomToolbarReserve = 252.dp
 
 @Composable
 fun LeanbackQuickPanelScreen(
@@ -96,40 +117,78 @@ fun LeanbackQuickPanelScreen(
                 )
             },
     ) {
-        when (subPanel) {
-            LeanbackQuickPanelSubPanel.Epg ->
-                LeanbackQuickPanelEpgLeftSheet(
-                    modifier = Modifier.align(Alignment.CenterStart),
-                    iptvProvider = currentIptvProvider,
-                    epgProvider = currentEpgProvider,
-                    autoCloseState = autoCloseState,
-                )
+        BoxWithConstraints(Modifier.fillMaxSize()) {
+            val bottomInset = QuickPanelBottomToolbarReserve + childPadding.bottom
+            val sideTopPad = 12.dp
+            val sideStartPad = childPadding.start
 
-            LeanbackQuickPanelSubPanel.VideoDetail ->
-                LeanbackQuickPanelMetadataRightSheet(
-                    modifier = Modifier.align(Alignment.CenterEnd),
-                    title = "视频信息",
-                    body = formatQuickPanelVideoDetailBody(videoPlayerMetadataProvider()),
-                    autoCloseState = autoCloseState,
-                )
+            when (subPanel) {
+                LeanbackQuickPanelSubPanel.Epg ->
+                    LeanbackQuickPanelEpgLeftSheet(
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .padding(
+                                start = sideStartPad,
+                                top = sideTopPad,
+                                bottom = bottomInset,
+                            )
+                            .fillMaxHeight()
+                            .fillMaxWidth(0.40f),
+                        iptvProvider = currentIptvProvider,
+                        epgProvider = currentEpgProvider,
+                        autoCloseState = autoCloseState,
+                    )
 
-            LeanbackQuickPanelSubPanel.AudioDetail ->
-                LeanbackQuickPanelMetadataRightSheet(
-                    modifier = Modifier.align(Alignment.CenterEnd),
-                    title = "音频信息",
-                    body = formatQuickPanelAudioDetailBody(videoPlayerMetadataProvider()),
-                    autoCloseState = autoCloseState,
-                )
+                LeanbackQuickPanelSubPanel.VideoDetail ->
+                    LeanbackQuickPanelMetadataRightSheet(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(
+                                end = sideStartPad,
+                                top = sideTopPad,
+                                bottom = bottomInset,
+                            )
+                            .fillMaxHeight()
+                            .fillMaxWidth(0.42f),
+                        title = "视频信息",
+                        body = formatQuickPanelVideoDetailBody(videoPlayerMetadataProvider()),
+                        autoCloseState = autoCloseState,
+                    )
 
-            LeanbackQuickPanelSubPanel.StreamDetail ->
-                LeanbackQuickPanelMetadataRightSheet(
-                    modifier = Modifier.align(Alignment.CenterEnd),
-                    title = "解码与码流",
-                    body = formatQuickPanelStreamDetailBody(videoPlayerMetadataProvider()),
-                    autoCloseState = autoCloseState,
-                )
+                LeanbackQuickPanelSubPanel.AudioDetail ->
+                    LeanbackQuickPanelMetadataRightSheet(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(
+                                end = sideStartPad,
+                                top = sideTopPad,
+                                bottom = bottomInset,
+                            )
+                            .fillMaxHeight()
+                            .fillMaxWidth(0.42f),
+                        title = "音频信息",
+                        body = formatQuickPanelAudioDetailBody(videoPlayerMetadataProvider()),
+                        autoCloseState = autoCloseState,
+                    )
 
-            LeanbackQuickPanelSubPanel.None -> Unit
+                LeanbackQuickPanelSubPanel.StreamDetail ->
+                    LeanbackQuickPanelMetadataRightSheet(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(
+                                end = sideStartPad,
+                                top = sideTopPad,
+                                bottom = bottomInset,
+                            )
+                            .fillMaxHeight()
+                            .fillMaxWidth(0.42f),
+                        title = "解码与码流",
+                        body = formatQuickPanelStreamDetailBody(videoPlayerMetadataProvider()),
+                        autoCloseState = autoCloseState,
+                    )
+
+                LeanbackQuickPanelSubPanel.None -> Unit
+            }
         }
 
         LeanbackPanelScreenTopRight(
@@ -164,6 +223,7 @@ fun LeanbackQuickPanelScreen(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     LeanbackQuickPanelButton(
+                        leadingIcon = Icons.Filled.List,
                         titleProvider = { "节目单" },
                         onSelect = {
                             onSubPanelChange(
@@ -190,10 +250,13 @@ fun LeanbackQuickPanelScreen(
                     )
 
                     LeanbackQuickPanelButton(
-                        titleProvider = { "视频信息" },
-                        subtitleProvider = {
-                            formatQuickPanelVideoMenuSubtitle(videoPlayerMetadataProvider())
+                        leadingIcon = Icons.Filled.Movie,
+                        titleProvider = {
+                            formatQuickPanelVideoButtonLabel(videoPlayerMetadataProvider())
                         },
+                        titleMaxLines = 1,
+                        titleOverflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.widthIn(max = 168.dp),
                         onSelect = {
                             onSubPanelChange(
                                 if (subPanel == LeanbackQuickPanelSubPanel.VideoDetail) {
@@ -207,10 +270,13 @@ fun LeanbackQuickPanelScreen(
                     )
 
                     LeanbackQuickPanelButton(
-                        titleProvider = { "音频信息" },
-                        subtitleProvider = {
-                            formatQuickPanelAudioMenuSubtitle(videoPlayerMetadataProvider())
+                        leadingIcon = Icons.Filled.GraphicEq,
+                        titleProvider = {
+                            formatQuickPanelAudioButtonLabel(videoPlayerMetadataProvider())
                         },
+                        titleMaxLines = 1,
+                        titleOverflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.widthIn(max = 168.dp),
                         onSelect = {
                             onSubPanelChange(
                                 if (subPanel == LeanbackQuickPanelSubPanel.AudioDetail) {
@@ -224,6 +290,7 @@ fun LeanbackQuickPanelScreen(
                     )
 
                     LeanbackQuickPanelButton(
+                        leadingIcon = Icons.Filled.Memory,
                         titleProvider = { "解码与码流" },
                         onSelect = {
                             onSubPanelChange(
@@ -238,6 +305,7 @@ fun LeanbackQuickPanelScreen(
                     )
 
                     LeanbackQuickPanelButton(
+                        leadingIcon = Icons.Filled.Menu,
                         titleProvider = { "主菜单" },
                         onSelect = onMoreSettings,
                     )
@@ -250,8 +318,11 @@ fun LeanbackQuickPanelScreen(
 @Composable
 private fun LeanbackQuickPanelButton(
     modifier: Modifier = Modifier,
+    leadingIcon: ImageVector? = null,
     titleProvider: () -> String,
     subtitleProvider: (() -> String)? = null,
+    titleMaxLines: Int = 2,
+    titleOverflow: TextOverflow = TextOverflow.Clip,
     onSelect: () -> Unit = {},
 ) {
     val focusRequester = remember { FocusRequester() }
@@ -274,22 +345,38 @@ private fun LeanbackQuickPanelButton(
                 },
             ),
     ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.padding(vertical = 2.dp),
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center,
+            modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp),
         ) {
-            androidx.tv.material3.Text(
-                text = titleProvider(),
-                textAlign = TextAlign.Center,
-            )
-            if (subtitleProvider != null) {
-                androidx.tv.material3.Text(
-                    text = subtitleProvider(),
-                    style = MaterialTheme.typography.labelSmall,
-                    textAlign = TextAlign.Center,
-                    maxLines = 2,
-                    modifier = Modifier.padding(top = 2.dp),
+            if (leadingIcon != null) {
+                Icon(
+                    imageVector = leadingIcon,
+                    contentDescription = null,
+                    modifier = Modifier.size(22.dp),
                 )
+                Spacer(Modifier.width(6.dp))
+            }
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text(
+                    text = titleProvider(),
+                    textAlign = TextAlign.Center,
+                    maxLines = titleMaxLines,
+                    overflow = titleOverflow,
+                    style = MaterialTheme.typography.labelLarge,
+                )
+                if (subtitleProvider != null) {
+                    Text(
+                        text = subtitleProvider(),
+                        style = MaterialTheme.typography.labelSmall,
+                        textAlign = TextAlign.Center,
+                        maxLines = 2,
+                        modifier = Modifier.padding(top = 2.dp),
+                    )
+                }
             }
         }
     }
@@ -305,6 +392,7 @@ private fun LeanbackQuickPanelActionMultipleChannels(
     if (currentIptvProvider().urlList.size > 1) {
         var showChannelsDialog by remember { mutableStateOf(false) }
         LeanbackQuickPanelButton(
+            leadingIcon = Icons.Filled.AltRoute,
             titleProvider = { "多线路" },
             onSelect = { showChannelsDialog = true },
         )
@@ -328,6 +416,7 @@ private fun LeanbackQuickPanelActionVideoAspectRatio(
     val screenAspectRatio =
         configuration.screenWidthDp.toFloat() / configuration.screenHeightDp.toFloat()
     LeanbackQuickPanelButton(
+        leadingIcon = Icons.Filled.AspectRatio,
         titleProvider = {
             "画面比例 " + when (videoPlayerAspectRatioProvider()) {
                 16f / 9f -> "16:9"
@@ -336,6 +425,8 @@ private fun LeanbackQuickPanelActionVideoAspectRatio(
                 else -> "原始"
             }
         },
+        titleMaxLines = 1,
+        titleOverflow = TextOverflow.Ellipsis,
         onSelect = {
             onChangeVideoPlayerAspectRatio(
                 when (videoPlayerAspectRatioProvider()) {

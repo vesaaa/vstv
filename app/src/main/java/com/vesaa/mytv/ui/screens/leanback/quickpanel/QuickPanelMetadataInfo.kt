@@ -13,6 +13,16 @@ internal fun formatQuickPanelVideoMenuSubtitle(m: LeanbackVideoPlayer.Metadata):
     return "$res · ${shortVideoCodecLabel(m.videoMimeType)}"
 }
 
+/** 底部仅图标+单行：尽量短，空格分隔便于省略号截断 */
+internal fun formatQuickPanelVideoButtonLabel(m: LeanbackVideoPlayer.Metadata): String {
+    val res = if (m.videoWidth > 0 && m.videoHeight > 0) {
+        "${m.videoWidth}×${m.videoHeight}"
+    } else {
+        "—"
+    }
+    return "$res ${shortVideoCodecLabel(m.videoMimeType)}"
+}
+
 /** 底部按钮副标题：声道说明 + 音频格式（简写） */
 internal fun formatQuickPanelAudioMenuSubtitle(m: LeanbackVideoPlayer.Metadata): String {
     val ch = when {
@@ -22,6 +32,16 @@ internal fun formatQuickPanelAudioMenuSubtitle(m: LeanbackVideoPlayer.Metadata):
         else -> "${m.audioChannels} 声道"
     }
     return "$ch · ${shortAudioCodecLabel(m.audioMimeType)}"
+}
+
+internal fun formatQuickPanelAudioButtonLabel(m: LeanbackVideoPlayer.Metadata): String {
+    val ch = when {
+        m.audioChannels <= 0 -> "?"
+        m.audioChannels == 1 -> "单声道"
+        m.audioChannels == 2 -> "立体声"
+        else -> "${m.audioChannels}声道"
+    }
+    return "$ch ${shortAudioCodecLabel(m.audioMimeType)}"
 }
 
 internal fun formatQuickPanelVideoDetailBody(m: LeanbackVideoPlayer.Metadata): String = buildString {

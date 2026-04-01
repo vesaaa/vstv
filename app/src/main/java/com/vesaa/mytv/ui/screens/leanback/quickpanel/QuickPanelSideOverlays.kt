@@ -1,14 +1,18 @@
 package com.vesaa.mytv.ui.screens.leanback.quickpanel
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PlayArrow
@@ -26,6 +30,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -48,7 +53,24 @@ import java.text.SimpleDateFormat
 import java.util.Locale
 import kotlin.math.max
 
-private val sheetBackground = Color.Black.copy(alpha = 0.55f)
+/** 半透明白叠在暗色遮罩上，形成玻璃感，避免与纯黑背景糊成一片 */
+private val glassFill = Color.White.copy(alpha = 0.22f)
+private val glassStroke = Color.White.copy(alpha = 0.30f)
+private val sheetCorner = RoundedCornerShape(14.dp)
+
+@Composable
+private fun QuickPanelGlassPanel(
+    modifier: Modifier = Modifier,
+    content: @Composable BoxScope.() -> Unit,
+) {
+    Box(
+        modifier = modifier
+            .clip(sheetCorner)
+            .background(glassFill)
+            .border(1.dp, glassStroke, sheetCorner),
+        content = content,
+    )
+}
 
 @Composable
 fun LeanbackQuickPanelEpgLeftSheet(
@@ -77,53 +99,55 @@ fun LeanbackQuickPanelEpgLeftSheet(
         sheetFocus.requestFocus()
     }
 
-    Box(
-        modifier = modifier
-            .fillMaxHeight()
-            .fillMaxWidth(0.42f)
-            .background(sheetBackground)
-            .focusRequester(sheetFocus)
-            .focusable()
-            .handleLeanbackKeyEvents(
-                onSelect = { sheetFocus.requestFocus() },
-            ),
-        contentAlignment = Alignment.TopStart,
+    QuickPanelGlassPanel(
+        modifier = modifier,
     ) {
-        Column(Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
-            Text(
-                text = iptv.channelName.ifBlank { iptv.name.ifBlank { "当前频道" } },
-                style = MaterialTheme.typography.titleMedium,
-                color = Color.White,
-            )
-            Text(
-                text = "节目单",
-                style = MaterialTheme.typography.labelMedium,
-                color = Color.White.copy(alpha = 0.75f),
-                modifier = Modifier.padding(top = 4.dp, bottom = 8.dp),
-            )
-            TvLazyColumn(
-                state = listState,
-                contentPadding = PaddingValues(vertical = 4.dp),
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                if (epg.programmes.isNotEmpty()) {
-                    items(epg.programmes, key = { "${it.startAt}_${it.title}" }) { programme ->
-                        QuickPanelEpgProgrammeRow(
-                            programme = programme,
-                            timeFormat = timeFormat,
-                            hasFocusedFlag = hasFocused,
-                            onFocusedLive = { hasFocused = true },
-                            autoCloseState = autoCloseState,
-                        )
-                    }
-                } else {
-                    item {
-                        Text(
-                            text = "当前频道暂无节目单数据",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = Color.White.copy(alpha = 0.85f),
-                            modifier = Modifier.padding(8.dp),
-                        )
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .focusRequester(sheetFocus)
+                .focusable()
+                .handleLeanbackKeyEvents(
+                    onSelect = { sheetFocus.requestFocus() },
+                ),
+            contentAlignment = Alignment.TopStart,
+        ) {
+            Column(Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
+                Text(
+                    text = iptv.channelName.ifBlank { iptv.name.ifBlank { "当前频道" } },
+                    style = MaterialTheme.typography.titleMedium,
+                    color = Color.White,
+                )
+                Text(
+                    text = "节目单",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = Color.White.copy(alpha = 0.85f),
+                    modifier = Modifier.padding(top = 4.dp, bottom = 8.dp),
+                )
+                TvLazyColumn(
+                    state = listState,
+                    contentPadding = PaddingValues(vertical = 4.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    if (epg.programmes.isNotEmpty()) {
+                        items(epg.programmes, key = { "${it.startAt}_${it.title}" }) { programme ->
+                            QuickPanelEpgProgrammeRow(
+                                programme = programme,
+                                timeFormat = timeFormat,
+                                hasFocusedFlag = hasFocused,
+                                onFocusedLive = { hasFocused = true },
+                                autoCloseState = autoCloseState,
+                            )
+                        }
+                    } else {
+                        item {
+                            Text(
+                                text = "当前频道暂无节目单数据",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = Color.White.copy(alpha = 0.9f),
+                                modifier = Modifier.padding(8.dp),
+                            )
+                        }
                     }
                 }
             }
@@ -211,36 +235,36 @@ fun LeanbackQuickPanelMetadataRightSheet(
         focusRequester.requestFocus()
     }
 
-    Box(
-        modifier = modifier
-            .fillMaxHeight()
-            .fillMaxWidth(0.44f)
-            .background(sheetBackground)
-            .focusRequester(focusRequester)
-            .focusable()
-            .handleLeanbackKeyEvents(
-                onSelect = { autoCloseState.active() },
-            )
-            .onFocusChanged { if (it.isFocused || it.hasFocus) autoCloseState.active() },
-        contentAlignment = Alignment.TopStart,
-    ) {
-        Column(
-            Modifier
-                .padding(horizontal = 20.dp, vertical = 16.dp)
-                .verticalScroll(scroll),
+    QuickPanelGlassPanel(modifier = modifier) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .focusRequester(focusRequester)
+                .focusable()
+                .handleLeanbackKeyEvents(
+                    onSelect = { autoCloseState.active() },
+                )
+                .onFocusChanged { if (it.isFocused || it.hasFocus) autoCloseState.active() },
+            contentAlignment = Alignment.TopStart,
         ) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleMedium,
-                color = Color.White,
-            )
-            Text(
-                text = body,
-                style = MaterialTheme.typography.bodyMedium,
-                color = Color.White.copy(alpha = 0.92f),
-                textAlign = TextAlign.Start,
-                modifier = Modifier.padding(top = 12.dp),
-            )
+            Column(
+                Modifier
+                    .padding(horizontal = 20.dp, vertical = 16.dp)
+                    .verticalScroll(scroll),
+            ) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = Color.White,
+                )
+                Text(
+                    text = body,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.White.copy(alpha = 0.94f),
+                    textAlign = TextAlign.Start,
+                    modifier = Modifier.padding(top = 12.dp),
+                )
+            }
         }
     }
 }
