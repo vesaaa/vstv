@@ -29,7 +29,6 @@ fun LeanbackSettingsCategoryDetail(
                 modifier = Modifier.fillMaxSize(),
                 history = Logger.history,
             )
-            LeanbackSettingsCategories.MORE -> LeanbackSettingsCategoryMore(Modifier.fillMaxSize())
         }
     }
 }

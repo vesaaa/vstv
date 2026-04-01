@@ -7,17 +7,16 @@ import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LiveTv
 import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SmartDisplay
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.ui.graphics.vector.ImageVector
 
+/** 顺序即设置主页网格展示顺序；[ABOUT] 固定最后一项。 */
 enum class LeanbackSettingsCategories(
     val icon: ImageVector,
     val title: String
 ) {
-    ABOUT(Icons.Default.Info, "关于"),
     APP(Icons.Default.Settings, "应用"),
     IPTV(Icons.Default.LiveTv, "直播源"),
     EPG(Icons.Default.Menu, "节目单"),
@@ -26,5 +25,5 @@ enum class LeanbackSettingsCategories(
     VIDEO_PLAYER(Icons.Default.SmartDisplay, "播放器"),
     NETWORK(Icons.Default.Wifi, "网络"),
     LOG(Icons.Default.FormatListNumbered, "日志"),
-    MORE(Icons.Default.MoreHoriz, "更多设置"),
+    ABOUT(Icons.Default.Info, "关于"),
 }
