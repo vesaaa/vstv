@@ -31,7 +31,8 @@ class LeanBackUpdateViewModel : ViewModel() {
     private var _isChecking by mutableStateOf(false)
     val isChecking: Boolean get() = _isChecking
 
-    private var _isUpdating = false
+    /** 须用 [mutableStateOf]，否则在 IO 上置 true 时设置页不会重组，「下载中」与进度不可见 */
+    private var _isUpdating by mutableStateOf(false)
 
     private var _isUpdateAvailable by mutableStateOf(false)
     val isUpdateAvailable get() = _isUpdateAvailable
@@ -120,7 +121,9 @@ class LeanBackUpdateViewModel : ViewModel() {
         if (!_isUpdateAvailable) return
         if (_isUpdating) {
             withContext(Dispatchers.Main) {
-                LeanbackToastState.I.showToast("正在下载更新，请稍候")
+                val p = _downloadProgress
+                val extra = if (p >= 0) "（$p%）" else ""
+                LeanbackToastState.I.showToast("正在下载更新$extra，请稍候")
             }
             return
         }
@@ -140,8 +143,8 @@ class LeanBackUpdateViewModel : ViewModel() {
             return
         }
 
-        _isUpdating = true
         withContext(Dispatchers.Main) {
+            _isUpdating = true
             _downloadProgress = -1
         }
 
@@ -154,7 +157,7 @@ class LeanBackUpdateViewModel : ViewModel() {
             SP.updateLastDownloadedApkUrl = ""
 
             Downloader.downloadTo(_latestRelease.downloadUrl, latestFile.path) { pct ->
-                viewModelScope.launch(Dispatchers.Main.immediate) {
+                viewModelScope.launch(Dispatchers.Main) {
                     _downloadProgress = pct
                 }
             }
@@ -188,8 +191,8 @@ class LeanBackUpdateViewModel : ViewModel() {
                 LeanbackToastState.I.showToast("下载失败：$hint")
             }
         } finally {
-            _isUpdating = false
             withContext(Dispatchers.Main) {
+                _isUpdating = false
                 if (!_openingSystemInstaller) {
                     _downloadProgress = -1
                 }
