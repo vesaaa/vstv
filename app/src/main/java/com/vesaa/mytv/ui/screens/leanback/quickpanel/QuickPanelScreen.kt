@@ -1,6 +1,8 @@
 package com.vesaa.mytv.ui.screens.leanback.quickpanel
 
+import android.view.KeyEvent as AndroidKeyEvent
 import androidx.compose.foundation.background
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -28,6 +30,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import kotlinx.coroutines.delay
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -38,6 +41,11 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.style.TextAlign
@@ -96,17 +104,32 @@ fun LeanbackQuickPanelScreen(
     ),
 ) {
     val childPadding = rememberLeanbackChildPadding()
-    val focusRequester = remember { FocusRequester() }
+    val rootFocusRequester = remember { FocusRequester() }
+    val focusMenuEpg = remember { FocusRequester() }
+    val focusMenuVideo = remember { FocusRequester() }
+    val focusMenuAudio = remember { FocusRequester() }
+    val focusMenuStream = remember { FocusRequester() }
+    var lastSubPanel by remember { mutableStateOf(LeanbackQuickPanelSubPanel.None) }
     val showBottomChrome = subPanel != LeanbackQuickPanelSubPanel.Epg
 
     LaunchedEffect(Unit) {
-        focusRequester.requestFocus()
         autoCloseState.active()
+        delay(16)
+        focusMenuEpg.requestFocus()
     }
 
     LaunchedEffect(subPanel) {
-        if (subPanel == LeanbackQuickPanelSubPanel.None) {
-            focusRequester.requestFocus()
+        val previous = lastSubPanel
+        lastSubPanel = subPanel
+        if (subPanel == LeanbackQuickPanelSubPanel.None && previous != LeanbackQuickPanelSubPanel.None) {
+            delay(48)
+            when (previous) {
+                LeanbackQuickPanelSubPanel.Epg -> focusMenuEpg.requestFocus()
+                LeanbackQuickPanelSubPanel.VideoDetail -> focusMenuVideo.requestFocus()
+                LeanbackQuickPanelSubPanel.AudioDetail -> focusMenuAudio.requestFocus()
+                LeanbackQuickPanelSubPanel.StreamDetail -> focusMenuStream.requestFocus()
+                LeanbackQuickPanelSubPanel.None -> Unit
+            }
         }
     }
 
@@ -114,7 +137,8 @@ fun LeanbackQuickPanelScreen(
         modifier = modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background.copy(alpha = 0.5f))
-            .focusRequester(focusRequester)
+            .focusRequester(rootFocusRequester)
+            .focusable()
             .handleLeanbackUserAction { autoCloseState.active() }
             .pointerInput(subPanel) {
                 detectTapGestures(
@@ -126,6 +150,19 @@ fun LeanbackQuickPanelScreen(
                         }
                     },
                 )
+            }
+            .onPreviewKeyEvent {
+                if (it.type != KeyEventType.KeyUp) return@onPreviewKeyEvent false
+                val isBack =
+                    it.key == Key.Back ||
+                        it.nativeKeyEvent.keyCode == AndroidKeyEvent.KEYCODE_BACK
+                if (!isBack) return@onPreviewKeyEvent false
+                if (subPanel != LeanbackQuickPanelSubPanel.None) {
+                    onSubPanelChange(LeanbackQuickPanelSubPanel.None)
+                } else {
+                    onClose()
+                }
+                true
             },
     ) {
         BoxWithConstraints(Modifier.fillMaxSize()) {
@@ -239,6 +276,7 @@ fun LeanbackQuickPanelScreen(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         LeanbackQuickPanelButton(
+                            buttonFocusRequester = focusMenuEpg,
                             leadingIcon = Icons.Filled.List,
                             titleProvider = { "节目单" },
                             onSelect = {
@@ -266,6 +304,7 @@ fun LeanbackQuickPanelScreen(
                         )
 
                         LeanbackQuickPanelButton(
+                            buttonFocusRequester = focusMenuVideo,
                             leadingIcon = Icons.Filled.Videocam,
                             titleProvider = {
                                 formatQuickPanelVideoButtonLabel(videoPlayerMetadataProvider())
@@ -286,6 +325,7 @@ fun LeanbackQuickPanelScreen(
                         )
 
                         LeanbackQuickPanelButton(
+                            buttonFocusRequester = focusMenuAudio,
                             leadingIcon = Icons.Filled.MusicNote,
                             titleProvider = {
                                 formatQuickPanelAudioButtonLabel(videoPlayerMetadataProvider())
@@ -306,6 +346,7 @@ fun LeanbackQuickPanelScreen(
                         )
 
                         LeanbackQuickPanelButton(
+                            buttonFocusRequester = focusMenuStream,
                             leadingIcon = Icons.Filled.Memory,
                             titleProvider = { "解码与码流" },
                             onSelect = {
@@ -335,6 +376,8 @@ fun LeanbackQuickPanelScreen(
 @Composable
 private fun LeanbackQuickPanelButton(
     modifier: Modifier = Modifier,
+    /** 由父级持有时可从详情返回后 `requestFocus()`，保持该项为当前焦点 */
+    buttonFocusRequester: FocusRequester? = null,
     leadingIcon: ImageVector? = null,
     titleProvider: () -> String,
     subtitleProvider: (() -> String)? = null,
@@ -342,7 +385,8 @@ private fun LeanbackQuickPanelButton(
     titleOverflow: TextOverflow = TextOverflow.Clip,
     onSelect: () -> Unit = {},
 ) {
-    val focusRequester = remember { FocusRequester() }
+    val defaultFocusRequester = remember { FocusRequester() }
+    val focusRequester = buttonFocusRequester ?: defaultFocusRequester
     var isFocused by remember { mutableStateOf(false) }
     androidx.tv.material3.Button(
         onClick = { },
