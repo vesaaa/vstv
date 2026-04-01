@@ -23,9 +23,11 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.tv.material3.ButtonDefaults
+import com.vesaa.mytv.data.entities.Epg
 import com.vesaa.mytv.data.entities.EpgProgrammeCurrent
 import com.vesaa.mytv.data.entities.Iptv
 import com.vesaa.mytv.data.utils.Constants
@@ -36,8 +38,6 @@ import com.vesaa.mytv.ui.screens.leanback.panel.components.LeanbackPanelIptvInfo
 import com.vesaa.mytv.ui.screens.leanback.panel.components.LeanbackPanelPlayerInfo
 import com.vesaa.mytv.ui.screens.leanback.panel.rememberPanelAutoCloseState
 import com.vesaa.mytv.ui.screens.leanback.quickpanel.components.LeanbackQuickPanelIptvChannelsDialog
-import com.vesaa.mytv.ui.screens.leanback.toast.LeanbackToastProperty
-import com.vesaa.mytv.ui.screens.leanback.toast.LeanbackToastState
 import com.vesaa.mytv.ui.screens.leanback.video.player.LeanbackVideoPlayer
 import com.vesaa.mytv.ui.theme.LeanbackTheme
 import com.vesaa.mytv.ui.utils.handleLeanbackKeyEvents
@@ -49,11 +49,14 @@ fun LeanbackQuickPanelScreen(
     currentIptvProvider: () -> Iptv = { Iptv() },
     currentIptvUrlIdxProvider: () -> Int = { 0 },
     currentProgrammesProvider: () -> EpgProgrammeCurrent? = { null },
+    currentEpgProvider: () -> Epg = { Epg() },
     currentIptvChannelNoProvider: () -> String = { "" },
     videoPlayerMetadataProvider: () -> LeanbackVideoPlayer.Metadata = { LeanbackVideoPlayer.Metadata() },
     videoPlayerAspectRatioProvider: () -> Float = { 16f / 9f },
     onChangeVideoPlayerAspectRatio: (Float) -> Unit = {},
     onIptvUrlIdxChange: (Int) -> Unit = {},
+    subPanel: LeanbackQuickPanelSubPanel = LeanbackQuickPanelSubPanel.None,
+    onSubPanelChange: (LeanbackQuickPanelSubPanel) -> Unit = {},
     onMoreSettings: () -> Unit = {},
     onClose: () -> Unit = {},
     autoCloseState: PanelAutoCloseState = rememberPanelAutoCloseState(
@@ -69,16 +72,68 @@ fun LeanbackQuickPanelScreen(
         autoCloseState.active()
     }
 
+    LaunchedEffect(subPanel) {
+        if (subPanel == LeanbackQuickPanelSubPanel.None) {
+            focusRequester.requestFocus()
+        }
+    }
+
     Box(
         modifier = modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background.copy(alpha = 0.5f))
             .focusRequester(focusRequester)
             .handleLeanbackUserAction { autoCloseState.active() }
-            .pointerInput(Unit) { detectTapGestures(onTap = { onClose() }) },
+            .pointerInput(subPanel) {
+                detectTapGestures(
+                    onTap = {
+                        if (subPanel != LeanbackQuickPanelSubPanel.None) {
+                            onSubPanelChange(LeanbackQuickPanelSubPanel.None)
+                        } else {
+                            onClose()
+                        }
+                    },
+                )
+            },
     ) {
+        when (subPanel) {
+            LeanbackQuickPanelSubPanel.Epg ->
+                LeanbackQuickPanelEpgLeftSheet(
+                    modifier = Modifier.align(Alignment.CenterStart),
+                    iptvProvider = currentIptvProvider,
+                    epgProvider = currentEpgProvider,
+                    autoCloseState = autoCloseState,
+                )
+
+            LeanbackQuickPanelSubPanel.VideoDetail ->
+                LeanbackQuickPanelMetadataRightSheet(
+                    modifier = Modifier.align(Alignment.CenterEnd),
+                    title = "视频信息",
+                    body = formatQuickPanelVideoDetailBody(videoPlayerMetadataProvider()),
+                    autoCloseState = autoCloseState,
+                )
+
+            LeanbackQuickPanelSubPanel.AudioDetail ->
+                LeanbackQuickPanelMetadataRightSheet(
+                    modifier = Modifier.align(Alignment.CenterEnd),
+                    title = "音频信息",
+                    body = formatQuickPanelAudioDetailBody(videoPlayerMetadataProvider()),
+                    autoCloseState = autoCloseState,
+                )
+
+            LeanbackQuickPanelSubPanel.StreamDetail ->
+                LeanbackQuickPanelMetadataRightSheet(
+                    modifier = Modifier.align(Alignment.CenterEnd),
+                    title = "解码与码流",
+                    body = formatQuickPanelStreamDetailBody(videoPlayerMetadataProvider()),
+                    autoCloseState = autoCloseState,
+                )
+
+            LeanbackQuickPanelSubPanel.None -> Unit
+        }
+
         LeanbackPanelScreenTopRight(
-            channelNoProvider = currentIptvChannelNoProvider
+            channelNoProvider = currentIptvChannelNoProvider,
         )
 
         Box(
@@ -92,7 +147,7 @@ fun LeanbackQuickPanelScreen(
                 ),
         ) {
             Column(
-                verticalArrangement = Arrangement.spacedBy(20.dp)
+                verticalArrangement = Arrangement.spacedBy(20.dp),
             ) {
                 LeanbackPanelIptvInfo(
                     iptvProvider = currentIptvProvider,
@@ -106,7 +161,22 @@ fun LeanbackQuickPanelScreen(
 
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
+                    LeanbackQuickPanelButton(
+                        titleProvider = { "节目单" },
+                        onSelect = {
+                            onSubPanelChange(
+                                if (subPanel == LeanbackQuickPanelSubPanel.Epg) {
+                                    LeanbackQuickPanelSubPanel.None
+                                } else {
+                                    LeanbackQuickPanelSubPanel.Epg
+                                },
+                            )
+                            autoCloseState.active()
+                        },
+                    )
+
                     LeanbackQuickPanelActionMultipleChannels(
                         currentIptvProvider = currentIptvProvider,
                         currentIptvUrlIdxProvider = currentIptvUrlIdxProvider,
@@ -121,10 +191,16 @@ fun LeanbackQuickPanelScreen(
 
                     LeanbackQuickPanelButton(
                         titleProvider = { "视频信息" },
+                        subtitleProvider = {
+                            formatQuickPanelVideoMenuSubtitle(videoPlayerMetadataProvider())
+                        },
                         onSelect = {
-                            LeanbackToastState.I.showToast(
-                                formatQuickPanelVideoLine(videoPlayerMetadataProvider()),
-                                duration = LeanbackToastProperty.Duration.Custom(9000),
+                            onSubPanelChange(
+                                if (subPanel == LeanbackQuickPanelSubPanel.VideoDetail) {
+                                    LeanbackQuickPanelSubPanel.None
+                                } else {
+                                    LeanbackQuickPanelSubPanel.VideoDetail
+                                },
                             )
                             autoCloseState.active()
                         },
@@ -132,10 +208,16 @@ fun LeanbackQuickPanelScreen(
 
                     LeanbackQuickPanelButton(
                         titleProvider = { "音频信息" },
+                        subtitleProvider = {
+                            formatQuickPanelAudioMenuSubtitle(videoPlayerMetadataProvider())
+                        },
                         onSelect = {
-                            LeanbackToastState.I.showToast(
-                                formatQuickPanelAudioLine(videoPlayerMetadataProvider()),
-                                duration = LeanbackToastProperty.Duration.Custom(9000),
+                            onSubPanelChange(
+                                if (subPanel == LeanbackQuickPanelSubPanel.AudioDetail) {
+                                    LeanbackQuickPanelSubPanel.None
+                                } else {
+                                    LeanbackQuickPanelSubPanel.AudioDetail
+                                },
                             )
                             autoCloseState.active()
                         },
@@ -144,16 +226,19 @@ fun LeanbackQuickPanelScreen(
                     LeanbackQuickPanelButton(
                         titleProvider = { "解码与码流" },
                         onSelect = {
-                            LeanbackToastState.I.showToast(
-                                formatQuickPanelStreamExtraLine(videoPlayerMetadataProvider()),
-                                duration = LeanbackToastProperty.Duration.Custom(10000),
+                            onSubPanelChange(
+                                if (subPanel == LeanbackQuickPanelSubPanel.StreamDetail) {
+                                    LeanbackQuickPanelSubPanel.None
+                                } else {
+                                    LeanbackQuickPanelSubPanel.StreamDetail
+                                },
                             )
                             autoCloseState.active()
                         },
                     )
 
                     LeanbackQuickPanelButton(
-                        titleProvider = { "更多设置" },
+                        titleProvider = { "主菜单" },
                         onSelect = onMoreSettings,
                     )
                 }
@@ -166,6 +251,7 @@ fun LeanbackQuickPanelScreen(
 private fun LeanbackQuickPanelButton(
     modifier: Modifier = Modifier,
     titleProvider: () -> String,
+    subtitleProvider: (() -> String)? = null,
     onSelect: () -> Unit = {},
 ) {
     val focusRequester = remember { FocusRequester() }
@@ -188,7 +274,24 @@ private fun LeanbackQuickPanelButton(
                 },
             ),
     ) {
-        androidx.tv.material3.Text(text = titleProvider())
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.padding(vertical = 2.dp),
+        ) {
+            androidx.tv.material3.Text(
+                text = titleProvider(),
+                textAlign = TextAlign.Center,
+            )
+            if (subtitleProvider != null) {
+                androidx.tv.material3.Text(
+                    text = subtitleProvider(),
+                    style = MaterialTheme.typography.labelSmall,
+                    textAlign = TextAlign.Center,
+                    maxLines = 2,
+                    modifier = Modifier.padding(top = 2.dp),
+                )
+            }
+        }
     }
 }
 
@@ -240,7 +343,7 @@ private fun LeanbackQuickPanelActionVideoAspectRatio(
                     4f / 3f -> screenAspectRatio
                     screenAspectRatio -> 16f / 9f
                     else -> 16f / 9f
-                }
+                },
             )
         },
     )
@@ -250,13 +353,18 @@ private fun LeanbackQuickPanelActionVideoAspectRatio(
 @Composable
 private fun LeanbackQuickPanelScreenPreview() {
     LeanbackTheme {
-        LeanbackQuickPanelScreen(currentIptvProvider = { Iptv.EXAMPLE },
+        LeanbackQuickPanelScreen(
+            currentIptvProvider = { Iptv.EXAMPLE },
             currentProgrammesProvider = { EpgProgrammeCurrent.EXAMPLE },
             videoPlayerMetadataProvider = {
                 LeanbackVideoPlayer.Metadata(
                     videoWidth = 1920,
                     videoHeight = 1080,
+                    videoMimeType = "video/avc",
+                    audioMimeType = "audio/mp4a-latm",
+                    audioChannels = 2,
                 )
-            })
+            },
+        )
     }
 }

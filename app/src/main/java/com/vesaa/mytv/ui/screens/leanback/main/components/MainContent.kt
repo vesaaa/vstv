@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.Density
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.delay
+import com.vesaa.mytv.data.entities.Epg
 import com.vesaa.mytv.data.entities.EpgList
 import com.vesaa.mytv.data.entities.EpgList.Companion.currentProgrammes
 import com.vesaa.mytv.data.entities.IptvGroupList
@@ -39,6 +40,7 @@ import com.vesaa.mytv.ui.screens.leanback.panel.LeanbackPanelScreen
 import com.vesaa.mytv.ui.screens.leanback.panel.LeanbackPanelTempScreen
 import com.vesaa.mytv.ui.screens.leanback.panel.rememberLeanbackPanelChannelNoSelectState
 import com.vesaa.mytv.ui.screens.leanback.quickpanel.LeanbackQuickPanelScreen
+import com.vesaa.mytv.ui.screens.leanback.quickpanel.LeanbackQuickPanelSubPanel
 import com.vesaa.mytv.ui.screens.leanback.settings.LeanbackSettingsScreen
 import com.vesaa.mytv.ui.screens.leanback.settings.LeanbackSettingsViewModel
 import com.vesaa.mytv.ui.screens.leanback.toast.LeanbackToastState
@@ -148,8 +150,13 @@ fun LeanbackMainContent(
         onBackPressed = {
             if (mainContentState.isPanelVisible) mainContentState.isPanelVisible = false
             else if (mainContentState.isSettingsVisible) mainContentState.isSettingsVisible = false
-            else if (mainContentState.isQuickPanelVisible) mainContentState.isQuickPanelVisible =
-                false
+            else if (mainContentState.isQuickPanelVisible) {
+                if (mainContentState.quickPanelSubPanel != LeanbackQuickPanelSubPanel.None) {
+                    mainContentState.quickPanelSubPanel = LeanbackQuickPanelSubPanel.None
+                } else {
+                    mainContentState.isQuickPanelVisible = false
+                }
+            }
             else onBackPressed()
         },
     ) {
@@ -315,6 +322,9 @@ fun LeanbackMainContent(
                 currentIptvProvider = { mainContentState.currentIptv },
                 currentIptvUrlIdxProvider = { mainContentState.currentIptvUrlIdx },
                 currentProgrammesProvider = { epgList.currentProgrammes(mainContentState.currentIptv) },
+                currentEpgProvider = {
+                    epgList.firstOrNull { it.matchesIptv(mainContentState.currentIptv) } ?: Epg()
+                },
                 currentIptvChannelNoProvider = {
                     (iptvGroupList.iptvIdx(mainContentState.currentIptv) + 1).toString()
                         .padStart(2, '0')
@@ -328,8 +338,16 @@ fun LeanbackMainContent(
                         urlIdx = it,
                     )
                 },
-                onMoreSettings = { mainContentState.isSettingsVisible = true },
-                onClose = { mainContentState.isQuickPanelVisible = false },
+                subPanel = mainContentState.quickPanelSubPanel,
+                onSubPanelChange = { mainContentState.quickPanelSubPanel = it },
+                onMoreSettings = {
+                    mainContentState.quickPanelSubPanel = LeanbackQuickPanelSubPanel.None
+                    mainContentState.isSettingsVisible = true
+                },
+                onClose = {
+                    mainContentState.quickPanelSubPanel = LeanbackQuickPanelSubPanel.None
+                    mainContentState.isQuickPanelVisible = false
+                },
             )
         }
 

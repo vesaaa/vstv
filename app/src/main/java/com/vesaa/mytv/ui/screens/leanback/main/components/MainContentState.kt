@@ -16,6 +16,7 @@ import com.vesaa.mytv.data.entities.IptvGroupList
 import com.vesaa.mytv.data.entities.IptvGroupList.Companion.iptvIdx
 import com.vesaa.mytv.data.entities.IptvGroupList.Companion.iptvList
 import com.vesaa.mytv.data.utils.Constants
+import com.vesaa.mytv.ui.screens.leanback.quickpanel.LeanbackQuickPanelSubPanel
 import com.vesaa.mytv.ui.screens.leanback.video.LeanbackVideoPlayerState
 import com.vesaa.mytv.ui.screens.leanback.video.rememberLeanbackVideoPlayerState
 import com.vesaa.mytv.ui.utils.SP
@@ -60,6 +61,13 @@ class LeanbackMainContentState(
         get() = _isQuickPanelVisible
         set(value) {
             _isQuickPanelVisible = value
+        }
+
+    private var _quickPanelSubPanel by mutableStateOf(LeanbackQuickPanelSubPanel.None)
+    var quickPanelSubPanel
+        get() = _quickPanelSubPanel
+        set(value) {
+            _quickPanelSubPanel = value
         }
 
     init {
