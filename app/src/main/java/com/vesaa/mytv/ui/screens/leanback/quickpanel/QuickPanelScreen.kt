@@ -56,7 +56,9 @@ import androidx.compose.ui.unit.dp
 import androidx.tv.foundation.lazy.list.TvLazyRow
 import androidx.tv.foundation.lazy.list.items
 import androidx.tv.foundation.lazy.list.rememberTvLazyListState
+import androidx.tv.material3.Border
 import androidx.tv.material3.ButtonDefaults
+import androidx.tv.material3.Glow
 import com.vesaa.mytv.data.entities.Epg
 import com.vesaa.mytv.data.entities.EpgProgrammeCurrent
 import com.vesaa.mytv.data.entities.Iptv
@@ -84,7 +86,7 @@ private val QuickPanelRightSheetBottomReserve = 168.dp
 /** 打开节目单时仅留少量底边距，侧栏尽量占满纵向 */
 private val QuickPanelEpgSheetBottomMargin = 12.dp
 
-private val QuickPanelMenuIconSize = 20.dp
+private val QuickPanelMenuIconSize = 24.dp
 
 /** TvLazyRow 视口左缘会裁剪子项；首项需内缩，否则按钮左侧圆角/焦点环显示不全 */
 private val QuickPanelBottomMenuRowStartInset = 8.dp
@@ -305,7 +307,7 @@ fun LeanbackQuickPanelScreen(
                     TvLazyRow(
                         state = menuListState,
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(14.dp),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         contentPadding = PaddingValues(
                             start = QuickPanelBottomMenuRowStartInset,
@@ -439,10 +441,41 @@ private fun LeanbackQuickPanelButton(
     val defaultFocusRequester = remember { FocusRequester() }
     val focusRequester = buttonFocusRequester ?: defaultFocusRequester
     var isFocused by remember { mutableStateOf(false) }
+    val scheme = MaterialTheme.colorScheme
+    val menuContentColor =
+        if (isFocused) scheme.inverseOnSurface
+        else scheme.onSurface.copy(alpha = 0.88f)
+    val menuSubtitleColor =
+        if (isFocused) scheme.inverseOnSurface.copy(alpha = 0.78f)
+        else scheme.onSurfaceVariant.copy(alpha = 0.9f)
     androidx.tv.material3.Button(
         onClick = { },
         shape = ButtonDefaults.shape(
-            shape = MaterialTheme.shapes.small,
+            shape = MaterialTheme.shapes.extraSmall,
+            focusedShape = MaterialTheme.shapes.extraSmall,
+            pressedShape = MaterialTheme.shapes.extraSmall,
+            disabledShape = MaterialTheme.shapes.extraSmall,
+            focusedDisabledShape = MaterialTheme.shapes.extraSmall,
+        ),
+        // TV Material3 默认 focusedScale=1.1f，聚焦会比未聚焦大约 10%；此处全部锁 1f，避免「选中变大」
+        scale = ButtonDefaults.scale(
+            scale = 1f,
+            focusedScale = 1f,
+            pressedScale = 1f,
+            disabledScale = 1f,
+            focusedDisabledScale = 1f,
+        ),
+        border = ButtonDefaults.border(
+            border = Border.None,
+            focusedBorder = Border.None,
+            pressedBorder = Border.None,
+            disabledBorder = Border.None,
+            focusedDisabledBorder = Border.None,
+        ),
+        glow = ButtonDefaults.glow(
+            glow = Glow.None,
+            focusedGlow = Glow.None,
+            pressedGlow = Glow.None,
         ),
         modifier = modifier
             .focusRequester(focusRequester)
@@ -459,15 +492,16 @@ private fun LeanbackQuickPanelButton(
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center,
-            modifier = Modifier.padding(horizontal = 5.dp, vertical = 3.dp),
+            modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
         ) {
             if (leadingIcon != null) {
                 Icon(
                     imageVector = leadingIcon,
                     contentDescription = null,
                     modifier = Modifier.size(QuickPanelMenuIconSize),
+                    tint = menuContentColor,
                 )
-                Spacer(Modifier.width(5.dp))
+                Spacer(Modifier.width(4.dp))
             }
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -477,12 +511,14 @@ private fun LeanbackQuickPanelButton(
                     textAlign = TextAlign.Center,
                     maxLines = titleMaxLines,
                     overflow = titleOverflow,
-                    style = MaterialTheme.typography.titleSmall,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = menuContentColor,
                 )
                 if (subtitleProvider != null) {
                     Text(
                         text = subtitleProvider(),
                         style = MaterialTheme.typography.labelMedium,
+                        color = menuSubtitleColor,
                         textAlign = TextAlign.Center,
                         maxLines = 2,
                         modifier = Modifier.padding(top = 2.dp),

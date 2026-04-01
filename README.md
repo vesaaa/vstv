@@ -110,7 +110,7 @@
 
 ## 其他致谢
 
-以下为项目技术或设计上的参考与上游（与「内置资源致谢」区分）：
+以下为对有关开源项目及作者的**致谢与参考来源**（与「内置资源致谢」区分）。**VsTV 本仓库独立维护**，与下列项目之间**不构成 Git 意义上的上游/下游或自动同步关系**；此处仅表达感谢与说明灵感来源。
 
 - [mytv-android](https://github.com/sakana164/mytv-android) 及贡献者  
 - [my-tv](https://github.com/lizongying/my-tv)  
