@@ -88,8 +88,21 @@ private val QuickPanelEpgSheetBottomMargin = 12.dp
 
 private val QuickPanelMenuIconSize = 24.dp
 
+/**
+ * 底部按钮行仅缩小留白与间距（约 15%），不缩小字号与图标尺寸 [QuickPanelMenuIconSize]。
+ */
+private const val QuickPanelMenuLayoutFactor = 0.85f
+
 /** TvLazyRow 视口左缘会裁剪子项；首项需内缩，否则按钮左侧圆角/焦点环显示不全 */
-private val QuickPanelBottomMenuRowStartInset = 8.dp
+private val QuickPanelBottomMenuRowStartInset = (8f * QuickPanelMenuLayoutFactor).dp
+
+private val QuickPanelMenuItemSpacing = (10f * QuickPanelMenuLayoutFactor).dp
+
+private val QuickPanelMenuButtonInnerPaddingH = (4f * QuickPanelMenuLayoutFactor).dp
+
+private val QuickPanelMenuButtonInnerPaddingV = (2f * QuickPanelMenuLayoutFactor).dp
+
+private val QuickPanelMenuIconTextGap = (4f * QuickPanelMenuLayoutFactor).dp
 
 /** 底部快捷栏横向列表槽位（用 [items] DSL，避免依赖部分 tv-foundation 版本不存在的 [item] 导入） */
 private enum class QuickPanelBottomMenuSlot {
@@ -307,7 +320,7 @@ fun LeanbackQuickPanelScreen(
                     TvLazyRow(
                         state = menuListState,
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        horizontalArrangement = Arrangement.spacedBy(QuickPanelMenuItemSpacing),
                         verticalAlignment = Alignment.CenterVertically,
                         contentPadding = PaddingValues(
                             start = QuickPanelBottomMenuRowStartInset,
@@ -359,7 +372,7 @@ fun LeanbackQuickPanelScreen(
                                         },
                                         titleMaxLines = 1,
                                         titleOverflow = TextOverflow.Ellipsis,
-                                        modifier = Modifier.widthIn(max = 220.dp),
+                                        modifier = Modifier.widthIn(max = (220f * QuickPanelMenuLayoutFactor).dp),
                                         onSelect = {
                                             onSubPanelChange(
                                                 if (subPanel == LeanbackQuickPanelSubPanel.VideoDetail) {
@@ -381,7 +394,7 @@ fun LeanbackQuickPanelScreen(
                                         },
                                         titleMaxLines = 1,
                                         titleOverflow = TextOverflow.Ellipsis,
-                                        modifier = Modifier.widthIn(max = 240.dp),
+                                        modifier = Modifier.widthIn(max = (240f * QuickPanelMenuLayoutFactor).dp),
                                         onSelect = {
                                             onSubPanelChange(
                                                 if (subPanel == LeanbackQuickPanelSubPanel.AudioDetail) {
@@ -477,6 +490,10 @@ private fun LeanbackQuickPanelButton(
             focusedGlow = Glow.None,
             pressedGlow = Glow.None,
         ),
+        contentPadding = PaddingValues(
+            horizontal = (16f * QuickPanelMenuLayoutFactor).dp,
+            vertical = (8f * QuickPanelMenuLayoutFactor).dp,
+        ),
         modifier = modifier
             .focusRequester(focusRequester)
             .onFocusChanged {
@@ -492,7 +509,10 @@ private fun LeanbackQuickPanelButton(
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center,
-            modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
+            modifier = Modifier.padding(
+                horizontal = QuickPanelMenuButtonInnerPaddingH,
+                vertical = QuickPanelMenuButtonInnerPaddingV,
+            ),
         ) {
             if (leadingIcon != null) {
                 Icon(
@@ -501,7 +521,7 @@ private fun LeanbackQuickPanelButton(
                     modifier = Modifier.size(QuickPanelMenuIconSize),
                     tint = menuContentColor,
                 )
-                Spacer(Modifier.width(4.dp))
+                Spacer(Modifier.width(QuickPanelMenuIconTextGap))
             }
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -521,7 +541,7 @@ private fun LeanbackQuickPanelButton(
                         color = menuSubtitleColor,
                         textAlign = TextAlign.Center,
                         maxLines = 2,
-                        modifier = Modifier.padding(top = 2.dp),
+                        modifier = Modifier.padding(top = (2f * QuickPanelMenuLayoutFactor).dp),
                     )
                 }
             }
