@@ -148,6 +148,12 @@ object SP {
         /** 更新强提醒（弹窗形式） */
         UPDATE_FORCE_REMIND,
 
+        /** 上次完整下载至缓存的安装包对应 Release 版本号（与 GitHub tag 一致） */
+        UPDATE_LAST_DOWNLOADED_APK_VERSION,
+
+        /** 上次完整下载的安装包 URL（与版本一起用于判断缓存是否仍有效） */
+        UPDATE_LAST_DOWNLOADED_APK_URL,
+
         /** ==================== 播放器 ==================== */
         /** 播放器 加载超时 */
         VIDEO_PLAYER_LOAD_TIMEOUT,
@@ -436,6 +442,16 @@ object SP {
     var updateForceRemind: Boolean
         get() = sp.getBoolean(KEY.UPDATE_FORCE_REMIND.name, false)
         set(value) = sp.edit().putBoolean(KEY.UPDATE_FORCE_REMIND.name, value).apply()
+
+    /** 上次完整下载的安装包版本（空表示无有效缓存） */
+    var updateLastDownloadedApkVersion: String
+        get() = sp.getString(KEY.UPDATE_LAST_DOWNLOADED_APK_VERSION.name, "") ?: ""
+        set(value) = sp.edit().putString(KEY.UPDATE_LAST_DOWNLOADED_APK_VERSION.name, value).apply()
+
+    /** 上次完整下载的安装包下载地址 */
+    var updateLastDownloadedApkUrl: String
+        get() = sp.getString(KEY.UPDATE_LAST_DOWNLOADED_APK_URL.name, "") ?: ""
+        set(value) = sp.edit().putString(KEY.UPDATE_LAST_DOWNLOADED_APK_URL.name, value).apply()
 
     /** ==================== 播放器 ==================== */
     /** 播放器 加载超时 */

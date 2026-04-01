@@ -27,33 +27,39 @@ fun LeanbackUpdateScreen(
     updateViewModel: LeanBackUpdateViewModel = viewModel(),
 ) {
     val context = LocalContext.current
+    val appContext = context.applicationContext
     val coroutineScope = rememberCoroutineScope()
     val latestFile = remember { File(AppGlobal.cacheDir, "latest.apk") }
 
     val launcher =
         rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                if (context.packageManager.canRequestPackageInstalls()) {
-                    ApkInstaller.installApk(context, latestFile.path)
+                if (appContext.packageManager.canRequestPackageInstalls()) {
+                    ApkInstaller.installApk(appContext, latestFile.path)
                 } else {
                     LeanbackToastState.I.showToast("未授予安装权限")
                 }
             }
         }
 
-    LaunchedEffect(updateViewModel.updateDownloaded) {
-        if (!updateViewModel.updateDownloaded) return@LaunchedEffect
-
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
-            ApkInstaller.installApk(context, latestFile.path)
-        } else {
-            if (context.packageManager.canRequestPackageInstalls()) {
-                ApkInstaller.installApk(context, latestFile.path)
+    LaunchedEffect(Unit) {
+        updateViewModel.pendingInstallApkPath.collect { path ->
+            val file = File(path)
+            if (!file.exists()) {
+                LeanbackToastState.I.showToast("安装包不存在，请重新下载")
+                return@collect
+            }
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+                ApkInstaller.installApk(appContext, path)
             } else {
-                val intent = Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES).apply {
-                    data = Uri.parse("package:${context.packageName}")
+                if (appContext.packageManager.canRequestPackageInstalls()) {
+                    ApkInstaller.installApk(appContext, path)
+                } else {
+                    val intent = Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES).apply {
+                        data = Uri.parse("package:${appContext.packageName}")
+                    }
+                    launcher.launch(intent)
                 }
-                launcher.launch(intent)
             }
         }
     }

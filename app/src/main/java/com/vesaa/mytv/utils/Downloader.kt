@@ -1,5 +1,9 @@
 package com.vesaa.mytv.utils
 
+import java.io.File
+import java.io.FileOutputStream
+import java.io.InterruptedIOException
+import java.net.SocketTimeoutException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -8,8 +12,6 @@ import okhttp3.Interceptor
 import okio.BufferedSource
 import okio.ForwardingSource
 import okio.buffer
-import java.io.File
-import java.io.FileOutputStream
 
 object Downloader : Loggable() {
     suspend fun downloadTo(url: String, filePath: String, onProgressCb: ((Int) -> Unit)?) =
@@ -27,17 +29,32 @@ object Downloader : Loggable() {
             try {
                 with(client.newCall(request).execute()) {
                     if (!isSuccessful) {
-                        throw Exception("下载文件失败: $code")
+                        throw Exception("下载失败：HTTP $code")
                     }
 
                     val file = File(filePath)
+                    file.parentFile?.mkdirs()
                     FileOutputStream(file).use { fos -> fos.write(body!!.bytes()) }
                 }
             } catch (ex: Exception) {
                 log.e("下载文件失败", ex)
-                throw Exception("下载文件失败，请检查网络连接", ex)
+                val msg = describeDownloadFailure(ex)
+                throw Exception(msg, ex)
             }
         }
+
+    private fun describeDownloadFailure(ex: Throwable): String {
+        var t: Throwable? = ex
+        while (t != null) {
+            when (t) {
+                is SocketTimeoutException -> return "下载超时，请检查网络后重试"
+                is InterruptedIOException -> return "下载已中断"
+            }
+            t = t.cause
+        }
+        val raw = ex.message?.trim()?.takeIf { it.isNotBlank() }
+        return raw ?: "下载失败，请检查网络连接"
+    }
 
     private class DownloadResponseBody(
         private val originalResponse: okhttp3.Response,

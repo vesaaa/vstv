@@ -79,6 +79,7 @@ fun LeanbackSettingsCategoryApp(
                     else -> "短按从 GitHub 检查新版本（不再在启动时自动检查）"
                 },
                 trailingContent = when {
+                    updateViewModel.isDownloadInProgress -> "下载中…"
                     updateViewModel.isChecking -> "…"
                     updateViewModel.hasRetrievedRemoteVersion && updateViewModel.isUpdateAvailable -> "可更新"
                     updateViewModel.hasRetrievedRemoteVersion -> "已最新"
