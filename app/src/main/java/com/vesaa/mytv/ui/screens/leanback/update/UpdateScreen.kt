@@ -35,7 +35,7 @@ fun LeanbackUpdateScreen(
         rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 if (appContext.packageManager.canRequestPackageInstalls()) {
-                    ApkInstaller.installApk(appContext, latestFile.path)
+                    ApkInstaller.installApk(context, latestFile.path)
                 } else {
                     LeanbackToastState.I.showToast("未授予安装权限")
                 }
@@ -50,10 +50,10 @@ fun LeanbackUpdateScreen(
                 return@collect
             }
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
-                ApkInstaller.installApk(appContext, path)
+                ApkInstaller.installApk(context, path)
             } else {
                 if (appContext.packageManager.canRequestPackageInstalls()) {
-                    ApkInstaller.installApk(appContext, path)
+                    ApkInstaller.installApk(context, path)
                 } else {
                     val intent = Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES).apply {
                         data = Uri.parse("package:${appContext.packageName}")

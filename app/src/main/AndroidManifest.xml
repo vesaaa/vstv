@@ -20,6 +20,11 @@
             <action android:name="android.intent.action.VIEW" />
             <data android:mimeType="application/vnd.android.package-archive" />
         </intent>
+        <!-- Android 11+ 包可见性：部分电视安装器只注册 INSTALL_PACKAGE -->
+        <intent>
+            <action android:name="android.intent.action.INSTALL_PACKAGE" />
+            <data android:scheme="content" />
+        </intent>
     </queries>
 
     <application
