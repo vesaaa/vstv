@@ -86,6 +86,9 @@ private val QuickPanelEpgSheetBottomMargin = 12.dp
 
 private val QuickPanelMenuIconSize = 20.dp
 
+/** TvLazyRow 视口左缘会裁剪子项；首项需内缩，否则按钮左侧圆角/焦点环显示不全 */
+private val QuickPanelBottomMenuRowStartInset = 8.dp
+
 /** 底部快捷栏横向列表槽位（用 [items] DSL，避免依赖部分 tv-foundation 版本不存在的 [item] 导入） */
 private enum class QuickPanelBottomMenuSlot {
     Epg,
@@ -304,7 +307,10 @@ fun LeanbackQuickPanelScreen(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(14.dp),
                         verticalAlignment = Alignment.CenterVertically,
-                        contentPadding = PaddingValues(end = childPadding.end),
+                        contentPadding = PaddingValues(
+                            start = QuickPanelBottomMenuRowStartInset,
+                            end = childPadding.end,
+                        ),
                     ) {
                         items(
                             menuSlots,
