@@ -10,6 +10,7 @@ import android.widget.Toast
 import com.vesaa.mytv.ui.screens.leanback.toast.LeanbackToastProperty
 import com.vesaa.mytv.ui.screens.leanback.toast.LeanbackToastState
 import com.vesaa.mytv.utils.ApkInstaller
+import java.io.File
 
 // 部分 PackageInstaller 常量在 compileSdk 应用存根中不可见，与 AOSP 一致
 private const val EXTRA_STATUS = "android.content.pm.extra.STATUS"
@@ -39,9 +40,34 @@ class PackageInstallResultReceiver : BroadcastReceiver() {
         val legacy = intent.getIntExtra(EXTRA_LEGACY_STATUS, 0)
         val systemMsg = intent.getStringExtra(EXTRA_STATUS_MESSAGE)
 
-        if (status == PackageInstaller.STATUS_SUCCESS) return
-
         val app = context.applicationContext
+        if (status == PackageInstaller.STATUS_SUCCESS) {
+            ApkInstaller.clearSessionInstallApkPath()
+            return
+        }
+
+        if (legacy == LEGACY_INSTALL_FAILED_ALREADY_EXISTS ||
+            status == LEGACY_INSTALL_FAILED_ALREADY_EXISTS
+        ) {
+            val path = ApkInstaller.takeSessionInstallApkPath()
+            val file = path?.let { File(it) }?.takeIf { it.isFile }
+            if (file != null) {
+                Handler(Looper.getMainLooper()).post {
+                    try {
+                        LeanbackToastState.I.showToast(
+                            "部分设备对应用内安装返回异常，已改为系统安装界面，请按提示完成更新",
+                            LeanbackToastProperty.Duration.Custom(8_000),
+                            id = "packageInstallFallback",
+                        )
+                    } catch (_: Throwable) {
+                        Toast.makeText(app, "已打开系统安装界面", Toast.LENGTH_LONG).show()
+                    }
+                    ApkInstaller.installWithIntentView(app, file)
+                }
+                return
+            }
+        }
+
         val message = buildFailureMessage(status, legacy, systemMsg)
 
         Handler(Looper.getMainLooper()).post {
@@ -61,8 +87,8 @@ class PackageInstallResultReceiver : BroadcastReceiver() {
         if (legacy == LEGACY_INSTALL_FAILED_ALREADY_EXISTS ||
             status == LEGACY_INSTALL_FAILED_ALREADY_EXISTS
         ) {
-            return "安装被系统判定为「已存在相同应用」，常见于会话安装与系统安装器状态不一致。" +
-                "请删除本应用缓存中的更新包后重新下载，或使用 U 盘/文件管理器覆盖安装同一 APK。"
+            return "安装未完成：系统返回「应用已存在」(部分电视/定制 ROM 对应用内安装误报)。" +
+                "请删除缓存中的更新包后重新下载，或用文件管理器打开缓存目录下的 APK 安装；仍失败可重启设备后再试。"
         }
         if (legacy == LEGACY_INSTALL_FAILED_UPDATE_INCOMPATIBLE ||
             legacy == LEGACY_INSTALL_FAILED_SHARED_USER_INCOMPATIBLE

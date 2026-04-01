@@ -26,6 +26,26 @@ object ApkInstaller {
 
     private val installExecutor = Executors.newSingleThreadExecutor()
 
+    private val sessionApkPathLock = Any()
+    private var lastSessionApkAbsolutePath: String? = null
+
+    /** [PackageInstallResultReceiver] 在会话成功时调用，避免后续误触发回退安装 */
+    fun clearSessionInstallApkPath() {
+        synchronized(sessionApkPathLock) { lastSessionApkAbsolutePath = null }
+    }
+
+    /**
+     * 取出并清空最近一次 [installWithPackageInstallerSession] 提交的 APK 路径。
+     * 用于系统在覆盖安装时误报 INSTALL_FAILED_ALREADY_EXISTS 时改走系统安装界面。
+     */
+    fun takeSessionInstallApkPath(): String? {
+        synchronized(sessionApkPathLock) {
+            val p = lastSessionApkAbsolutePath
+            lastSessionApkAbsolutePath = null
+            return p
+        }
+    }
+
     fun installApk(context: Context, filePath: String) {
         val file = File(filePath)
         if (!file.exists()) {
@@ -66,6 +86,9 @@ object ApkInstaller {
                 FileInputStream(apkFile).use { input -> input.copyTo(out) }
                 session.fsync(out)
             }
+            synchronized(sessionApkPathLock) {
+                lastSessionApkAbsolutePath = apkFile.absolutePath
+            }
             // 必须显式指定组件：隐式广播在 Android 12+ 上可能无法投递到 exported=false 的 manifest 接收器，
             // 导致收不到结果或 extras 异常（用户侧表现为安装失败、状态码错乱）。
             val callback = Intent(appCtx, PackageInstallResultReceiver::class.java).apply {
@@ -81,6 +104,7 @@ object ApkInstaller {
             session.commit(pendingIntent.intentSender)
         } catch (e: Exception) {
             session.abandon()
+            synchronized(sessionApkPathLock) { lastSessionApkAbsolutePath = null }
             throw e
         }
     }
@@ -92,8 +116,9 @@ object ApkInstaller {
             0
         }
 
+    /** 供 [PackageInstallResultReceiver] 在会话安装误报失败时调用（与 [installApk] 内回退逻辑一致） */
     @SuppressLint("SetWorldReadable")
-    private fun installWithIntentView(appCtx: Context, sourceFile: File) {
+    internal fun installWithIntentView(appCtx: Context, sourceFile: File) {
         val cacheDir = appCtx.cacheDir
         val cachedApkFile = File(cacheDir, sourceFile.name).apply {
             writeBytes(sourceFile.readBytes())
