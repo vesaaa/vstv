@@ -27,8 +27,14 @@ import kotlin.math.max
 class LeanbackMainContentState(
     coroutineScope: CoroutineScope,
     private val videoPlayerState: LeanbackVideoPlayerState,
-    private val iptvGroupList: IptvGroupList,
+    initialIptvGroupList: IptvGroupList,
 ) : Loggable() {
+    /** 与 [rememberLeanbackMainContentState] 首次传入一致；后续由 [updateIptvGroupList] 与界面同步（避免 remember 无 key 时永远停留在空列表） */
+    private var iptvGroupList by mutableStateOf(initialIptvGroupList)
+
+    fun updateIptvGroupList(list: IptvGroupList) {
+        iptvGroupList = list
+    }
     private var _currentIptv by mutableStateOf(Iptv())
     val currentIptv get() = _currentIptv
 
@@ -184,7 +190,7 @@ fun rememberLeanbackMainContentState(
     LeanbackMainContentState(
         coroutineScope = coroutineScope,
         videoPlayerState = videoPlayerState,
-        iptvGroupList = iptvGroupList,
+        initialIptvGroupList = iptvGroupList,
     )
 }
 

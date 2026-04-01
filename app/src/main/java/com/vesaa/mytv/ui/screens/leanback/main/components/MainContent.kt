@@ -78,6 +78,10 @@ fun LeanbackMainContent(
         iptvGroupList = iptvGroupList,
     )
 
+    LaunchedEffect(iptvGroupList) {
+        mainContentState.updateIptvGroupList(iptvGroupList)
+    }
+
     var sessionOnboardingDismissed by remember { mutableStateOf(false) }
     /** 仅直播源未配置时引导进入设置首页；节目单为可选，不参与引导 */
     val needsLeanbackOnboarding = settingsViewModel.iptvSourceUrl.isBlank()
