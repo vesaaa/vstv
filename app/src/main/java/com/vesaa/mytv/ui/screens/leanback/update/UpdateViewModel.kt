@@ -8,7 +8,6 @@ import com.vesaa.mytv.AppGlobal
 import com.vesaa.mytv.data.entities.GitRelease
 import com.vesaa.mytv.data.repositories.git.GitRepository
 import com.vesaa.mytv.data.utils.Constants
-import com.vesaa.mytv.ui.screens.leanback.toast.LeanbackToastProperty
 import com.vesaa.mytv.ui.screens.leanback.toast.LeanbackToastState
 import com.vesaa.mytv.ui.utils.SP
 import com.vesaa.mytv.utils.Downloader
@@ -16,11 +15,15 @@ import com.vesaa.mytv.utils.Logger
 import com.vesaa.mytv.utils.compareVersion
 import java.io.File
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import androidx.lifecycle.viewModelScope
 
 class LeanBackUpdateViewModel : ViewModel() {
     private val log = Logger.create(javaClass.simpleName)
@@ -47,6 +50,25 @@ class LeanBackUpdateViewModel : ViewModel() {
 
     /** 是否正在下载安装包（用于设置页文案与防重复任务） */
     val isDownloadInProgress: Boolean get() = _isUpdating
+
+    /** 下载进度 0–100；-1 表示未在下载或尚无首包进度（连接/准备中） */
+    private var _downloadProgress by mutableStateOf(-1)
+    val downloadProgressPercent: Int get() = _downloadProgress
+
+    /** 已提交安装、等待系统安装界面出现（设置项上持续提示，避免只剩一闪 Toast） */
+    private var _openingSystemInstaller by mutableStateOf(false)
+    val isOpeningSystemInstaller: Boolean get() = _openingSystemInstaller
+
+    private var clearOpeningInstallerJob: Job? = null
+
+    private fun scheduleClearOpeningInstallerHint() {
+        clearOpeningInstallerJob?.cancel()
+        clearOpeningInstallerJob = viewModelScope.launch {
+            delay(4_000)
+            _openingSystemInstaller = false
+            _downloadProgress = -1
+        }
+    }
 
     /**
      * 下载完成或命中有效缓存后发出绝对路径；界面在主线程收集并调起安装。
@@ -111,7 +133,8 @@ class LeanBackUpdateViewModel : ViewModel() {
             _latestRelease.downloadUrl.isNotBlank()
         ) {
             withContext(Dispatchers.Main) {
-                LeanbackToastState.I.showToast("已下载该版本，开始安装")
+                _openingSystemInstaller = true
+                scheduleClearOpeningInstallerHint()
             }
             emitInstallRequest(latestFile.absolutePath)
             return
@@ -119,10 +142,7 @@ class LeanBackUpdateViewModel : ViewModel() {
 
         _isUpdating = true
         withContext(Dispatchers.Main) {
-            LeanbackToastState.I.showToast(
-                "开始下载更新",
-                LeanbackToastProperty.Duration.Custom(10_000),
-            )
+            _downloadProgress = -1
         }
 
         try {
@@ -133,12 +153,10 @@ class LeanBackUpdateViewModel : ViewModel() {
             SP.updateLastDownloadedApkVersion = ""
             SP.updateLastDownloadedApkUrl = ""
 
-            Downloader.downloadTo(_latestRelease.downloadUrl, latestFile.path) {
-                LeanbackToastState.I.showToast(
-                    "正在下载更新: $it%",
-                    LeanbackToastProperty.Duration.Custom(10_000),
-                    "downloadProcess",
-                )
+            Downloader.downloadTo(_latestRelease.downloadUrl, latestFile.path) { pct ->
+                viewModelScope.launch(Dispatchers.Main.immediate) {
+                    _downloadProgress = pct
+                }
             }
 
             val okSize = withContext(Dispatchers.IO) {
@@ -152,7 +170,9 @@ class LeanBackUpdateViewModel : ViewModel() {
             SP.updateLastDownloadedApkUrl = _latestRelease.downloadUrl
 
             withContext(Dispatchers.Main) {
-                LeanbackToastState.I.showToast("下载更新成功")
+                _downloadProgress = 100
+                _openingSystemInstaller = true
+                scheduleClearOpeningInstallerHint()
             }
             emitInstallRequest(latestFile.absolutePath)
         } catch (ex: Exception) {
@@ -169,6 +189,11 @@ class LeanBackUpdateViewModel : ViewModel() {
             }
         } finally {
             _isUpdating = false
+            withContext(Dispatchers.Main) {
+                if (!_openingSystemInstaller) {
+                    _downloadProgress = -1
+                }
+            }
         }
     }
 

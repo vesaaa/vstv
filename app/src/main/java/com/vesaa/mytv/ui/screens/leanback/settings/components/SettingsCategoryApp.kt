@@ -34,6 +34,12 @@ fun LeanbackSettingsCategoryApp(
         context.packageManager.getPackageInfo(context.packageName, 0)
     }
     val localVer = packageInfo.versionName ?: "0.0.0"
+    val versionSummaryLine =
+        if (updateViewModel.hasRetrievedRemoteVersion) {
+            "当前安装 v$localVer；上游最新 v${updateViewModel.latestRelease.version}"
+        } else {
+            ""
+        }
 
     TvLazyColumn(
         modifier = modifier,
@@ -72,20 +78,50 @@ fun LeanbackSettingsCategoryApp(
             LeanbackSettingsCategoryListItem(
                 headlineContent = "应用更新",
                 supportingContent = when {
+                    updateViewModel.isOpeningSystemInstaller ->
+                        buildString {
+                            append("正在打开系统安装界面，请按系统提示完成更新。")
+                            if (versionSummaryLine.isNotEmpty()) {
+                                append('\n')
+                                append(versionSummaryLine)
+                            }
+                        }
+                    updateViewModel.isDownloadInProgress ->
+                        buildString {
+                            val p = updateViewModel.downloadProgressPercent
+                            if (p >= 0) {
+                                append("正在下载 v${updateViewModel.latestRelease.version}：$p%")
+                            } else {
+                                append("正在连接并下载更新包…")
+                            }
+                            if (versionSummaryLine.isNotEmpty()) {
+                                append('\n')
+                                append(versionSummaryLine)
+                            }
+                        }
                     updateViewModel.isChecking -> "正在连接 GitHub Releases…"
-                    updateViewModel.hasRetrievedRemoteVersion -> {
-                        "当前安装 v$localVer；上游最新 v${updateViewModel.latestRelease.version}"
-                    }
+                    updateViewModel.hasRetrievedRemoteVersion -> versionSummaryLine
                     else -> "短按从 GitHub 检查新版本（不再在启动时自动检查）"
                 },
                 trailingContent = when {
-                    updateViewModel.isDownloadInProgress -> "下载中…"
+                    updateViewModel.isOpeningSystemInstaller -> "安装"
+                    updateViewModel.isDownloadInProgress ->
+                        if (updateViewModel.downloadProgressPercent >= 0) {
+                            "${updateViewModel.downloadProgressPercent}%"
+                        } else {
+                            "下载中"
+                        }
                     updateViewModel.isChecking -> "…"
                     updateViewModel.hasRetrievedRemoteVersion && updateViewModel.isUpdateAvailable -> "可更新"
                     updateViewModel.hasRetrievedRemoteVersion -> "已最新"
                     else -> "检查更新"
                 },
-                onSelected = {
+                onSelected = clickUpdate@{
+                    if (updateViewModel.isDownloadInProgress ||
+                        updateViewModel.isOpeningSystemInstaller
+                    ) {
+                        return@clickUpdate
+                    }
                     coroutineScope.launch {
                         val ok = updateViewModel.checkUpdate(localVer)
                         if (!ok) {

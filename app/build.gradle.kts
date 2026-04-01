@@ -27,7 +27,7 @@ fun semverToVersionCode(versionName: String): Int {
         parts[2].coerceIn(0, 999)
 }
 
-    val defaultVersionName = "0.1.7"
+    val defaultVersionName = "0.1.8"
 val resolvedVersionName = releaseVersion.ifEmpty { defaultVersionName }
 val resolvedVersionCode =
     (project.findProperty("versionCode") as String?)?.toIntOrNull()
