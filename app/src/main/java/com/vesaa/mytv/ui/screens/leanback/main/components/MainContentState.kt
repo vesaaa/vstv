@@ -41,6 +41,9 @@ class LeanbackMainContentState(
     private var _currentIptvUrlIdx by mutableIntStateOf(0)
     val currentIptvUrlIdx get() = _currentIptvUrlIdx
 
+    /** null 表示使用全局 [SP.playbackHttpUserAgent]；非 null 为本次拉流请求头快照（收藏条目等） */
+    private var streamRequestHeadersForPlayback: String? = null
+
     private var _isPanelVisible by mutableStateOf(false)
     var isPanelVisible
         get() = _isPanelVisible
@@ -131,8 +134,14 @@ class LeanbackMainContentState(
         }
     }
 
-    fun changeCurrentIptv(iptv: Iptv, urlIdx: Int? = null) {
+    fun changeCurrentIptv(
+        iptv: Iptv,
+        urlIdx: Int? = null,
+        streamRequestHeaders: String? = null,
+    ) {
         _isPanelVisible = false
+
+        streamRequestHeadersForPlayback = streamRequestHeaders
 
         if (iptv == _currentIptv && urlIdx == null) return
 
@@ -148,14 +157,15 @@ class LeanbackMainContentState(
             _currentIptv = iptv
             _currentIptvUrlIdx = 0
             val idx = iptvGroupList.iptvIdx(_currentIptv)
-            SP.iptvLastIptvIdx = if (idx >= 0) idx else 0
+            if (idx >= 0) SP.iptvLastIptvIdx = idx
             return
         }
 
         _isTempPanelVisible = true
 
         _currentIptv = iptv
-        SP.iptvLastIptvIdx = iptvGroupList.iptvIdx(_currentIptv)
+        val idxLast = iptvGroupList.iptvIdx(_currentIptv)
+        if (idxLast >= 0) SP.iptvLastIptvIdx = idxLast
 
         _currentIptvUrlIdx = if (urlIdx == null) {
             // 优先从记忆中选择可播放的域名
@@ -169,7 +179,10 @@ class LeanbackMainContentState(
         val url = iptv.urlList[_currentIptvUrlIdx]
         log.d("播放${iptv.name}（${_currentIptvUrlIdx + 1}/${_currentIptv.urlList.size}）: $url")
 
-        videoPlayerState.prepare(url)
+        videoPlayerState.prepare(
+            url,
+            streamRequestHeadersForPlayback?.trim()?.takeIf { it.isNotEmpty() },
+        )
     }
 
     fun changeCurrentIptvToPrev() {

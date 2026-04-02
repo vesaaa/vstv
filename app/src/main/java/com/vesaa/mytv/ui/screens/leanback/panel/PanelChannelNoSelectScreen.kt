@@ -9,6 +9,7 @@ import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -75,6 +76,13 @@ class LeanbackPanelChannelNoSelectState(
 @Composable
 fun rememberLeanbackPanelChannelNoSelectState(
     onChannelNoConfirm: (String) -> Unit = {},
-) = remember {
-    LeanbackPanelChannelNoSelectState(onChannelNoConfirm)
-}.also { LaunchedEffect(it) { it.observe() } }
+): LeanbackPanelChannelNoSelectState {
+    val latestOnConfirm = rememberUpdatedState(onChannelNoConfirm)
+    val state = remember {
+        LeanbackPanelChannelNoSelectState { s -> latestOnConfirm.value(s) }
+    }
+    LaunchedEffect(state) {
+        state.observe()
+    }
+    return state
+}

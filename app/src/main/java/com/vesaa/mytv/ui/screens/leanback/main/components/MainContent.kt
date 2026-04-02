@@ -23,11 +23,12 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
 import androidx.lifecycle.viewmodel.compose.viewModel
-import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.delay
 import com.vesaa.mytv.data.entities.Epg
 import com.vesaa.mytv.data.entities.EpgList
 import com.vesaa.mytv.data.entities.EpgList.Companion.currentProgrammes
+import com.vesaa.mytv.data.IptvFavoriteMigration
+import com.vesaa.mytv.data.entities.IptvFavoriteEntry
 import com.vesaa.mytv.data.entities.IptvGroupList
 import com.vesaa.mytv.data.entities.IptvGroupList.Companion.iptvIdx
 import com.vesaa.mytv.data.entities.IptvGroupList.Companion.iptvList
@@ -73,13 +74,52 @@ fun LeanbackMainContent(
             }
         }
     )
+    val favoritesOnlyUi =
+        settingsViewModel.iptvChannelFavoriteEnable && settingsViewModel.iptvChannelFavoritesOnlyMode
+    val uiIptvGroupList = if (favoritesOnlyUi) IptvGroupList() else iptvGroupList
+    val channelOrderList =
+        if (favoritesOnlyUi) settingsViewModel.iptvChannelFavoriteEntries.map { it.toIptv() }
+        else iptvGroupList.iptvList
+
     val mainContentState = rememberLeanbackMainContentState(
         videoPlayerState = videoPlayerState,
-        iptvGroupList = iptvGroupList,
+        iptvGroupList = uiIptvGroupList,
     )
 
     LaunchedEffect(iptvGroupList) {
-        mainContentState.updateIptvGroupList(iptvGroupList)
+        IptvFavoriteMigration.runOnceIfNeeded(iptvGroupList)
+        settingsViewModel.reloadFavoriteEntriesFromDisk()
+    }
+
+    LaunchedEffect(
+        iptvGroupList,
+        settingsViewModel.iptvChannelFavoriteEnable,
+        settingsViewModel.iptvChannelFavoritesOnlyMode,
+    ) {
+        mainContentState.updateIptvGroupList(uiIptvGroupList)
+    }
+
+    LaunchedEffect(
+        settingsViewModel.iptvChannelFavoriteEnable,
+        settingsViewModel.iptvChannelFavoritesOnlyMode,
+        settingsViewModel.iptvChannelFavoriteEntries,
+    ) {
+        if (!settingsViewModel.iptvChannelFavoriteEnable ||
+            !settingsViewModel.iptvChannelFavoritesOnlyMode
+        ) {
+            return@LaunchedEffect
+        }
+        val entries = settingsViewModel.iptvChannelFavoriteEntries
+        if (entries.isEmpty()) return@LaunchedEffect
+        val cur = mainContentState.currentIptv
+        val curKey = IptvFavoriteEntry.stableKeyFrom(cur.urlList, cur.channelName)
+        if (entries.none { it.stableKey() == curKey }) {
+            val first = entries.first()
+            mainContentState.changeCurrentIptv(
+                first.toIptv(),
+                streamRequestHeaders = first.playbackRequestHeaders.trim().takeIf { it.isNotEmpty() },
+            )
+        }
     }
 
     var sessionOnboardingDismissed by remember { mutableStateOf(false) }
@@ -106,9 +146,21 @@ fun LeanbackMainContent(
     val panelChannelNoSelectState = rememberLeanbackPanelChannelNoSelectState(
         onChannelNoConfirm = {
             val channelNo = it.toInt() - 1
-
-            if (channelNo in iptvGroupList.iptvList.indices) {
-                mainContentState.changeCurrentIptv(iptvGroupList.iptvList[channelNo])
+            val order = channelOrderList
+            if (channelNo in order.indices) {
+                val iptv = order[channelNo]
+                if (favoritesOnlyUi) {
+                    val entry = settingsViewModel.iptvChannelFavoriteEntries.find { e ->
+                        IptvFavoriteEntry.stableKeyFrom(iptv.urlList, iptv.channelName) == e.stableKey()
+                    }
+                    mainContentState.changeCurrentIptv(
+                        iptv,
+                        streamRequestHeaders = entry?.playbackRequestHeaders?.trim()
+                            ?.takeIf { it.isNotEmpty() },
+                    )
+                } else {
+                    mainContentState.changeCurrentIptv(iptv)
+                }
             }
         }
     )
@@ -255,7 +307,10 @@ fun LeanbackMainContent(
                         && panelChannelNoSelectState.channelNo.isEmpty()
             }) {
                 LeanbackPanelTempScreen(
-                    channelNoProvider = { iptvGroupList.iptvIdx(mainContentState.currentIptv) + 1 },
+                    channelNoProvider = {
+                        val idx = channelOrderList.indexOf(mainContentState.currentIptv)
+                        if (idx >= 0) (idx + 1).toString().padStart(2, '0') else "--"
+                    },
                     currentIptvProvider = { mainContentState.currentIptv },
                     currentIptvUrlIdxProvider = { mainContentState.currentIptvUrlIdx },
                     currentProgrammesProvider = { epgList.currentProgrammes(mainContentState.currentIptv) },
@@ -265,52 +320,70 @@ fun LeanbackMainContent(
 
             LeanbackVisible({ !settingsViewModel.uiUseClassicPanelScreen && mainContentState.isPanelVisible }) {
                 LeanbackPanelScreen(
-                    iptvGroupListProvider = { iptvGroupList },
+                    iptvGroupListProvider = { uiIptvGroupList },
+                    channelOrderListProvider = { channelOrderList },
                     epgListProvider = { epgList },
                     currentIptvProvider = { mainContentState.currentIptv },
                     currentIptvUrlIdxProvider = { mainContentState.currentIptvUrlIdx },
                     videoPlayerMetadataProvider = { videoPlayerState.metadata },
                     showProgrammeProgressProvider = { settingsViewModel.uiShowEpgProgrammeProgress },
-                    onIptvSelected = { mainContentState.changeCurrentIptv(it) },
+                    onIptvSelected = { iptv, streamHeaders ->
+                        mainContentState.changeCurrentIptv(
+                            iptv,
+                            streamRequestHeaders = streamHeaders,
+                        )
+                    },
                     onIptvFavoriteToggle = {
-                        if (!settingsViewModel.iptvChannelFavoriteEnable) return@LeanbackPanelScreen
+                        if (!settingsViewModel.iptvChannelFavoriteEnable) {
+                            LeanbackToastState.I.showToast("请先在设置 → 收藏 中启用收藏")
+                            return@LeanbackPanelScreen
+                        }
 
-                        if (settingsViewModel.iptvChannelFavoriteList.contains(it.channelName)) {
-                            settingsViewModel.iptvChannelFavoriteList -= it.channelName
+                        val was = settingsViewModel.isIptvFavorite(it)
+                        settingsViewModel.toggleIptvFavorite(it)
+                        if (was) {
                             LeanbackToastState.I.showToast("取消收藏: ${it.channelName}")
                         } else {
-                            settingsViewModel.iptvChannelFavoriteList += it.channelName
                             LeanbackToastState.I.showToast("已收藏: ${it.channelName}")
                         }
                     },
-                    iptvFavoriteListProvider = { settingsViewModel.iptvChannelFavoriteList.toImmutableList() },
+                    iptvFavoriteEntriesProvider = { settingsViewModel.iptvChannelFavoriteEntries },
                     iptvFavoriteListVisibleProvider = { settingsViewModel.iptvChannelFavoriteListVisible },
                     onIptvFavoriteListVisibleChange = {
                         settingsViewModel.iptvChannelFavoriteListVisible = it
                     },
+                    iptvFavoritesOnlyModeProvider = { favoritesOnlyUi },
                     onClose = { mainContentState.isPanelVisible = false },
                 )
             }
 
             LeanbackVisible({ settingsViewModel.uiUseClassicPanelScreen && mainContentState.isPanelVisible }) {
                 LeanbackClassicPanelScreen(
-                    iptvGroupListProvider = { iptvGroupList },
+                    iptvGroupListProvider = { uiIptvGroupList },
                     epgListProvider = { epgList },
                     currentIptvProvider = { mainContentState.currentIptv },
                     showProgrammeProgressProvider = { settingsViewModel.uiShowEpgProgrammeProgress },
-                    onIptvSelected = { mainContentState.changeCurrentIptv(it) },
+                    onIptvSelected = { iptv, streamHeaders ->
+                        mainContentState.changeCurrentIptv(
+                            iptv,
+                            streamRequestHeaders = streamHeaders,
+                        )
+                    },
                     onIptvFavoriteToggle = {
-                        if (!settingsViewModel.iptvChannelFavoriteEnable) return@LeanbackClassicPanelScreen
+                        if (!settingsViewModel.iptvChannelFavoriteEnable) {
+                            LeanbackToastState.I.showToast("请先在设置 → 收藏 中启用收藏")
+                            return@LeanbackClassicPanelScreen
+                        }
 
-                        if (settingsViewModel.iptvChannelFavoriteList.contains(it.channelName)) {
-                            settingsViewModel.iptvChannelFavoriteList -= it.channelName
+                        val was = settingsViewModel.isIptvFavorite(it)
+                        settingsViewModel.toggleIptvFavorite(it)
+                        if (was) {
                             LeanbackToastState.I.showToast("取消收藏: ${it.channelName}")
                         } else {
-                            settingsViewModel.iptvChannelFavoriteList += it.channelName
                             LeanbackToastState.I.showToast("已收藏: ${it.channelName}")
                         }
                     },
-                    iptvFavoriteListProvider = { settingsViewModel.iptvChannelFavoriteList.toImmutableList() },
+                    iptvFavoriteEntriesProvider = { settingsViewModel.iptvChannelFavoriteEntries },
                     iptvFavoriteListVisibleProvider = { settingsViewModel.iptvChannelFavoriteListVisible },
                     onIptvFavoriteListVisibleChange = {
                         settingsViewModel.iptvChannelFavoriteListVisible = it
@@ -330,8 +403,8 @@ fun LeanbackMainContent(
                     epgList.firstOrNull { it.matchesIptv(mainContentState.currentIptv) } ?: Epg()
                 },
                 currentIptvChannelNoProvider = {
-                    (iptvGroupList.iptvIdx(mainContentState.currentIptv) + 1).toString()
-                        .padStart(2, '0')
+                    val idx = channelOrderList.indexOf(mainContentState.currentIptv)
+                    if (idx >= 0) (idx + 1).toString().padStart(2, '0') else "--"
                 },
                 videoPlayerMetadataProvider = { videoPlayerState.metadata },
                 videoPlayerAspectRatioProvider = { videoPlayerState.aspectRatio },

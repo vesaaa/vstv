@@ -2,9 +2,11 @@ package com.vesaa.mytv.ui.utils
 
 import android.content.Context
 import android.content.SharedPreferences
+import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import com.vesaa.mytv.data.entities.IptvFavoriteEntry
 import com.vesaa.mytv.data.utils.Constants
 import com.vesaa.mytv.utils.Logger
 import com.vesaa.mytv.utils.normalizeIptvRequestHeadersInput
@@ -103,8 +105,14 @@ object SP {
         /** 显示直播源频道收藏列表 */
         IPTV_CHANNEL_FAVORITE_LIST_VISIBLE,
 
-        /** 直播源频道收藏列表 */
+        /** 直播源频道收藏列表（旧版，仅 channelName；迁移后清空） */
         IPTV_CHANNEL_FAVORITE_LIST,
+
+        /** 直播源频道收藏（JSON 列表，含 URL 与播放请求头快照） */
+        IPTV_CHANNEL_FAVORITES_JSON,
+
+        /** 只看收藏：界面与换台顺序仅含收藏夹内频道（依赖收藏启用） */
+        IPTV_CHANNEL_FAVORITES_ONLY_MODE,
 
         /** ==================== 节目单 ==================== */
         /** 启用节目单 */
@@ -322,10 +330,45 @@ object SP {
         set(value) = sp.edit().putBoolean(KEY.IPTV_CHANNEL_FAVORITE_LIST_VISIBLE.name, value)
             .apply()
 
-    /** 直播源频道收藏列表 */
+    /** 只看收藏：仅展示收藏夹及其中频道，换台与频道号亦仅限收藏列表 */
+    var iptvChannelFavoritesOnlyMode: Boolean
+        get() = sp.getBoolean(KEY.IPTV_CHANNEL_FAVORITES_ONLY_MODE.name, false)
+        set(value) = sp.edit().putBoolean(KEY.IPTV_CHANNEL_FAVORITES_ONLY_MODE.name, value).apply()
+
+    /** 直播源频道收藏列表（旧版）；迁移逻辑见 [com.vesaa.mytv.data.IptvFavoriteMigration] */
     var iptvChannelFavoriteList: Set<String>
         get() = sp.getStringSet(KEY.IPTV_CHANNEL_FAVORITE_LIST.name, emptySet()) ?: emptySet()
         set(value) = sp.edit().putStringSet(KEY.IPTV_CHANNEL_FAVORITE_LIST.name, value).apply()
+
+    /**
+     * 当前订阅拉流用的请求头快照：优先该订阅 URL 在 JSON 里绑定的头，否则全局 [iptvSourceRequestHeaders]。
+     * 写入收藏时固化，删除源后仍按快照播放。
+     */
+    fun currentIptvSourceRequestHeadersSnapshot(): String {
+        val url = iptvSourceUrl.trim()
+        if (url.isNotEmpty()) {
+            val per = getIptvSourceHeadersForUrl(url).trim()
+            if (per.isNotEmpty()) return per
+        }
+        return iptvSourceRequestHeaders.trim()
+    }
+
+    fun loadFavoriteEntries(): List<IptvFavoriteEntry> {
+        val raw = sp.getString(KEY.IPTV_CHANNEL_FAVORITES_JSON.name, "") ?: ""
+        if (raw.isBlank()) return emptyList()
+        return runCatching {
+            spJson.decodeFromString(ListSerializer(IptvFavoriteEntry.serializer()), raw)
+        }.getOrElse { emptyList() }
+    }
+
+    fun saveFavoriteEntries(list: List<IptvFavoriteEntry>) {
+        sp.edit()
+            .putString(
+                KEY.IPTV_CHANNEL_FAVORITES_JSON.name,
+                spJson.encodeToString(ListSerializer(IptvFavoriteEntry.serializer()), list),
+            )
+            .apply()
+    }
 
     /** ==================== 节目单 ==================== */
     /** 启用节目单 */

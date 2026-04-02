@@ -29,7 +29,7 @@ import com.vesaa.mytv.ui.theme.LeanbackTheme
 @Composable
 fun LeanbackPanelTempScreen(
     modifier: Modifier = Modifier,
-    channelNoProvider: () -> Int = { 0 },
+    channelNoProvider: () -> String = { "01" },
     currentIptvProvider: () -> Iptv = { Iptv() },
     currentIptvUrlIdxProvider: () -> Int = { 0 },
     currentProgrammesProvider: () -> EpgProgrammeCurrent? = { null },
@@ -39,7 +39,7 @@ fun LeanbackPanelTempScreen(
 
     Box(modifier = modifier.fillMaxSize()) {
         LeanbackPanelChannelNo(
-            channelNoProvider = { channelNoProvider().toString().padStart(2, '0') },
+            channelNoProvider = channelNoProvider,
             modifier = Modifier
                 .padding(top = childPadding.top, end = childPadding.end)
                 .align(Alignment.TopEnd),
@@ -100,7 +100,7 @@ fun LeanbackPanelTempScreen(
 private fun LeanbackPanelTempScreenPreview() {
     LeanbackTheme {
         LeanbackPanelTempScreen(
-            channelNoProvider = { 1 },
+            channelNoProvider = { "01" },
             currentIptvProvider = { Iptv.EXAMPLE },
             currentProgrammesProvider = {
                 EpgProgrammeCurrent(

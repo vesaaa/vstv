@@ -29,6 +29,8 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import com.vesaa.mytv.ui.utils.SP
+import com.vesaa.mytv.utils.normalizeIptvRequestHeadersInput
+import com.vesaa.mytv.utils.parseHttpHeaderLines
 import androidx.media3.common.PlaybackException as Media3PlaybackException
 
 @OptIn(UnstableApi::class)
@@ -46,16 +48,36 @@ class LeanbackMedia3VideoPlayer(
     private val contentTypeAttempts = mutableMapOf<Int, Boolean>()
     private var updatePositionJob: Job? = null
 
+    /** 同一次播放会话内重试容器类型时沿用（收藏夹 per-entry 头等） */
+    private var activeStreamRequestHeaders: String? = null
+
     @OptIn(UnstableApi::class)
-    private fun prepare(uri: Uri, contentType: Int? = null) {
-        val dataSourceFactory =
-            DefaultDataSource.Factory(context, DefaultHttpDataSource.Factory().apply {
+    private fun httpDataSourceFactory(streamRequestHeaders: String?): DefaultHttpDataSource.Factory =
+        DefaultHttpDataSource.Factory().apply {
+            val trimmed = streamRequestHeaders?.trim().orEmpty()
+            if (trimmed.isEmpty()) {
                 setUserAgent(SP.playbackHttpUserAgent())
-                setConnectTimeoutMs(SP.videoPlayerLoadTimeout.toInt())
-                setReadTimeoutMs(SP.videoPlayerLoadTimeout.toInt())
-                setKeepPostFor302Redirects(true)
-                setAllowCrossProtocolRedirects(true)
-            })
+            } else {
+                val map = normalizeIptvRequestHeadersInput(trimmed).parseHttpHeaderLines()
+                val ua = map.entries.firstOrNull { it.key.equals("User-Agent", ignoreCase = true) }
+                    ?.value?.trim()?.takeIf { it.isNotEmpty() }
+                setUserAgent(ua ?: SP.playbackHttpUserAgent())
+                val rest = map.filterKeys { !it.equals("User-Agent", ignoreCase = true) }
+                if (rest.isNotEmpty()) {
+                    setDefaultRequestProperties(rest)
+                }
+            }
+            setConnectTimeoutMs(SP.videoPlayerLoadTimeout.toInt())
+            setReadTimeoutMs(SP.videoPlayerLoadTimeout.toInt())
+            setKeepPostFor302Redirects(true)
+            setAllowCrossProtocolRedirects(true)
+        }
+
+    @OptIn(UnstableApi::class)
+    private fun prepare(uri: Uri, contentType: Int? = null, streamRequestHeaders: String? = null) {
+        val headers = streamRequestHeaders ?: activeStreamRequestHeaders
+        val dataSourceFactory =
+            DefaultDataSource.Factory(context, httpDataSourceFactory(headers))
 
         val mediaItem = MediaItem.fromUri(uri)
 
@@ -123,7 +145,7 @@ class LeanbackMedia3VideoPlayer(
                     )
                     val next = tryOrder.firstOrNull { contentTypeAttempts[it] != true }
                     if (next != null) {
-                        prepare(uri, next)
+                        prepare(uri, next, streamRequestHeaders = null)
                     } else {
                         triggerError(PlaybackException.UNSUPPORTED_TYPE)
                     }
@@ -228,9 +250,10 @@ class LeanbackMedia3VideoPlayer(
     }
 
     @UnstableApi
-    override fun prepare(url: String) {
+    override fun prepare(url: String, streamRequestHeaders: String?) {
+        activeStreamRequestHeaders = streamRequestHeaders
         contentTypeAttempts.clear()
-        prepare(Uri.parse(url))
+        prepare(Uri.parse(url), null, streamRequestHeaders)
     }
 
     override fun play() {

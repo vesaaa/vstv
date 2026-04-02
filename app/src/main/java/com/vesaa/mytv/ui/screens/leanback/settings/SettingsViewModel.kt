@@ -7,6 +7,8 @@ import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
+import com.vesaa.mytv.data.entities.Iptv
+import com.vesaa.mytv.data.entities.IptvFavoriteEntry
 import com.vesaa.mytv.ui.utils.SP
 
 class LeanbackSettingsViewModel : ViewModel() {
@@ -144,6 +146,10 @@ class LeanbackSettingsViewModel : ViewModel() {
         set(value) {
             _iptvChannelFavoriteEnable = value
             SP.iptvChannelFavoriteEnable = value
+            if (!value) {
+                iptvChannelFavoritesOnlyMode = false
+                iptvChannelFavoriteListVisible = false
+            }
         }
 
     private var _iptvChannelFavoriteListVisible by mutableStateOf(SP.iptvChannelFavoriteListVisible)
@@ -154,13 +160,44 @@ class LeanbackSettingsViewModel : ViewModel() {
             SP.iptvChannelFavoriteListVisible = value
         }
 
-    private var _iptvChannelFavoriteList by mutableStateOf(SP.iptvChannelFavoriteList)
-    var iptvChannelFavoriteList: Set<String>
-        get() = _iptvChannelFavoriteList
+    private var _iptvChannelFavoritesOnlyMode by mutableStateOf(SP.iptvChannelFavoritesOnlyMode)
+    var iptvChannelFavoritesOnlyMode: Boolean
+        get() = _iptvChannelFavoritesOnlyMode
         set(value) {
-            _iptvChannelFavoriteList = value
-            SP.iptvChannelFavoriteList = value
+            _iptvChannelFavoritesOnlyMode = value
+            SP.iptvChannelFavoritesOnlyMode = value
         }
+
+    private var _iptvChannelFavoriteEntries by mutableStateOf(SP.loadFavoriteEntries())
+    var iptvChannelFavoriteEntries: List<IptvFavoriteEntry>
+        get() = _iptvChannelFavoriteEntries
+        set(value) {
+            _iptvChannelFavoriteEntries = value
+            SP.saveFavoriteEntries(value)
+            if (value.isEmpty()) iptvChannelFavoritesOnlyMode = false
+        }
+
+    fun isIptvFavorite(iptv: Iptv): Boolean {
+        val key = IptvFavoriteEntry.stableKeyFrom(iptv.urlList, iptv.channelName)
+        return iptvChannelFavoriteEntries.any { it.stableKey() == key }
+    }
+
+    /** 与列表中某频道同一稳定键时移除，否则按当前订阅头快照新增 */
+    fun toggleIptvFavorite(iptv: Iptv) {
+        val key = IptvFavoriteEntry.stableKeyFrom(iptv.urlList, iptv.channelName)
+        val cur = iptvChannelFavoriteEntries
+        if (cur.any { it.stableKey() == key }) {
+            iptvChannelFavoriteEntries = cur.filter { it.stableKey() != key }
+        } else {
+            iptvChannelFavoriteEntries =
+                cur + IptvFavoriteEntry.fromIptv(iptv, SP.currentIptvSourceRequestHeadersSnapshot())
+        }
+    }
+
+    /** 从 SP 重新加载（例如 [com.vesaa.mytv.data.IptvFavoriteMigration] 写入后） */
+    fun reloadFavoriteEntriesFromDisk() {
+        _iptvChannelFavoriteEntries = SP.loadFavoriteEntries()
+    }
 
     private var _epgEnable by mutableStateOf(SP.epgEnable)
     var epgEnable: Boolean

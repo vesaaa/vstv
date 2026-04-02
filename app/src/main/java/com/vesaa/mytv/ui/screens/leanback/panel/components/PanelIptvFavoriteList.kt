@@ -33,6 +33,7 @@ import com.vesaa.mytv.data.entities.Epg
 import com.vesaa.mytv.data.entities.Epg.Companion.currentProgrammes
 import com.vesaa.mytv.data.entities.EpgList
 import com.vesaa.mytv.data.entities.Iptv
+import com.vesaa.mytv.data.entities.IptvFavoriteEntry
 import com.vesaa.mytv.data.entities.IptvList
 import com.vesaa.mytv.ui.rememberLeanbackChildPadding
 import com.vesaa.mytv.ui.theme.LeanbackTheme
@@ -43,20 +44,25 @@ import kotlin.math.min
 @Composable
 fun LeanbackPanelIptvFavoriteList(
     modifier: Modifier = Modifier,
-    iptvListProvider: () -> IptvList = { IptvList() },
+    favoriteEntriesProvider: () -> List<IptvFavoriteEntry> = { emptyList() },
     epgListProvider: () -> EpgList = { EpgList() },
     currentIptvProvider: () -> Iptv = { Iptv() },
     showProgrammeProgressProvider: () -> Boolean = { false },
-    onIptvSelected: (Iptv) -> Unit = {},
+    onIptvSelected: (Iptv, String?) -> Unit = { _, _ -> },
     onIptvFavoriteToggle: (Iptv) -> Unit = {},
     onClose: () -> Unit = {},
+    /** 无收藏时是否触发 [onClose]（只看收藏模式下应 false，避免退回空的频道列表） */
+    closeWhenEmpty: Boolean = true,
+    /** 首行按上是否关闭列表（只看收藏模式下应 false） */
+    allowCloseByUpOnFirstRow: Boolean = true,
     onUserAction: () -> Unit = {},
 ) {
     val favoriteListSize = 6
     val childPadding = rememberLeanbackChildPadding()
 
     var key by remember { mutableIntStateOf(0) }
-    val iptvList = remember(key) { iptvListProvider() }
+    val entries = remember(key) { favoriteEntriesProvider() }
+    val iptvList = remember(key) { IptvList(entries.map { it.toIptv() }) }
     val listState = rememberTvLazyGridState(max(0, iptvList.indexOf(currentIptvProvider())))
 
     var hasFocused by rememberSaveable { mutableStateOf(false) }
@@ -64,8 +70,8 @@ fun LeanbackPanelIptvFavoriteList(
     var showEpgDialog by remember { mutableStateOf(false) }
     var currentShowEpgIptv by remember { mutableStateOf(Iptv()) }
 
-    LaunchedEffect(iptvList) {
-        if (iptvList.isEmpty()) onClose()
+    LaunchedEffect(iptvList, closeWhenEmpty) {
+        if (closeWhenEmpty && iptvList.isEmpty()) onClose()
     }
 
     LaunchedEffect(listState) {
@@ -82,7 +88,7 @@ fun LeanbackPanelIptvFavoriteList(
                 Text(text = "收藏")
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
-                    text = "${iptvList.size}个频道",
+                    text = "${entries.size}个频道",
                     color = LocalContentColor.current.copy(alpha = 0.8f),
                 )
             }
@@ -100,11 +106,14 @@ fun LeanbackPanelIptvFavoriteList(
                 bottom = childPadding.bottom,
             ),
         ) {
-            itemsIndexed(iptvList) { index, iptv ->
+            itemsIndexed(entries) { index, entry ->
+                val iptv = entry.toIptv()
                 LeanbackPanelIptvItem(
-                    modifier = if (index < favoriteListSize) {
+                    modifier = if (index < favoriteListSize && allowCloseByUpOnFirstRow) {
                         Modifier.handleLeanbackKeyEvents(onUp = { onClose() })
-                    } else Modifier,
+                    } else {
+                        Modifier
+                    },
                     iptvProvider = { iptv },
                     currentProgrammeProvider = {
                         epgListProvider().firstOrNull { epg -> epg.matchesIptv(iptv) }
@@ -112,7 +121,10 @@ fun LeanbackPanelIptvFavoriteList(
                             ?.primaryProgramme()
                     },
                     showProgrammeProgressProvider = { showProgrammeProgressProvider() },
-                    onIptvSelected = { onIptvSelected(iptv) },
+                    onIptvSelected = {
+                        val h = entry.playbackRequestHeaders.trim().takeIf { it.isNotEmpty() }
+                        onIptvSelected(iptv, h)
+                    },
                     onIptvFavoriteToggle = {
                         key++
                         onIptvFavoriteToggle(iptv)
@@ -165,7 +177,11 @@ fun LeanbackPanelIptvFavoriteList(
 private fun LeanbackPanelIptvFavoriteListPreview() {
     LeanbackTheme {
         LeanbackPanelIptvFavoriteList(
-            iptvListProvider = { IptvList.EXAMPLE },
+            favoriteEntriesProvider = {
+                listOf(
+                    IptvFavoriteEntry.fromIptv(Iptv.EXAMPLE, "User-Agent: test"),
+                )
+            },
         )
     }
 }

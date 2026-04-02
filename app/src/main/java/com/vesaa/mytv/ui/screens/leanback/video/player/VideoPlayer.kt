@@ -26,7 +26,10 @@ abstract class LeanbackVideoPlayer(
         clearAllListeners()
     }
 
-    abstract fun prepare(url: String)
+    /**
+     * @param streamRequestHeaders 非 null 且非空白时，按多行请求头解析 UA 与其它头用于拉流；null 或空白则用 [SP.playbackHttpUserAgent] 等全局行为。
+     */
+    abstract fun prepare(url: String, streamRequestHeaders: String? = null)
 
     abstract fun play()
 

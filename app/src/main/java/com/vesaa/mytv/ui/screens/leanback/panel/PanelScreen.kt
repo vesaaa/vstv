@@ -24,13 +24,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import kotlinx.collections.immutable.ImmutableList
-import kotlinx.collections.immutable.persistentListOf
 import com.vesaa.mytv.data.entities.EpgList
 import com.vesaa.mytv.data.entities.EpgList.Companion.currentProgrammes
 import com.vesaa.mytv.data.entities.Iptv
+import com.vesaa.mytv.data.entities.IptvFavoriteEntry
 import com.vesaa.mytv.data.entities.IptvGroupList
-import com.vesaa.mytv.data.entities.IptvGroupList.Companion.iptvIdx
 import com.vesaa.mytv.data.entities.IptvGroupList.Companion.iptvList
 import com.vesaa.mytv.data.entities.IptvList
 import com.vesaa.mytv.data.utils.Constants
@@ -49,16 +47,20 @@ import com.vesaa.mytv.ui.theme.LeanbackTheme
 fun LeanbackPanelScreen(
     modifier: Modifier = Modifier,
     iptvGroupListProvider: () -> IptvGroupList = { IptvGroupList() },
+    /** 面板顶部频道号与数字选台顺序（全列表或仅收藏） */
+    channelOrderListProvider: () -> List<Iptv> = { emptyList() },
     epgListProvider: () -> EpgList = { EpgList() },
     currentIptvProvider: () -> Iptv = { Iptv() },
     currentIptvUrlIdxProvider: () -> Int = { 0 },
     videoPlayerMetadataProvider: () -> LeanbackVideoPlayer.Metadata = { LeanbackVideoPlayer.Metadata() },
     showProgrammeProgressProvider: () -> Boolean = { false },
     iptvFavoriteEnableProvider: () -> Boolean = { true },
-    iptvFavoriteListProvider: () -> ImmutableList<String> = { persistentListOf() },
+    iptvFavoriteEntriesProvider: () -> List<IptvFavoriteEntry> = { emptyList() },
     iptvFavoriteListVisibleProvider: () -> Boolean = { false },
     onIptvFavoriteListVisibleChange: (Boolean) -> Unit = {},
-    onIptvSelected: (Iptv) -> Unit = {},
+    /** 只看收藏：底部仅展示收藏列表且不可退回空分组 */
+    iptvFavoritesOnlyModeProvider: () -> Boolean = { false },
+    onIptvSelected: (Iptv, String?) -> Unit = { _, _ -> },
     onIptvFavoriteToggle: (Iptv) -> Unit = {},
     onClose: () -> Unit = {},
     autoCloseState: PanelAutoCloseState = rememberPanelAutoCloseState(
@@ -78,8 +80,10 @@ fun LeanbackPanelScreen(
     ) {
         LeanbackPanelScreenTopRight(
             channelNoProvider = {
-                (iptvGroupListProvider().iptvIdx(currentIptvProvider()) + 1).toString()
-                    .padStart(2, '0')
+                val order = channelOrderListProvider()
+                val cur = currentIptvProvider()
+                val idx = order.indexOfFirst { it == cur }
+                if (idx >= 0) (idx + 1).toString().padStart(2, '0') else "--"
             }
         )
 
@@ -91,9 +95,10 @@ fun LeanbackPanelScreen(
             videoPlayerMetadataProvider = videoPlayerMetadataProvider,
             showProgrammeProgressProvider = showProgrammeProgressProvider,
             iptvFavoriteEnableProvider = iptvFavoriteEnableProvider,
-            iptvFavoriteListProvider = iptvFavoriteListProvider,
+            iptvFavoriteEntriesProvider = iptvFavoriteEntriesProvider,
             iptvFavoriteListVisibleProvider = iptvFavoriteListVisibleProvider,
             onIptvFavoriteListVisibleChange = onIptvFavoriteListVisibleChange,
+            iptvFavoritesOnlyModeProvider = iptvFavoritesOnlyModeProvider,
             onIptvSelected = onIptvSelected,
             onIptvFavoriteToggle = onIptvFavoriteToggle,
             onUserAction = { autoCloseState.active() },
@@ -143,10 +148,11 @@ private fun LeanbackPanelScreenBottom(
     videoPlayerMetadataProvider: () -> LeanbackVideoPlayer.Metadata = { LeanbackVideoPlayer.Metadata() },
     showProgrammeProgressProvider: () -> Boolean = { false },
     iptvFavoriteEnableProvider: () -> Boolean = { true },
-    iptvFavoriteListProvider: () -> ImmutableList<String> = { persistentListOf() },
+    iptvFavoriteEntriesProvider: () -> List<IptvFavoriteEntry> = { emptyList() },
     iptvFavoriteListVisibleProvider: () -> Boolean = { false },
     onIptvFavoriteListVisibleChange: (Boolean) -> Unit = {},
-    onIptvSelected: (Iptv) -> Unit = {},
+    iptvFavoritesOnlyModeProvider: () -> Boolean = { false },
+    onIptvSelected: (Iptv, String?) -> Unit = { _, _ -> },
     onIptvFavoriteToggle: (Iptv) -> Unit = {},
     onUserAction: () -> Unit = {},
 ) {
@@ -178,9 +184,10 @@ private fun LeanbackPanelScreenBottom(
                 currentIptvProvider = currentIptvProvider,
                 showProgrammeProgressProvider = showProgrammeProgressProvider,
                 iptvFavoriteEnableProvider = iptvFavoriteEnableProvider,
-                iptvFavoriteListProvider = iptvFavoriteListProvider,
+                iptvFavoriteEntriesProvider = iptvFavoriteEntriesProvider,
                 iptvFavoriteListVisibleProvider = iptvFavoriteListVisibleProvider,
                 onIptvFavoriteListVisibleChange = onIptvFavoriteListVisibleChange,
+                iptvFavoritesOnlyModeProvider = iptvFavoritesOnlyModeProvider,
                 onIptvSelected = onIptvSelected,
                 onIptvFavoriteToggle = onIptvFavoriteToggle,
                 onUserAction = onUserAction,
@@ -197,23 +204,39 @@ fun LeanbackPanelScreenBottomIptvList(
     currentIptvProvider: () -> Iptv = { Iptv() },
     showProgrammeProgressProvider: () -> Boolean = { false },
     iptvFavoriteEnableProvider: () -> Boolean = { true },
-    iptvFavoriteListProvider: () -> ImmutableList<String> = { persistentListOf() },
+    iptvFavoriteEntriesProvider: () -> List<IptvFavoriteEntry> = { emptyList() },
     iptvFavoriteListVisibleProvider: () -> Boolean = { false },
     onIptvFavoriteListVisibleChange: (Boolean) -> Unit = {},
-    onIptvSelected: (Iptv) -> Unit = {},
+    iptvFavoritesOnlyModeProvider: () -> Boolean = { false },
+    onIptvSelected: (Iptv, String?) -> Unit = { _, _ -> },
     onIptvFavoriteToggle: (Iptv) -> Unit = {},
     onUserAction: () -> Unit = {},
 ) {
     val iptvFavoriteEnable = iptvFavoriteEnableProvider()
+    val favoritesOnlyMode = iptvFavoritesOnlyModeProvider() && iptvFavoriteEnable
     var favoriteListVisible by remember { mutableStateOf(iptvFavoriteListVisibleProvider()) }
+    val parentFavoriteListVisible = iptvFavoriteListVisibleProvider()
+    LaunchedEffect(parentFavoriteListVisible) {
+        favoriteListVisible = parentFavoriteListVisible
+    }
 
     Box(modifier = modifier.height(150.dp)) {
-        if (favoriteListVisible)
+        if (favoritesOnlyMode)
             LeanbackPanelIptvFavoriteList(
-                iptvListProvider = {
-                    IptvList(iptvGroupListProvider().iptvList
-                        .filter { iptvFavoriteListProvider().contains(it.channelName) })
-                },
+                favoriteEntriesProvider = iptvFavoriteEntriesProvider,
+                epgListProvider = epgListProvider,
+                currentIptvProvider = currentIptvProvider,
+                showProgrammeProgressProvider = showProgrammeProgressProvider,
+                onIptvSelected = onIptvSelected,
+                onIptvFavoriteToggle = onIptvFavoriteToggle,
+                onClose = {},
+                closeWhenEmpty = false,
+                allowCloseByUpOnFirstRow = false,
+                onUserAction = onUserAction,
+            )
+        else if (favoriteListVisible)
+            LeanbackPanelIptvFavoriteList(
+                favoriteEntriesProvider = iptvFavoriteEntriesProvider,
                 epgListProvider = epgListProvider,
                 currentIptvProvider = currentIptvProvider,
                 showProgrammeProgressProvider = showProgrammeProgressProvider,
@@ -231,15 +254,12 @@ fun LeanbackPanelScreenBottomIptvList(
                 epgListProvider = epgListProvider,
                 currentIptvProvider = currentIptvProvider,
                 showProgrammeProgressProvider = showProgrammeProgressProvider,
-                onIptvSelected = onIptvSelected,
+                onIptvSelected = { iptv -> onIptvSelected(iptv, null) },
                 onIptvFavoriteToggle = onIptvFavoriteToggle,
                 onToFavorite = {
                     if (!iptvFavoriteEnable) return@LeanbackPanelIptvGroupList
 
-                    val favoriteList = iptvGroupListProvider().iptvList
-                        .filter { iptvFavoriteListProvider().contains(it.channelName) }
-
-                    if (favoriteList.isNotEmpty()) {
+                    if (iptvFavoriteEntriesProvider().isNotEmpty()) {
                         favoriteListVisible = true
                         onIptvFavoriteListVisibleChange(true)
                     } else {
@@ -281,6 +301,7 @@ private fun LeanbackPanelScreenPreview() {
             currentIptvProvider = { Iptv.EXAMPLE },
             currentIptvUrlIdxProvider = { 0 },
             iptvGroupListProvider = { IptvGroupList.EXAMPLE },
+            channelOrderListProvider = { IptvGroupList.EXAMPLE.iptvList },
         )
     }
 }

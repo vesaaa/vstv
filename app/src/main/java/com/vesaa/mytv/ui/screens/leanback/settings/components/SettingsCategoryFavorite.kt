@@ -11,6 +11,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.tv.foundation.lazy.list.TvLazyColumn
 import com.vesaa.mytv.ui.screens.leanback.settings.LeanbackSettingsViewModel
+import com.vesaa.mytv.ui.screens.leanback.toast.LeanbackToastState
 import com.vesaa.mytv.ui.theme.LeanbackTheme
 
 @Composable
@@ -35,9 +36,29 @@ fun LeanbackSettingsCategoryFavorite(
                 onSelected = {
                     settingsViewModel.iptvChannelFavoriteEnable =
                         !settingsViewModel.iptvChannelFavoriteEnable
-                    if (!settingsViewModel.iptvChannelFavoriteEnable) {
-                        settingsViewModel.iptvChannelFavoriteListVisible = false
+                },
+            )
+        }
+
+        item {
+            LeanbackSettingsCategoryListItem(
+                headlineContent = "只看收藏",
+                supportingContent = "启用后，只会显示收藏夹和里面的频道，其他频道都会隐藏",
+                trailingContent = {
+                    Switch(
+                        checked = settingsViewModel.iptvChannelFavoritesOnlyMode,
+                        onCheckedChange = null,
+                        enabled = settingsViewModel.iptvChannelFavoriteEnable,
+                    )
+                },
+                onSelected = {
+                    if (!settingsViewModel.iptvChannelFavoriteEnable) return@LeanbackSettingsCategoryListItem
+                    val next = !settingsViewModel.iptvChannelFavoritesOnlyMode
+                    if (next && settingsViewModel.iptvChannelFavoriteEntries.isEmpty()) {
+                        LeanbackToastState.I.showToast("请先收藏至少一个频道")
+                        return@LeanbackSettingsCategoryListItem
                     }
+                    settingsViewModel.iptvChannelFavoritesOnlyMode = next
                 },
             )
         }
@@ -45,8 +66,8 @@ fun LeanbackSettingsCategoryFavorite(
         item {
             LeanbackSettingsCategoryListItem(
                 headlineContent = "当前已收藏",
-                supportingContent = "包括不存在直播源中的频道",
-                trailingContent = "${settingsViewModel.iptvChannelFavoriteList.size}个频道",
+                supportingContent = "已保存播放地址与请求头，删除订阅后仍可播放",
+                trailingContent = "${settingsViewModel.iptvChannelFavoriteEntries.size}个频道",
             )
         }
 
@@ -55,7 +76,7 @@ fun LeanbackSettingsCategoryFavorite(
                 headlineContent = "清空全部收藏",
                 supportingContent = "短按立即清空全部收藏",
                 onSelected = {
-                    settingsViewModel.iptvChannelFavoriteList = emptySet()
+                    settingsViewModel.iptvChannelFavoriteEntries = emptyList()
                     settingsViewModel.iptvChannelFavoriteListVisible = false
                 }
             )
@@ -67,11 +88,6 @@ fun LeanbackSettingsCategoryFavorite(
 @Composable
 private fun LeanbackSettingsCategoryFavoritePreview() {
     LeanbackTheme {
-        LeanbackSettingsCategoryFavorite(
-            modifier = Modifier.padding(20.dp),
-            settingsViewModel = LeanbackSettingsViewModel().apply {
-                iptvChannelFavoriteList = setOf("CCTV-1", "CCTV-2", "CCTV-3")
-            }
-        )
+        LeanbackSettingsCategoryFavorite(modifier = Modifier.padding(20.dp))
     }
 }
