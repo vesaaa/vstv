@@ -4,6 +4,10 @@
 
 > **说明**：本文件仍由人编写条目，**不会由机器人自动撰写内容**。推送 **Release 标签**（`v*.*.*`）时，GitHub Actions 会检查 `CHANGELOG.md` 中是否已有对应章节 **`## [x.y.z]`**（`x.y.z` 为标签去掉 `v`/`tv-` 及预发布后缀 `-…` 的核心版本）；**未写入则 Release 构建失败**，避免发版记录遗漏。若需对照历史，见 [GitHub Releases](https://github.com/vesaaa/vstv/releases)。
 
+## [1.0.7] - 2026-03-30
+
+- **构建**：修复 `PanelChannelNoSelectScreen` 中 `rememberLeanbackPanelChannelNoSelectState` 的尾随 lambda 被误解析为 `initialChannelNo: String` 导致的 Kotlin 编译失败（显式命名 `onChannelNoConfirm` 与 `State` 类型）。
+
 ## [1.0.6] - 2026-03-30
 
 - **收藏**：持久化频道 URL 与拉流请求头快照，删除订阅后仍可播放；旧版仅名称的收藏迁移为完整条目（JSON）。
