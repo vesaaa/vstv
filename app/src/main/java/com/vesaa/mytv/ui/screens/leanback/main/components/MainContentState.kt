@@ -79,6 +79,20 @@ class LeanbackMainContentState(
             _quickPanelSubPanel = value
         }
 
+    /** 与界面 [channelOrderList] 一致；非空时上下键在此列表上换台（仅收藏模式或从收藏点播时必需） */
+    private var channelNavigationOrder by mutableStateOf<List<Iptv>>(emptyList())
+
+    /** 换台目标若需独立拉流头（仅收藏模式下的条目），由此解析；否则 null */
+    private var navStreamHeadersForIptv: (Iptv) -> String? = { null }
+
+    fun syncChannelNavigation(
+        order: List<Iptv>,
+        streamHeadersForIptv: (Iptv) -> String?,
+    ) {
+        channelNavigationOrder = order
+        navStreamHeadersForIptv = streamHeadersForIptv
+    }
+
     init {
         changeCurrentIptv(iptvGroupList.iptvList.getOrElse(SP.iptvLastIptvIdx) {
             iptvGroupList.firstOrNull()?.iptvList?.firstOrNull() ?: Iptv()
@@ -121,6 +135,15 @@ class LeanbackMainContentState(
     }
 
     private fun getPrevIptv(): Iptv {
+        val order = channelNavigationOrder
+        if (order.isNotEmpty()) {
+            val i = order.indexOfFirst { it == _currentIptv }
+            return if (i >= 0) {
+                order.getOrElse(i - 1) { order.last() }
+            } else {
+                order.last()
+            }
+        }
         val currentIndex = iptvGroupList.iptvIdx(_currentIptv)
         return iptvGroupList.iptvList.getOrElse(currentIndex - 1) {
             iptvGroupList.lastOrNull()?.iptvList?.lastOrNull() ?: Iptv()
@@ -128,6 +151,15 @@ class LeanbackMainContentState(
     }
 
     private fun getNextIptv(): Iptv {
+        val order = channelNavigationOrder
+        if (order.isNotEmpty()) {
+            val i = order.indexOfFirst { it == _currentIptv }
+            return if (i >= 0) {
+                order.getOrElse(i + 1) { order.first() }
+            } else {
+                order.first()
+            }
+        }
         val currentIndex = iptvGroupList.iptvIdx(_currentIptv)
         return iptvGroupList.iptvList.getOrElse(currentIndex + 1) {
             iptvGroupList.firstOrNull()?.iptvList?.firstOrNull() ?: Iptv()
@@ -186,11 +218,13 @@ class LeanbackMainContentState(
     }
 
     fun changeCurrentIptvToPrev() {
-        changeCurrentIptv(getPrevIptv())
+        val iptv = getPrevIptv()
+        changeCurrentIptv(iptv, streamRequestHeaders = navStreamHeadersForIptv(iptv))
     }
 
     fun changeCurrentIptvToNext() {
-        changeCurrentIptv(getNextIptv())
+        val iptv = getNextIptv()
+        changeCurrentIptv(iptv, streamRequestHeaders = navStreamHeadersForIptv(iptv))
     }
 }
 

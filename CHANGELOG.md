@@ -4,6 +4,11 @@
 
 > **说明**：本文件仍由人编写条目，**不会由机器人自动撰写内容**。推送 **Release 标签**（`v*.*.*`）时，GitHub Actions 会检查 `CHANGELOG.md` 中是否已有对应章节 **`## [x.y.z]`**（`x.y.z` 为标签去掉 `v`/`tv-` 及预发布后缀 `-…` 的核心版本）；**未写入则 Release 构建失败**，避免发版记录遗漏。若需对照历史，见 [GitHub Releases](https://github.com/vesaaa/vstv/releases)。
 
+## [1.0.8] - 2026-03-30
+
+- **换台**：上下键换台与界面频道顺序一致（全列表或「只看收藏」下的收藏列表）；修复仅收藏模式下 `iptvGroupList` 为空导致无法换台、以及从收藏点播时偶发与列表索引不一致导致不换台的问题。
+- **播放**：换台到与某收藏条目匹配的频道时，自动套用该条目的拉流请求头快照（多源收藏在未开「只看收藏」时亦生效）。
+
 ## [1.0.7] - 2026-03-30
 
 - **构建**：修复 `PanelChannelNoSelectScreen` 中 `rememberLeanbackPanelChannelNoSelectState` 的尾随 lambda 被误解析为 `initialChannelNo: String` 导致的 Kotlin 编译失败（显式命名 `onChannelNoConfirm` 与 `State` 类型）。

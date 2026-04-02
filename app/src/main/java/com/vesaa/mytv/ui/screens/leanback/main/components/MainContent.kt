@@ -100,6 +100,26 @@ fun LeanbackMainContent(
     }
 
     LaunchedEffect(
+        iptvGroupList,
+        favoritesOnlyUi,
+        settingsViewModel.iptvChannelFavoriteEntries,
+    ) {
+        val order =
+            if (favoritesOnlyUi) settingsViewModel.iptvChannelFavoriteEntries.map { it.toIptv() }
+            else iptvGroupList.iptvList
+        mainContentState.syncChannelNavigation(
+            order = order,
+            streamHeadersForIptv = { iptv ->
+                settingsViewModel.iptvChannelFavoriteEntries
+                    .find { e ->
+                        IptvFavoriteEntry.stableKeyFrom(iptv.urlList, iptv.channelName) == e.stableKey()
+                    }
+                    ?.playbackRequestHeaders?.trim()?.takeIf { it.isNotEmpty() }
+            },
+        )
+    }
+
+    LaunchedEffect(
         settingsViewModel.iptvChannelFavoriteEnable,
         settingsViewModel.iptvChannelFavoritesOnlyMode,
         settingsViewModel.iptvChannelFavoriteEntries,
