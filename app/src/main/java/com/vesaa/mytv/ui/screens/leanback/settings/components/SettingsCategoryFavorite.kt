@@ -27,6 +27,7 @@ fun LeanbackSettingsCategoryFavorite(
         item {
             LeanbackSettingsCategoryListItem(
                 headlineContent = "收藏启用",
+                supportingContent = "在频道上长按确定键可收藏或取消收藏",
                 trailingContent = {
                     Switch(
                         checked = settingsViewModel.iptvChannelFavoriteEnable,
@@ -43,7 +44,7 @@ fun LeanbackSettingsCategoryFavorite(
         item {
             LeanbackSettingsCategoryListItem(
                 headlineContent = "只看收藏",
-                supportingContent = "启用后，只会显示收藏夹和里面的频道，其他频道都会隐藏",
+                supportingContent = "启用后，只会显示收藏夹和里面的频道，其他频道都会隐藏。适合老人儿童只看选定的几个台",
                 trailingContent = {
                     Switch(
                         checked = settingsViewModel.iptvChannelFavoritesOnlyMode,
