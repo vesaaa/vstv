@@ -46,6 +46,7 @@ import com.vesaa.mytv.data.entities.EpgProgrammeCurrent
 import com.vesaa.mytv.data.entities.Iptv
 import com.vesaa.mytv.data.entities.IptvGroup
 import com.vesaa.mytv.data.entities.IptvList
+import com.vesaa.mytv.ui.components.IptvLogoImage
 import com.vesaa.mytv.ui.theme.LeanbackTheme
 import com.vesaa.mytv.ui.utils.handleLeanbackKeyEvents
 import kotlin.math.max
@@ -210,6 +211,13 @@ private fun LeanbackClassicPanelIptvItem(
                 ),
                 selected = isSelectedProvider(),
                 onClick = { },
+                leadingContent = {
+                    IptvLogoImage(
+                        logoUrl = iptv.logoUrl,
+                        contentDescription = iptv.name,
+                        size = 36.dp,
+                    )
+                },
                 headlineContent = {
                     Text(text = iptv.name, maxLines = 2)
                 },

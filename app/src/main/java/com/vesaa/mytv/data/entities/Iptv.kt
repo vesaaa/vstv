@@ -23,6 +23,11 @@ data class Iptv(
     val tvgId: String = "",
 
     /**
+     * M3U 中 tvg-logo（台标 URL）；空则界面不显示图标
+     */
+    val logoUrl: String = "",
+
+    /**
      * 播放地址
      */
     val urlList: List<String> = emptyList(),

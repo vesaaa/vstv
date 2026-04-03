@@ -21,6 +21,8 @@ class M3uIptvParser : IptvParser {
             val name = line.split(",").last()
             val channelName = Regex("""tvg-name="(.+?)"""").find(line)?.groupValues?.get(1) ?: name
             val tvgId = Regex("""tvg-id="(.+?)"""").find(line)?.groupValues?.get(1)?.trim().orEmpty()
+            val logoUrl =
+                Regex("""tvg-logo="(.+?)"""").find(line)?.groupValues?.get(1)?.trim().orEmpty()
             val groupName = Regex("""group-title="(.+?)"""").find(line)?.groupValues?.get(1) ?: "其他"
 
             iptvList.add(
@@ -28,6 +30,7 @@ class M3uIptvParser : IptvParser {
                     name = name.trim(),
                     channelName = channelName.trim(),
                     tvgId = tvgId,
+                    logoUrl = logoUrl,
                     groupName = groupName.trim(),
                     url = lines[index + 1].trim(),
                 )
@@ -38,11 +41,13 @@ class M3uIptvParser : IptvParser {
             IptvGroup(
                 name = groupEntry.key,
                 iptvList = IptvList(groupEntry.value.groupBy { it.name }.map { nameEntry ->
+                    val rows = nameEntry.value
                     Iptv(
                         name = nameEntry.key,
-                        channelName = nameEntry.value.first().channelName,
-                        tvgId = nameEntry.value.first().tvgId,
-                        urlList = nameEntry.value.map { it.url },
+                        channelName = rows.first().channelName,
+                        tvgId = rows.first().tvgId,
+                        logoUrl = rows.firstOrNull { it.logoUrl.isNotBlank() }?.logoUrl?.trim().orEmpty(),
+                        urlList = rows.map { it.url },
                     )
                 })
             )
@@ -53,6 +58,7 @@ class M3uIptvParser : IptvParser {
         val name: String,
         val channelName: String,
         val tvgId: String,
+        val logoUrl: String,
         val groupName: String,
         val url: String,
     )

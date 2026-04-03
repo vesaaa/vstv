@@ -27,7 +27,7 @@ fun semverToVersionCode(versionName: String): Int {
         parts[2].coerceIn(0, 999)
 }
 
-    val defaultVersionName = "1.0.9"
+    val defaultVersionName = "1.0.10"
 val resolvedVersionName = releaseVersion.ifEmpty { defaultVersionName }
 val resolvedVersionCode =
     (project.findProperty("versionCode") as String?)?.toIntOrNull()
@@ -166,6 +166,9 @@ dependencies {
 
     // 二维码
     implementation(libs.qrose)
+
+    // 频道台标（网络图片缓存）
+    implementation(libs.coil.compose)
 
     implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.aar"))))
 

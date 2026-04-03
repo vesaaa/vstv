@@ -5,6 +5,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -33,6 +35,7 @@ import com.vesaa.mytv.data.entities.EpgProgramme
 import com.vesaa.mytv.data.entities.EpgProgramme.Companion.isLive
 import com.vesaa.mytv.data.entities.EpgProgramme.Companion.progress
 import com.vesaa.mytv.data.entities.Iptv
+import com.vesaa.mytv.ui.components.IptvLogoImage
 import com.vesaa.mytv.ui.theme.LeanbackTheme
 import com.vesaa.mytv.ui.utils.handleLeanbackKeyEvents
 
@@ -102,28 +105,41 @@ fun LeanbackPanelIptvItem(
                 else MaterialTheme.colorScheme.background.copy(alpha = 0.8f),
             ),
         ) {
-            Column(
+            Row(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 8.dp, vertical = 4.dp),
-                verticalArrangement = Arrangement.SpaceAround,
+                    .padding(horizontal = 6.dp, vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(
-                    text = iptv.name,
-                    style = MaterialTheme.typography.bodyLarge,
-                    maxLines = 1,
-                    color = if (isFocused) MaterialTheme.colorScheme.background
-                    else MaterialTheme.colorScheme.onBackground,
-                )
+                if (iptv.logoUrl.isNotBlank()) {
+                    IptvLogoImage(
+                        logoUrl = iptv.logoUrl,
+                        contentDescription = iptv.name,
+                        size = 28.dp,
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                }
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.SpaceAround,
+                ) {
+                    Text(
+                        text = iptv.name,
+                        style = MaterialTheme.typography.bodyLarge,
+                        maxLines = 1,
+                        color = if (isFocused) MaterialTheme.colorScheme.background
+                        else MaterialTheme.colorScheme.onBackground,
+                    )
 
-                Text(
-                    text = currentProgramme?.title ?: "",
-                    style = MaterialTheme.typography.labelSmall,
-                    maxLines = 1,
-                    modifier = Modifier.alpha(0.8f),
-                    color = if (isFocused) MaterialTheme.colorScheme.background
-                    else MaterialTheme.colorScheme.onBackground,
-                )
+                    Text(
+                        text = currentProgramme?.title ?: "",
+                        style = MaterialTheme.typography.labelSmall,
+                        maxLines = 1,
+                        modifier = Modifier.alpha(0.8f),
+                        color = if (isFocused) MaterialTheme.colorScheme.background
+                        else MaterialTheme.colorScheme.onBackground,
+                    )
+                }
             }
 
             // 节目进度条

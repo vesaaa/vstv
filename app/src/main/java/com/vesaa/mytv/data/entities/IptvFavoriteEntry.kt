@@ -11,6 +11,8 @@ data class IptvFavoriteEntry(
     val name: String = "",
     val channelName: String = "",
     val tvgId: String = "",
+    /** 与 [Iptv.logoUrl] 一致，收藏时快照 */
+    val logoUrl: String = "",
     val urlList: List<String> = emptyList(),
     /** 多行 `Name: Value`，与 [com.vesaa.mytv.ui.utils.SP.iptvSourceRequestHeaders] 格式一致 */
     val playbackRequestHeaders: String = "",
@@ -22,6 +24,7 @@ data class IptvFavoriteEntry(
         name = name,
         channelName = channelName,
         tvgId = tvgId,
+        logoUrl = logoUrl,
         urlList = urlList,
     )
 
@@ -34,6 +37,7 @@ data class IptvFavoriteEntry(
                 name = iptv.name,
                 channelName = iptv.channelName,
                 tvgId = iptv.tvgId,
+                logoUrl = iptv.logoUrl.trim(),
                 urlList = iptv.urlList,
                 playbackRequestHeaders = playbackRequestHeaders.trim(),
             )
