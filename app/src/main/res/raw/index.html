@@ -130,11 +130,6 @@
             return resp
         }
 
-        function displayEmptyText(v) {
-            const t = (v == null ? '' : String(v)).trim()
-            return t || '（空）'
-        }
-
         /** 仅填 UA 取值时的默认（与 normalizeIptvRequestHeadersInput 一致） */
         const DEFAULT_IPTV_UA_VALUE = 'okHttp/Mod-1.5.0.0'
 
@@ -169,45 +164,10 @@
             return 'User-Agent: ' + t
         }
 
-        /** 与 Kotlin parseHttpHeaderLines：首个 ':' 分隔、忽略 # 注释行 */
-        function userAgentFromHeaderLines(s) {
-            if (!s || !String(s).trim()) return ''
-            for (const raw of String(s).split(/\r?\n/)) {
-                const line = raw.trim()
-                if (!line || line.startsWith('#')) continue
-                const idx = line.indexOf(':')
-                if (idx <= 0) continue
-                const name = line.slice(0, idx).trim().toLowerCase()
-                if (name === 'user-agent') return line.slice(idx + 1).trim()
-            }
-            return ''
-        }
-
         createApp({
             setup() {
                 const isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
                 const settings = ref()
-
-                function summaryIptvUrl(s) {
-                    return displayEmptyText(s && s.iptvSourceUrl)
-                }
-
-                function summaryUserAgent(s) {
-                    if (!s) return '（空）'
-                    const canon = iptvFormDisplayToHeaders(s.iptvSourceRequestHeaders)
-                    return displayEmptyText(userAgentFromHeaderLines(canon))
-                }
-
-                function summaryEpgUrl(s) {
-                    return displayEmptyText(s && s.epgXmlUrl)
-                }
-
-                function summaryEpgUserAgent(s) {
-                    if (!s) return '（空）'
-                    const h = s.epgXmlRequestHeaders
-                    const canon = iptvFormDisplayToHeaders(h == null ? '' : h)
-                    return displayEmptyText(userAgentFromHeaderLines(canon))
-                }
 
                 async function postPartial(partial) {
                     vant.showLoadingToast({ message: '加载中...', forbidClick: true, duration: 0 })
@@ -299,10 +259,6 @@
                 return {
                     isDark,
                     settings,
-                    summaryIptvUrl,
-                    summaryUserAgent,
-                    summaryEpgUrl,
-                    summaryEpgUserAgent,
                     pushIptv,
                     pushEpg,
                     setIptvUaPreset,
