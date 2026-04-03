@@ -6,6 +6,7 @@
 #
 # 标签：v*.*.*、v*.*.*-*（本仓库 1.0.x 等正式线；推送标签前须已写入 CHANGELOG 对应章节，见下方校验步骤）
 # Secrets（正式发版请配置齐）：KEYSTORE_BASE64、KEYSTORE_PASSWORD、KEY_ALIAS、KEY_PASSWORD
+# 专有源码解密（须与 proprietary-pipeline 仓库一致）：PROPRIETARY_AGE_PASSPHRASE
 # 未配置 KEYSTORE_BASE64 时仍用 Debug 签名（各次 CI 证书可能不同，无法稳定覆盖安装）。
 # PKCS12 密钥库需在 Assemble 步骤传入 KEYSTORE_TYPE（与 app/build.gradle.kts 一致）。
 
@@ -31,6 +32,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Restore proprietary (decrypt bundle)
+        env:
+          PROPRIETARY_AGE_PASSPHRASE: ${{ secrets.PROPRIETARY_AGE_PASSPHRASE }}
+        run: bash scripts/ci-restore-proprietary.sh
 
       - name: Setup JDK
         uses: actions/setup-java@v4

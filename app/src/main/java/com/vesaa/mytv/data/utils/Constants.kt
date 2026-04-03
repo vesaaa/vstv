@@ -51,12 +51,6 @@ object Constants {
      */
     const val EPG_BACKGROUND_REFRESH_INTERVAL_HOURS = 12L
 
-    /**
-     * Git最新版本信息
-     */
-    const val GIT_RELEASE_LATEST_URL =
-        "https://api.github.com/repos/vesaaa/vstv/releases/latest"
-
     /** 历史占位：曾拼接至 APK 下载 URL；默认更新已改为 GitHub 直链，避免第三方镜像失效。 */
     const val GITHUB_PROXY = "https://mirror.ghproxy.com/"
 

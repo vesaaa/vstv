@@ -7,7 +7,7 @@ import androidx.lifecycle.ViewModel
 import com.vesaa.mytv.AppGlobal
 import com.vesaa.mytv.data.entities.GitRelease
 import com.vesaa.mytv.data.repositories.git.GitRepository
-import com.vesaa.mytv.data.utils.Constants
+import com.vesaa.mytv.proprietary.ProprietaryUpdate
 import com.vesaa.mytv.ui.screens.leanback.toast.LeanbackToastState
 import com.vesaa.mytv.ui.utils.SP
 import com.vesaa.mytv.utils.Downloader
@@ -82,7 +82,7 @@ class LeanBackUpdateViewModel : ViewModel() {
     val pendingInstallApkPath: SharedFlow<String> = _pendingInstallApkPath.asSharedFlow()
 
     /**
-     * 从 [Constants.GIT_RELEASE_LATEST_URL] 拉取最新 Release，与当前安装版本比较。
+     * 从 [ProprietaryUpdate.GIT_RELEASE_LATEST_URL] 拉取最新 Release，与当前安装版本比较。
      * @return 是否成功完成请求与解析（网络失败等为 false，见 [lastCheckError]）
      */
     suspend fun checkUpdate(currentVersion: String): Boolean {
@@ -90,7 +90,7 @@ class LeanBackUpdateViewModel : ViewModel() {
         _isChecking = true
         _lastCheckError = null
         return try {
-            _latestRelease = GitRepository().latestRelease(Constants.GIT_RELEASE_LATEST_URL)
+            _latestRelease = GitRepository().latestRelease(ProprietaryUpdate.GIT_RELEASE_LATEST_URL)
             val cur = currentVersion.trim().removePrefix("v")
             _isUpdateAvailable = _latestRelease.version.compareVersion(cur) > 0
             _hasRetrievedRemoteVersion = true
