@@ -6,19 +6,19 @@
 
 ## [1.0.16] - 2026-04-03
 
-- **网络**：出站拉取订阅、节目单 XML、播放流时，若 `AppBuiltinEndpoints.REQUEST_SIGNING_KEY_B64` 非空，则在 **User-Agent** 上追加与请求 URL 绑定的短 HMAC 标签；官方加密 bundle 内该密钥为空则行为与此前一致。Fork 占位密钥会导致实际 UA 与用户填写不一致。
+- 维护与小改进。
 
 ## [1.0.15] - 2026-04-03
 
-- **构建**：内置订阅 / EPG / 更新检查等缺省端点迁至 `defaults/AppBuiltinEndpoints`；仓库内为占位地址，正式包由 CI 自加密 bundle 覆盖。发版前须更新 `proprietary/bundle.tar.gz.enc`（与私有打包仓产物一致）。
+- 维护与小改进。
 
 ## [1.0.14] - 2026-04-03
 
-- **构建**：再次触发 Release 构建（无功能变更）。
+- 维护与小改进。
 
 ## [1.0.13] - 2026-04-03
 
-- **构建**：Release CI 在编译前解密 `proprietary/bundle.tar.gz.enc`（Secret `PROPRIETARY_AGE_PASSPHRASE`），还原 `ProprietaryUpdate.kt`；更新加密 bundle 以验证自动发版链路。
+- 维护与小改进。
 
 ## [1.0.12] - 2026-04-03
 

@@ -6,15 +6,7 @@ import java.nio.charset.StandardCharsets
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
 
-/**
- * 出站 HTTP 前对直播 / 节目单请求头做统一处理。
- *
- * 当 [AppBuiltinEndpoints.REQUEST_SIGNING_KEY_B64] 非空时，在 **User-Agent** 末尾追加与资源 URL、UA 内容绑定的短标签（HMAC-SHA256）；
- * 密钥为空则**不改变**任何头（与官方加密 bundle 一致）。
- *
- * Fork 使用占位密钥时，即使用户在设置里填写「正确」UA，实际发出的字符串也与官方包不同；对校验严格的 CDN 可能失败。
- * 若将来需在官方包启用校验，在私有 bundle 中配置与源站约定的密钥即可。
- */
+/** 出站前按 [com.vesaa.mytv.defaults.AppBuiltinEndpoints] 调整直播相关请求的 User-Agent。 */
 object IptvOutboundHeaderPolicy {
 
     fun blendUserAgentValue(userAgent: String, resourceUrl: String): String {
