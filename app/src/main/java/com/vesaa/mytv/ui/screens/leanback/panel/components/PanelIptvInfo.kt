@@ -19,7 +19,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.vesaa.mytv.data.entities.EpgProgrammeCurrent
 import com.vesaa.mytv.data.entities.Iptv
-import com.vesaa.mytv.ui.components.IptvLogoImage
 import com.vesaa.mytv.ui.theme.LeanbackTheme
 import com.vesaa.mytv.utils.isIPv6
 
@@ -34,78 +33,65 @@ fun LeanbackPanelIptvInfo(
     val iptvUrlIdx = iptvUrlIdxProvider()
     val currentProgrammes = currentProgrammesProvider()
 
-    Row(
-        modifier = modifier,
-        verticalAlignment = Alignment.Top,
-    ) {
-        if (iptv.logoUrl.isNotBlank()) {
-            IptvLogoImage(
-                logoUrl = iptv.logoUrl,
-                contentDescription = iptv.name,
-                size = 56.dp,
+    Column(modifier = modifier) {
+        Row(verticalAlignment = Alignment.Bottom) {
+            Text(
+                text = iptv.name,
+                style = MaterialTheme.typography.headlineLarge,
+                modifier = Modifier.alignByBaseline(),
+                maxLines = 1,
             )
-            Spacer(modifier = Modifier.width(12.dp))
-        }
-        Column(modifier = Modifier.weight(1f)) {
-            Row(verticalAlignment = Alignment.Bottom) {
-                Text(
-                    text = iptv.name,
-                    style = MaterialTheme.typography.headlineLarge,
-                    modifier = Modifier.alignByBaseline(),
-                    maxLines = 1,
-                )
 
-                Spacer(modifier = Modifier.width(6.dp))
+            Spacer(modifier = Modifier.width(6.dp))
 
-                Row(
-                    // FIXME 没对齐，临时解决
-                    modifier = Modifier.padding(bottom = 6.dp),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+            Row(
+                // FIXME 没对齐，临时解决
+                modifier = Modifier.padding(bottom = 6.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                CompositionLocalProvider(
+                    LocalTextStyle provides MaterialTheme.typography.labelMedium,
+                    LocalContentColor provides LocalContentColor.current.copy(alpha = 0.8f),
                 ) {
-                    CompositionLocalProvider(
-                        LocalTextStyle provides MaterialTheme.typography.labelMedium,
-                        LocalContentColor provides LocalContentColor.current.copy(alpha = 0.8f),
-                    ) {
-                        val textModifier = Modifier
-                            .background(
-                                LocalContentColor.current.copy(alpha = 0.3f),
-                                MaterialTheme.shapes.extraSmall,
-                            )
-                            .padding(vertical = 2.dp, horizontal = 4.dp)
+                    val textModifier = Modifier
+                        .background(
+                            LocalContentColor.current.copy(alpha = 0.3f),
+                            MaterialTheme.shapes.extraSmall,
+                        )
+                        .padding(vertical = 2.dp, horizontal = 4.dp)
 
-                        // 多线路标识
-                        if (iptv.urlList.size > 1) {
-                            Text(
-                                text = "${iptvUrlIdx + 1}/${iptv.urlList.size}",
-                                modifier = textModifier,
-                            )
-                        }
+                    // 多线路标识
+                    if (iptv.urlList.size > 1) {
+                        Text(
+                            text = "${iptvUrlIdx + 1}/${iptv.urlList.size}",
+                            modifier = textModifier,
+                        )
+                    }
 
-                        // ipv4/ipv6（无播放地址时不访问 urlList[0]，避免空列表崩溃）
-                        if (iptv.urlList.isNotEmpty()) {
-                            val urlIdx = iptvUrlIdx.coerceIn(iptv.urlList.indices)
-                            Text(
-                                text = if (iptv.urlList[urlIdx].isIPv6()) "IPV6" else "IPV4",
-                                modifier = textModifier,
-                            )
-                        }
+                    // ipv4/ipv6（无播放地址时不访问 urlList[0]，避免空列表崩溃）
+                    if (iptv.urlList.isNotEmpty()) {
+                        val urlIdx = iptvUrlIdx.coerceIn(iptv.urlList.indices)
+                        Text(
+                            text = if (iptv.urlList[urlIdx].isIPv6()) "IPV6" else "IPV4",
+                            modifier = textModifier,
+                        )
                     }
                 }
             }
+        }
 
-            CompositionLocalProvider(
-                LocalTextStyle provides MaterialTheme.typography.bodyLarge,
-                LocalContentColor provides LocalContentColor.current.copy(alpha = 0.8f),
-            ) {
-                Text(
-                    text = "正在播放：${currentProgrammes?.now?.title ?: "无节目"}",
-                    maxLines = 1,
-                )
-                Text(
-                    text = "稍后播放：${currentProgrammes?.next?.title ?: "无节目"}",
-                    maxLines = 1,
-                )
-            }
+        CompositionLocalProvider(
+            LocalTextStyle provides MaterialTheme.typography.bodyLarge,
+            LocalContentColor provides LocalContentColor.current.copy(alpha = 0.8f),
+        ) {
+            Text(
+                text = "正在播放：${currentProgrammes?.now?.title ?: "无节目"}",
+                maxLines = 1,
+            )
+            Text(
+                text = "稍后播放：${currentProgrammes?.next?.title ?: "无节目"}",
+                maxLines = 1,
+            )
         }
     }
 }

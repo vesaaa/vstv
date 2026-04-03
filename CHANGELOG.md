@@ -4,6 +4,12 @@
 
 > **说明**：本文件仍由人编写条目，**不会由机器人自动撰写内容**。推送 **Release 标签**（`v*.*.*`）时，GitHub Actions 会检查 `CHANGELOG.md` 中是否已有对应章节 **`## [x.y.z]`**（`x.y.z` 为标签去掉 `v`/`tv-` 及预发布后缀 `-…` 的核心版本）；**未写入则 Release 构建失败**，避免发版记录遗漏。若需对照历史，见 [GitHub Releases](https://github.com/vesaaa/vstv/releases)。
 
+## [1.0.12] - 2026-04-03
+
+- **界面**：播放信息条（`LeanbackPanelIptvInfo`）不再显示台标，仅保留频道列表中的台标。
+- **台标**：`MyTVApplication` 配置全局 **Coil** `ImageLoader`（`coil_logo_disk` 磁盘缓存约 50MB、内存约 20%）；`respectCacheHeaders(false)` 减轻 CDN 短 `max-age` 导致的不必要重复下载。
+- **台标**：加载中不再使用灰色占位；关闭 crossfade，缓存命中时更快显示。
+
 ## [1.0.11] - 2026-04-03
 
 - **节目单**：使用 **WorkManager** 在后台按间隔（默认 12 小时）拉取 EPG 并写入本地缓存；需开启 EPG、配置有效地址且联网；与设置中「未到 X 点不刷新」一致；失败时指数退避重试。应用启动、开机广播及修改 EPG 地址后会重新登记任务。
