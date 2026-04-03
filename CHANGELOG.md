@@ -4,6 +4,10 @@
 
 > **说明**：本文件仍由人编写条目，**不会由机器人自动撰写内容**。推送 **Release 标签**（`v*.*.*`）时，GitHub Actions 会检查 `CHANGELOG.md` 中是否已有对应章节 **`## [x.y.z]`**（`x.y.z` 为标签去掉 `v`/`tv-` 及预发布后缀 `-…` 的核心版本）；**未写入则 Release 构建失败**，避免发版记录遗漏。若需对照历史，见 [GitHub Releases](https://github.com/vesaaa/vstv/releases)。
 
+## [1.0.14] - 2026-04-03
+
+- **构建**：再次触发 Release 构建（无功能变更）。
+
 ## [1.0.13] - 2026-04-03
 
 - **构建**：Release CI 在编译前解密 `proprietary/bundle.tar.gz.enc`（Secret `PROPRIETARY_AGE_PASSPHRASE`），还原 `ProprietaryUpdate.kt`；更新加密 bundle 以验证自动发版链路。
