@@ -50,6 +50,26 @@
                                 <span class="text-gray text-12px">User-Agent 或其它请求头</span>
                                 <van-field class="!p-0" placeholder="如 okHttp/Mod-1.5.0.0；多行头请每行 Name: Value"
                                     v-model="settings.iptvSourceRequestHeaders" type="textarea" rows="3"></van-field>
+                                <van-space size="small" wrap class="mt-4px">
+                                    <van-button size="small" type="primary" plain @click="setIptvUaPreset('Mursor')">
+                                        Mursor
+                                    </van-button>
+                                    <van-button size="small" type="primary" plain @click="setIptvUaPreset('APTV')">
+                                        APTV
+                                    </van-button>
+                                    <van-button size="small" type="primary" plain @click="setIptvUaPreset('Browser')">
+                                        通用浏览器
+                                    </van-button>
+                                    <van-button size="small" type="primary" plain @click="setIptvUaPreset('CTC')">
+                                        电信天翼
+                                    </van-button>
+                                    <van-button size="small" type="primary" plain @click="setIptvUaPreset('Unicom')">
+                                        联通沃TV
+                                    </van-button>
+                                    <van-button size="small" type="primary" plain @click="setIptvUaPreset('CMCC')">
+                                        移动咪咕
+                                    </van-button>
+                                </van-space>
                                 <van-button @click="pushIptv()" block type="primary" class="mt-8px">推送（地址与请求头一起生效）</van-button>
                             </van-space>
                         </template>
@@ -104,6 +124,16 @@
 
         /** 仅填 UA 取值时的默认（与 normalizeIptvRequestHeadersInput 一致） */
         const DEFAULT_IPTV_UA_VALUE = 'okHttp/Mod-1.5.0.0'
+
+        /** IPTV UA 预设 */
+        const IPTV_UA_PRESETS = {
+            Mursor: 'okHttp/Mod-1.5.0.0',
+            APTV: 'aptv',
+            Browser: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+            CTC: 'IPTV/1.0 (Linux; U; Android 9.0; STB) CTC/2.0',
+            Unicom: 'BestvVideo/3.0 (Linux; Android 9; Unicom-STB) UC/2.0',
+            CMCC: 'Mozilla/5.0 (Linux; Android 9; MIBOX-MI) AppleWebKit/537.36 (KHTML, like Gecko) MBB/1.0 Safari/537.36',
+        }
 
         /** 存储格式 → 表单展示（单行且仅为 User-Agent 时去掉前缀） */
         function iptvHeadersToFormDisplay(h) {
@@ -242,6 +272,13 @@
                     })
                 }
 
+                function setIptvUaPreset(key) {
+                    if (!settings.value) return
+                    const v = IPTV_UA_PRESETS[key]
+                    if (!v) return
+                    settings.value.iptvSourceRequestHeaders = v
+                }
+
                 onMounted(async () => {
                     await refreshSettings()
                 })
@@ -255,6 +292,7 @@
                     summaryEpgUserAgent,
                     pushIptv,
                     pushEpg,
+                    setIptvUaPreset,
                 }
             }
         })
