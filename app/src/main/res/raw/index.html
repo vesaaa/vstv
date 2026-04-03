@@ -13,6 +13,18 @@
             color: #f5f5f5;
             background-color: black;
         }
+
+        .section-title {
+            margin: 16px 20px 8px;
+            font-size: 18px;
+            font-weight: 700;
+            line-height: 1.3;
+            color: #111827;
+        }
+
+        .van-theme-dark .section-title {
+            color: #f9fafb;
+        }
     </style>
 </head>
 
@@ -26,32 +38,29 @@
                     <div class="ml-16px text-gray text-14px">{{ settings.appRepo }}</div>
                 </div>
 
-                <van-cell-group inset title="通知">
+                <div class="section-title">通知</div>
+                <van-cell-group inset>
                     <van-cell title="修改前请关闭电视端「设置」页，避免与网页同时写入"></van-cell>
                     <van-cell title="部分项修改后需重启应用生效"></van-cell>
                     <van-cell title="本页仅负责推送；订阅源列表、默认项、删除等请在 APP 设置中操作"></van-cell>
                 </van-cell-group>
 
-                <van-cell-group inset title="直播源">
+                <div class="section-title">直播源</div>
+                <van-cell-group inset>
                     <van-cell title="地址 + User-Agent 一组推送">
                         <template #label>
                             <van-space class="w-full" direction="vertical" size="small">
                                 <span>与 APP 一致：<strong>直播源地址</strong>与请求头中的 <strong>User-Agent</strong> 绑定保存；<strong>拉取订阅与播放频道流</strong>均使用该 UA（未配置 UA 时播放端为内置默认）。下方两项只需点<strong>一次</strong>「推送」。</span>
-                                <div class="text-13px" style="word-break:break-all;">
-                                    <div class="text-gray text-12px">当前表单（与下方输入同步）</div>
-                                    <div class="mt-4px"><span class="text-gray">地址：</span>{{ summaryIptvUrl(settings) }}</div>
-                                    <div class="mt-4px"><span class="text-gray">User-Agent：</span>{{ summaryUserAgent(settings) }}</div>
-                                </div>
-                                <span class="text-gray text-12px"><strong>User-Agent 只需填取值</strong>（不要写 <code>User-Agent:</code>）；服务端会自动补成 <code>User-Agent: 取值</code>。若需多行其它请求头，仍用每行 <code>Name: Value</code>、英文冒号分隔。</span>
+                                <span class="text-gray text-12px"><strong>User-Agent 只需填取值</strong>（不要写 <code>User-Agent:</code>）；服务端会自动补成 <code>User-Agent: 取值</code>。</span>
                                 <span class="text-gray text-12px">示例取值：<code>okHttp/Mod-1.5.0.0</code></span>
                                 <span class="text-gray text-13px font-bold">直播源地址</span>
                                 <div style="border: 1px solid #d4d4d8; border-radius: 6px; overflow: hidden;">
                                     <van-field class="!p-0" placeholder="粘贴订阅 URL"
                                         v-model="settings.iptvSourceUrl" type="textarea" rows="2"></van-field>
                                 </div>
-                                <span class="text-gray text-13px font-bold">User-Agent 或其它请求头</span>
+                                <span class="text-gray text-13px font-bold">User-Agent</span>
                                 <div style="border: 1px solid #d4d4d8; border-radius: 6px; overflow: hidden;">
-                                    <van-field class="!p-0" placeholder="如 okHttp/Mod-1.5.0.0；多行头请每行 Name: Value"
+                                    <van-field class="!p-0" placeholder="如 okHttp/Mod-1.5.0.0"
                                         v-model="settings.iptvSourceRequestHeaders" type="textarea" rows="3"></van-field>
                                 </div>
                                 <van-space size="small" wrap class="mt-4px">
@@ -80,26 +89,22 @@
                     </van-cell>
                 </van-cell-group>
 
-                <van-cell-group inset title="节目单（可选）">
+                <div class="section-title">节目单</div>
+                <van-cell-group inset>
                     <van-cell title="地址 + User-Agent 一组推送">
                         <template #label>
                             <van-space class="w-full" direction="vertical" size="small">
                                 <span>与直播源一致：<strong>节目单地址</strong>与请求头中的 <strong>User-Agent</strong> 绑定保存；<strong>拉取节目单 XML</strong>时使用该头（未配置 UA 时不附加）。默认节目单也可在电视端「设置 → 节目单」切换。</span>
-                                <div class="text-13px" style="word-break:break-all;">
-                                    <div class="text-gray text-12px">当前表单（与下方输入同步）</div>
-                                    <div class="mt-4px"><span class="text-gray">地址：</span>{{ summaryEpgUrl(settings) }}</div>
-                                    <div class="mt-4px"><span class="text-gray">User-Agent：</span>{{ summaryEpgUserAgent(settings) }}</div>
-                                </div>
-                                <span class="text-gray text-12px"><strong>User-Agent 非必填</strong>；只填取值时不要写 <code>User-Agent:</code> 前缀。多行其它请求头仍用每行 <code>Name: Value</code>。</span>
+                                <span class="text-gray text-12px"><strong>User-Agent 非必填</strong>；只填取值时不要写 <code>User-Agent:</code> 前缀。</span>
                                 <span class="text-gray text-12px">支持 xml、xml.gz</span>
                                 <span class="text-gray text-13px font-bold">节目单地址</span>
                                 <div style="border: 1px solid #d4d4d8; border-radius: 6px; overflow: hidden;">
                                     <van-field class="!p-0" placeholder="粘贴节目单 URL"
                                         v-model="settings.epgXmlUrl" type="textarea" rows="2"></van-field>
                                 </div>
-                                <span class="text-gray text-13px font-bold">User-Agent 或其它请求头（可留空）</span>
+                                <span class="text-gray text-13px font-bold">User-Agent（可留空）</span>
                                 <div style="border: 1px solid #d4d4d8; border-radius: 6px; overflow: hidden;">
-                                    <van-field class="!p-0" placeholder="如 okHttp/Mod-1.5.0.0；多行头请每行 Name: Value"
+                                    <van-field class="!p-0" placeholder="如 okHttp/Mod-1.5.0.0"
                                         v-model="settings.epgXmlRequestHeaders" type="textarea" rows="3"></van-field>
                                 </div>
                                 <van-button @click="pushEpg()" block type="primary" class="mt-8px">推送（地址与请求头一起生效）</van-button>
