@@ -131,9 +131,6 @@ fun LeanbackSettingsCategoryApp(
                             return@launch
                         }
                         if (updateViewModel.isUpdateAvailable) {
-                            LeanbackToastState.I.showToast(
-                                "发现新版本：v${updateViewModel.latestRelease.version}",
-                            )
                             updateViewModel.showDialog = true
                         } else {
                             LeanbackToastState.I.showToast("当前已是最新版本")

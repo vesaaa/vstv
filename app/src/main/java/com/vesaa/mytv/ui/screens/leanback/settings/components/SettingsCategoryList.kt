@@ -26,6 +26,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -129,6 +130,7 @@ private fun SettingsMenuTile(
     val interactionSource = remember { MutableInteractionSource() }
     val isFocused by interactionSource.collectIsFocusedAsState()
 
+    val tileOnWhite = Color(0xFF1C1B1F)
     Surface(
         modifier = modifier
             .focusRequester(tileFocusRequester)
@@ -140,13 +142,17 @@ private fun SettingsMenuTile(
             ),
         shape = MaterialTheme.shapes.large,
         color = when {
-            isFocused -> MaterialTheme.colorScheme.primaryContainer
+            isFocused -> Color.White
             else -> MaterialTheme.colorScheme.surfaceVariant
+        },
+        contentColor = when {
+            isFocused -> tileOnWhite
+            else -> MaterialTheme.colorScheme.onSurfaceVariant
         },
         border = BorderStroke(
             width = if (isFocused) 3.dp else 1.dp,
             color = when {
-                isFocused -> MaterialTheme.colorScheme.primary
+                isFocused -> tileOnWhite
                 else -> MaterialTheme.colorScheme.outlineVariant
             },
         ),
