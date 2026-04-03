@@ -40,9 +40,18 @@
 
                 <div class="section-title">通知</div>
                 <van-cell-group inset>
-                    <van-cell title="修改前请关闭电视端「设置」页，避免与网页同时写入"></van-cell>
-                    <van-cell title="部分项修改后需重启应用生效"></van-cell>
-                    <van-cell title="本页仅负责推送；订阅源列表、默认项、删除等请在 APP 设置中操作"></van-cell>
+                    <van-cell>
+                        <template #title>
+                            <div class="text-13px font-bold">使用提示</div>
+                        </template>
+                        <template #label>
+                            <van-space direction="vertical" size="2" class="w-full">
+                                <span class="text-12px">修改前请关闭电视端「设置」页，避免与网页同时写入。</span>
+                                <span class="text-12px">部分项修改后需重启应用生效。</span>
+                                <span class="text-12px">本页仅负责推送；订阅源列表、默认项、删除等请在 APP 设置中操作。</span>
+                            </van-space>
+                        </template>
+                    </van-cell>
                 </van-cell-group>
 
                 <div class="section-title">直播源</div>
