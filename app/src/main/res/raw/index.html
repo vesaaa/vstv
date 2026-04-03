@@ -44,12 +44,16 @@
                                 </div>
                                 <span class="text-gray text-12px"><strong>User-Agent 只需填取值</strong>（不要写 <code>User-Agent:</code>）；服务端会自动补成 <code>User-Agent: 取值</code>。若需多行其它请求头，仍用每行 <code>Name: Value</code>、英文冒号分隔。</span>
                                 <span class="text-gray text-12px">示例取值：<code>okHttp/Mod-1.5.0.0</code></span>
-                                <span class="text-gray text-12px">直播源地址</span>
-                                <van-field class="!p-0" placeholder="粘贴订阅 URL"
-                                    v-model="settings.iptvSourceUrl" type="textarea" rows="2"></van-field>
-                                <span class="text-gray text-12px">User-Agent 或其它请求头</span>
-                                <van-field class="!p-0" placeholder="如 okHttp/Mod-1.5.0.0；多行头请每行 Name: Value"
-                                    v-model="settings.iptvSourceRequestHeaders" type="textarea" rows="3"></van-field>
+                                <span class="text-gray text-13px font-bold">直播源地址</span>
+                                <div style="border: 1px solid #d4d4d8; border-radius: 6px; overflow: hidden;">
+                                    <van-field class="!p-0" placeholder="粘贴订阅 URL"
+                                        v-model="settings.iptvSourceUrl" type="textarea" rows="2"></van-field>
+                                </div>
+                                <span class="text-gray text-13px font-bold">User-Agent 或其它请求头</span>
+                                <div style="border: 1px solid #d4d4d8; border-radius: 6px; overflow: hidden;">
+                                    <van-field class="!p-0" placeholder="如 okHttp/Mod-1.5.0.0；多行头请每行 Name: Value"
+                                        v-model="settings.iptvSourceRequestHeaders" type="textarea" rows="3"></van-field>
+                                </div>
                                 <van-space size="small" wrap class="mt-4px">
                                     <van-button size="small" type="primary" plain @click="setIptvUaPreset('Mursor')">
                                         Mursor
@@ -88,12 +92,16 @@
                                 </div>
                                 <span class="text-gray text-12px"><strong>User-Agent 非必填</strong>；只填取值时不要写 <code>User-Agent:</code> 前缀。多行其它请求头仍用每行 <code>Name: Value</code>。</span>
                                 <span class="text-gray text-12px">支持 xml、xml.gz</span>
-                                <span class="text-gray text-12px">节目单地址</span>
-                                <van-field class="!p-0" placeholder="粘贴节目单 URL"
-                                    v-model="settings.epgXmlUrl" type="textarea" rows="2"></van-field>
-                                <span class="text-gray text-12px">User-Agent 或其它请求头（可留空）</span>
-                                <van-field class="!p-0" placeholder="如 okHttp/Mod-1.5.0.0；多行头请每行 Name: Value"
-                                    v-model="settings.epgXmlRequestHeaders" type="textarea" rows="3"></van-field>
+                                <span class="text-gray text-13px font-bold">节目单地址</span>
+                                <div style="border: 1px solid #d4d4d8; border-radius: 6px; overflow: hidden;">
+                                    <van-field class="!p-0" placeholder="粘贴节目单 URL"
+                                        v-model="settings.epgXmlUrl" type="textarea" rows="2"></van-field>
+                                </div>
+                                <span class="text-gray text-13px font-bold">User-Agent 或其它请求头（可留空）</span>
+                                <div style="border: 1px solid #d4d4d8; border-radius: 6px; overflow: hidden;">
+                                    <van-field class="!p-0" placeholder="如 okHttp/Mod-1.5.0.0；多行头请每行 Name: Value"
+                                        v-model="settings.epgXmlRequestHeaders" type="textarea" rows="3"></van-field>
+                                </div>
                                 <van-button @click="pushEpg()" block type="primary" class="mt-8px">推送（地址与请求头一起生效）</van-button>
                             </van-space>
                         </template>
