@@ -3,7 +3,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ENC="${ROOT}/proprietary/bundle.tar.gz.enc"
-DEST="${ROOT}/app/src/main/java/com/vesaa/mytv/proprietary"
+DEST="${ROOT}/app/src/main/java/com/vesaa/mytv/defaults"
 
 if [[ ! -f "$ENC" ]]; then
   echo "::error::缺少加密包: $ENC"
@@ -11,7 +11,7 @@ if [[ ! -f "$ENC" ]]; then
 fi
 
 if [[ -z "${PROPRIETARY_AGE_PASSPHRASE:-}" ]]; then
-  echo "::error::未配置 Secret PROPRIETARY_AGE_PASSPHRASE，无法解密专有源码"
+  echo "::error::未配置构建用口令 Secret，无法还原内置端点"
   exit 1
 fi
 
@@ -29,9 +29,12 @@ rc=$?
 set -e
 
 if [[ "$rc" -ne 0 ]]; then
-  echo "::notice::bundle 中未解压出 *.kt（例如仍为仅含 .go 的旧包），将使用仓库内已提交的 proprietary 源码"
+  echo "::notice::bundle 中未解压出 *.kt，将使用仓库内的默认 [defaults/AppBuiltinEndpoints.kt]"
 else
-  echo "已从 bundle 还原 *.kt 至 $DEST"
+  echo "已自 bundle 还原 *.kt 至 $DEST"
 fi
+
+# 旧版 bundle 可能含 proprietary 包下的文件名，避免与 defaults 目录结构冲突
+rm -f "$DEST/ProprietaryUpdate.kt" "$DEST"/*.go 2>/dev/null || true
 
 ls -la "$DEST"
