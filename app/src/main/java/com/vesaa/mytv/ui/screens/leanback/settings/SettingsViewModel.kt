@@ -7,7 +7,9 @@ import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
+import com.vesaa.mytv.AppGlobal
 import com.vesaa.mytv.data.entities.Iptv
+import com.vesaa.mytv.data.work.EpgRefreshWorkScheduler
 import com.vesaa.mytv.data.entities.IptvFavoriteEntry
 import com.vesaa.mytv.ui.utils.SP
 
@@ -205,6 +207,7 @@ class LeanbackSettingsViewModel : ViewModel() {
         set(value) {
             _epgEnable = value
             SP.epgEnable = value
+            EpgRefreshWorkScheduler.schedule(AppGlobal.applicationContext)
         }
 
     private var _epgXmlUrl by mutableStateOf(SP.epgXmlUrl)
@@ -213,6 +216,7 @@ class LeanbackSettingsViewModel : ViewModel() {
         set(value) {
             _epgXmlUrl = value
             SP.epgXmlUrl = value
+            EpgRefreshWorkScheduler.schedule(AppGlobal.applicationContext)
         }
 
     private var _epgXmlRequestHeaders by mutableStateOf(SP.epgXmlRequestHeaders)

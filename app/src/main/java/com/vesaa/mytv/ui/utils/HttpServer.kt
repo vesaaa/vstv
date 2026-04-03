@@ -17,6 +17,7 @@ import com.vesaa.mytv.AppGlobal
 import com.vesaa.mytv.R
 import com.vesaa.mytv.data.repositories.epg.EpgRepository
 import com.vesaa.mytv.data.repositories.iptv.IptvRepository
+import com.vesaa.mytv.data.work.EpgRefreshWorkScheduler
 import com.vesaa.mytv.data.utils.Constants
 import com.vesaa.mytv.utils.LanIpResolver
 import com.vesaa.mytv.utils.Loggable
@@ -210,6 +211,10 @@ object HttpServer : Loggable() {
             body.has("epgXmlUrl") || body.has("epgXmlRequestHeaders")
         ) {
             WebPushConfigNotifier.notifyConfigMayHaveChanged()
+        }
+
+        if (body.has("epgXmlUrl") || body.has("epgXmlRequestHeaders")) {
+            EpgRefreshWorkScheduler.schedule(AppGlobal.applicationContext)
         }
 
         wrapResponse(response).send("success")

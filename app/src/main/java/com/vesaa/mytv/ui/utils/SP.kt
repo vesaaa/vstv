@@ -26,7 +26,8 @@ object SP {
         context.getSharedPreferences(SP_NAME, SP_MODE)
 
     fun init(context: Context) {
-        sp = getInstance(context)
+        if (::sp.isInitialized) return
+        sp = getInstance(context.applicationContext)
         seedDefaultIptvSourceIfNeeded()
     }
 

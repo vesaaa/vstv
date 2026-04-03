@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import com.vesaa.mytv.activities.LeanbackActivity
+import com.vesaa.mytv.data.work.EpgRefreshWorkScheduler
 import com.vesaa.mytv.ui.utils.SP
 
 /**
@@ -13,6 +14,9 @@ import com.vesaa.mytv.ui.utils.SP
 class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         if (Intent.ACTION_BOOT_COMPLETED == intent.action) {
+            SP.init(context.applicationContext)
+            EpgRefreshWorkScheduler.schedule(context.applicationContext)
+
             val sp: SharedPreferences = SP.getInstance(context)
             val bootLaunch = sp.getBoolean(SP.KEY.APP_BOOT_LAUNCH.name, false)
 

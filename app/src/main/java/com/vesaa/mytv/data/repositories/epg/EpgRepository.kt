@@ -155,6 +155,21 @@ class EpgRepository : FileCacheRepository("epg.json") {
             throw Exception(ex)
         }
     }
+
+    /**
+     * 后台任务用：忽略 [getEpgList] 中「按日历日」的 JSON 缓存判断，直接拉 XML、解析并覆盖写入 [epg.json]。
+     * 是否拉网、钟点限制由调用方（如 [com.vesaa.mytv.data.work.EpgRefreshWorker]）控制。
+     */
+    suspend fun fetchAndPersistEpgCache(
+        xmlUrl: String,
+        iptvChannels: List<Iptv>,
+        requestHeadersText: String,
+    ): EpgList = withContext(Dispatchers.Default) {
+        val xmlString = epgXmlRepository.getEpgXml(xmlUrl, requestHeadersText)
+        val epgList = parseFromXml(xmlString, iptvChannels)
+        setCacheData(Json.encodeToString(epgList.value))
+        epgList
+    }
 }
 
 /**

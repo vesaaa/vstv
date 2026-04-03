@@ -1,8 +1,10 @@
 package com.vesaa.mytv.data.repositories.iptv
 
+import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.Request
+import com.vesaa.mytv.AppGlobal
 import com.vesaa.mytv.data.entities.Iptv
 import com.vesaa.mytv.data.entities.IptvGroup
 import com.vesaa.mytv.data.entities.IptvGroupList
@@ -14,6 +16,7 @@ import com.vesaa.mytv.utils.Logger
 import com.vesaa.mytv.utils.normalizeIptvRequestHeadersInput
 import com.vesaa.mytv.utils.parseHttpHeaderLines
 import com.vesaa.mytv.utils.toOkHttpHeaders
+import com.vesaa.mytv.ui.utils.SP
 
 /**
  * 直播源获取
@@ -95,6 +98,30 @@ class IptvRepository : FileCacheRepository("iptv.txt") {
         } catch (ex: Exception) {
             log.e("获取直播源失败", ex)
             throw Exception(ex)
+        }
+    }
+
+    /**
+     * 仅读本地 [iptv.txt] 缓存并解析，不发起网络（供后台 EPG 任务按当前订阅频道过滤节目单）。
+     * 无缓存或解析失败时返回空分组。
+     */
+    suspend fun loadCachedIptvGroupListOrEmpty(): IptvGroupList {
+        val data = withContext(Dispatchers.IO) {
+            val f = File(AppGlobal.cacheDir, "iptv.txt")
+            if (!f.isFile) return@withContext ""
+            f.readText()
+        }
+        if (data.isBlank()) return IptvGroupList()
+        return withContext(Dispatchers.Default) {
+            val url = SP.iptvSourceUrl.ifBlank { "https://local.invalid/playlist.m3u" }
+            val parser = IptvParser.instances.firstOrNull { it.isSupport(url, data) }
+                ?: return@withContext IptvGroupList()
+            try {
+                parser.parse(data)
+            } catch (e: Exception) {
+                log.e("解析本地 IPTV 缓存失败", e)
+                IptvGroupList()
+            }
         }
     }
 }

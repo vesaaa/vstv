@@ -47,6 +47,11 @@ object Constants {
     const val EPG_REFRESH_TIME_THRESHOLD = 2 // 不到2点不刷新
 
     /**
+     * WorkManager 周期拉取 EPG 的间隔（小时，不小于系统对 PeriodicWork 的最小间隔策略）。
+     */
+    const val EPG_BACKGROUND_REFRESH_INTERVAL_HOURS = 12L
+
+    /**
      * Git最新版本信息
      */
     const val GIT_RELEASE_LATEST_URL =
