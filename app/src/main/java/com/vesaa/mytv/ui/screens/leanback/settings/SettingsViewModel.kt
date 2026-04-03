@@ -46,14 +46,6 @@ class LeanbackSettingsViewModel : ViewModel() {
             SP.debugShowFps = value
         }
 
-    private var _debugShowVideoPlayerMetadata by mutableStateOf(SP.debugShowVideoPlayerMetadata)
-    var debugShowVideoPlayerMetadata: Boolean
-        get() = _debugShowVideoPlayerMetadata
-        set(value) {
-            _debugShowVideoPlayerMetadata = value
-            SP.debugShowVideoPlayerMetadata = value
-        }
-
     private var _debugAppLog by mutableStateOf(SP.debugAppLog)
     var debugAppLog: Boolean
         get() = _debugAppLog

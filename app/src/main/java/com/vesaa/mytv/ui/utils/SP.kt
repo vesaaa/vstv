@@ -60,9 +60,6 @@ object SP {
         /** 显示fps */
         DEBUG_SHOW_FPS,
 
-        /** 播放器详细信息 */
-        DEBUG_SHOW_VIDEO_PLAYER_METADATA,
-
         /** 应用调试日志（网页「日志」页 + HTTP 请求摘要；默认关） */
         DEBUG_APP_LOG,
 
@@ -192,11 +189,6 @@ object SP {
     var debugShowFps: Boolean
         get() = sp.getBoolean(KEY.DEBUG_SHOW_FPS.name, false)
         set(value) = sp.edit().putBoolean(KEY.DEBUG_SHOW_FPS.name, value).apply()
-
-    /** 播放器详细信息 */
-    var debugShowVideoPlayerMetadata: Boolean
-        get() = sp.getBoolean(KEY.DEBUG_SHOW_VIDEO_PLAYER_METADATA.name, false)
-        set(value) = sp.edit().putBoolean(KEY.DEBUG_SHOW_VIDEO_PLAYER_METADATA.name, value).apply()
 
     /** 应用调试日志：写入 Logger 历史并在 OkHttp 中记录请求/响应摘要（响应体仅记录长度） */
     var debugAppLog: Boolean

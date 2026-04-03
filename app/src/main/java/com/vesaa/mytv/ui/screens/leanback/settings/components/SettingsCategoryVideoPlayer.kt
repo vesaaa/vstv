@@ -3,6 +3,7 @@ package com.vesaa.mytv.ui.screens.leanback.settings.components
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Switch
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -44,6 +45,18 @@ fun LeanbackSettingsCategoryVideoPlayer(
             )
         }
 
+        item {
+            LeanbackSettingsCategoryListItem(
+                headlineContent = "显示 FPS",
+                supportingContent = "在屏幕左上角显示 fps 与柱状图",
+                trailingContent = {
+                    Switch(checked = settingsViewModel.debugShowFps, onCheckedChange = null)
+                },
+                onSelected = {
+                    settingsViewModel.debugShowFps = !settingsViewModel.debugShowFps
+                },
+            )
+        }
 
         item {
             val min = 1000 * 5L

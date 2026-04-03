@@ -47,36 +47,6 @@ fun LeanbackSettingsCategoryNetwork(
 
         item {
             LeanbackSettingsCategoryListItem(
-                headlineContent = "显示 FPS",
-                supportingContent = "在屏幕左上角显示 fps 与柱状图",
-                trailingContent = {
-                    Switch(checked = settingsViewModel.debugShowFps, onCheckedChange = null)
-                },
-                onSelected = {
-                    settingsViewModel.debugShowFps = !settingsViewModel.debugShowFps
-                },
-            )
-        }
-
-        item {
-            LeanbackSettingsCategoryListItem(
-                headlineContent = "显示播放器信息",
-                supportingContent = "显示编码、解码器、采样率等",
-                trailingContent = {
-                    Switch(
-                        checked = settingsViewModel.debugShowVideoPlayerMetadata,
-                        onCheckedChange = null,
-                    )
-                },
-                onSelected = {
-                    settingsViewModel.debugShowVideoPlayerMetadata =
-                        !settingsViewModel.debugShowVideoPlayerMetadata
-                },
-            )
-        }
-
-        item {
-            LeanbackSettingsCategoryListItem(
                 headlineContent = "应用调试日志",
                 supportingContent = "开启后记录 HTTP 请求地址、请求头与响应状态及体长（不含正文）；默认关闭",
                 trailingContent = {

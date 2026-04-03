@@ -238,7 +238,7 @@ fun LeanbackMainContent(
     ) {
         LeanbackVideoScreen(
             state = videoPlayerState,
-            showMetadataProvider = { settingsViewModel.debugShowVideoPlayerMetadata },
+            showMetadataProvider = { false },
             modifier = Modifier
                 .focusRequester(focusRequester)
                 .focusable(videoFocusEnabled)
