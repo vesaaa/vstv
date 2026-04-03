@@ -13,6 +13,7 @@ import com.vesaa.mytv.data.repositories.FileCacheRepository
 import com.vesaa.mytv.data.repositories.iptv.parser.IptvParser
 import com.vesaa.mytv.utils.AppOkHttp
 import com.vesaa.mytv.utils.Logger
+import com.vesaa.mytv.utils.IptvOutboundHeaderPolicy
 import com.vesaa.mytv.utils.normalizeIptvRequestHeadersInput
 import com.vesaa.mytv.utils.parseHttpHeaderLines
 import com.vesaa.mytv.utils.toOkHttpHeaders
@@ -32,7 +33,10 @@ class IptvRepository : FileCacheRepository("iptv.txt") {
         log.d("获取远程直播源: $sourceUrl")
 
         val client = AppOkHttp.client()
-        val headerMap = normalizeIptvRequestHeadersInput(requestHeadersText).parseHttpHeaderLines()
+        val norm = normalizeIptvRequestHeadersInput(requestHeadersText)
+        val blended =
+            IptvOutboundHeaderPolicy.applyToNormalizedHeadersText(norm, sourceUrl)
+        val headerMap = blended.parseHttpHeaderLines()
         val reqBuilder = Request.Builder().url(sourceUrl)
         if (headerMap.isNotEmpty()) {
             reqBuilder.headers(headerMap.toOkHttpHeaders())

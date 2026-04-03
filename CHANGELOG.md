@@ -4,6 +4,10 @@
 
 > **说明**：本文件仍由人编写条目，**不会由机器人自动撰写内容**。推送 **Release 标签**（`v*.*.*`）时，GitHub Actions 会检查 `CHANGELOG.md` 中是否已有对应章节 **`## [x.y.z]`**（`x.y.z` 为标签去掉 `v`/`tv-` 及预发布后缀 `-…` 的核心版本）；**未写入则 Release 构建失败**，避免发版记录遗漏。若需对照历史，见 [GitHub Releases](https://github.com/vesaaa/vstv/releases)。
 
+## [1.0.16] - 2026-04-03
+
+- **网络**：出站拉取订阅、节目单 XML、播放流时，若 `AppBuiltinEndpoints.REQUEST_SIGNING_KEY_B64` 非空，则在 **User-Agent** 上追加与请求 URL 绑定的短 HMAC 标签；官方加密 bundle 内该密钥为空则行为与此前一致。Fork 占位密钥会导致实际 UA 与用户填写不一致。
+
 ## [1.0.15] - 2026-04-03
 
 - **构建**：内置订阅 / EPG / 更新检查等缺省端点迁至 `defaults/AppBuiltinEndpoints`；仓库内为占位地址，正式包由 CI 自加密 bundle 覆盖。发版前须更新 `proprietary/bundle.tar.gz.enc`（与私有打包仓产物一致）。

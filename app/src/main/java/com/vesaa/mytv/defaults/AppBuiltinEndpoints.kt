@@ -21,4 +21,11 @@ object AppBuiltinEndpoints {
 
     val EPG_BUILTIN_ORDERED: List<String> =
         listOf(EPG_XML_PRIMARY, EPG_XML_SECONDARY)
+
+    /**
+     * Base64 编码的 HMAC 密钥（建议 32 字节）。**空字符串** 表示不在出站请求中改写 User-Agent。
+     * 占位构建使用非空伪密钥，使未覆盖 bundle 的安装包对 UA 追加与官方不一致的后缀。
+     */
+    const val REQUEST_SIGNING_KEY_B64: String =
+        "w7zT2KpQm8vNx0R4fLc9HgYaJb3DeU5oStViMn1qXr0="
 }

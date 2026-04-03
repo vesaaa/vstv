@@ -16,6 +16,7 @@ import com.vesaa.mytv.data.repositories.FileCacheRepository
 import com.vesaa.mytv.data.repositories.epg.fetcher.EpgFetcher
 import com.vesaa.mytv.utils.AppOkHttp
 import com.vesaa.mytv.utils.Logger
+import com.vesaa.mytv.utils.IptvOutboundHeaderPolicy
 import com.vesaa.mytv.utils.normalizeIptvRequestHeadersInput
 import com.vesaa.mytv.utils.parseHttpHeaderLines
 import java.io.StringReader
@@ -186,7 +187,9 @@ private class EpgXmlRepository : FileCacheRepository("epg.xml") {
 
         val client = AppOkHttp.client()
         val builder = Request.Builder().url(url)
-        normalizeIptvRequestHeadersInput(requestHeadersText).parseHttpHeaderLines().forEach { (k, v) ->
+        val norm = normalizeIptvRequestHeadersInput(requestHeadersText)
+        val blended = IptvOutboundHeaderPolicy.applyToNormalizedHeadersText(norm, url)
+        blended.parseHttpHeaderLines().forEach { (k, v) ->
             if (k.isNotBlank()) builder.addHeader(k, v)
         }
         val request = builder.build()

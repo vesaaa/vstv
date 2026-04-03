@@ -29,6 +29,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import com.vesaa.mytv.ui.utils.SP
+import com.vesaa.mytv.utils.IptvOutboundHeaderPolicy
 import com.vesaa.mytv.utils.normalizeIptvRequestHeadersInput
 import com.vesaa.mytv.utils.parseHttpHeaderLines
 import androidx.media3.common.PlaybackException as Media3PlaybackException
@@ -52,16 +53,22 @@ class LeanbackMedia3VideoPlayer(
     private var activeStreamRequestHeaders: String? = null
 
     @OptIn(UnstableApi::class)
-    private fun httpDataSourceFactory(streamRequestHeaders: String?): DefaultHttpDataSource.Factory =
+    private fun httpDataSourceFactory(uri: Uri, streamRequestHeaders: String?): DefaultHttpDataSource.Factory =
         DefaultHttpDataSource.Factory().apply {
+            val url = uri.toString()
             val trimmed = streamRequestHeaders?.trim().orEmpty()
             if (trimmed.isEmpty()) {
-                setUserAgent(SP.playbackHttpUserAgent())
+                val ua = IptvOutboundHeaderPolicy.blendUserAgentValue(SP.playbackHttpUserAgent(), url)
+                setUserAgent(ua)
             } else {
-                val map = normalizeIptvRequestHeadersInput(trimmed).parseHttpHeaderLines()
+                val norm = normalizeIptvRequestHeadersInput(trimmed)
+                val blended = IptvOutboundHeaderPolicy.applyToNormalizedHeadersText(norm, url)
+                val map = blended.parseHttpHeaderLines()
                 val ua = map.entries.firstOrNull { it.key.equals("User-Agent", ignoreCase = true) }
                     ?.value?.trim()?.takeIf { it.isNotEmpty() }
-                setUserAgent(ua ?: SP.playbackHttpUserAgent())
+                setUserAgent(
+                    ua ?: IptvOutboundHeaderPolicy.blendUserAgentValue(SP.playbackHttpUserAgent(), url),
+                )
                 val rest = map.filterKeys { !it.equals("User-Agent", ignoreCase = true) }
                 if (rest.isNotEmpty()) {
                     setDefaultRequestProperties(rest)
@@ -77,7 +84,7 @@ class LeanbackMedia3VideoPlayer(
     private fun prepare(uri: Uri, contentType: Int? = null, streamRequestHeaders: String? = null) {
         val headers = streamRequestHeaders ?: activeStreamRequestHeaders
         val dataSourceFactory =
-            DefaultDataSource.Factory(context, httpDataSourceFactory(headers))
+            DefaultDataSource.Factory(context, httpDataSourceFactory(uri, headers))
 
         val mediaItem = MediaItem.fromUri(uri)
 
