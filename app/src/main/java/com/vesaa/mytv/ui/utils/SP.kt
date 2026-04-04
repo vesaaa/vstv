@@ -55,9 +55,6 @@ object SP {
         /** 换台反转 */
         IPTV_CHANNEL_CHANGE_FLIP,
 
-        /** 直播源精简 */
-        IPTV_SOURCE_SIMPLIFY,
-
         /** 直播源url */
         IPTV_SOURCE_URL,
 
@@ -196,11 +193,6 @@ object SP {
     var iptvChannelChangeFlip: Boolean
         get() = sp.getBoolean(KEY.IPTV_CHANNEL_CHANGE_FLIP.name, false)
         set(value) = sp.edit().putBoolean(KEY.IPTV_CHANNEL_CHANGE_FLIP.name, value).apply()
-
-    /** 直播源精简 */
-    var iptvSourceSimplify: Boolean
-        get() = sp.getBoolean(KEY.IPTV_SOURCE_SIMPLIFY.name, false)
-        set(value) = sp.edit().putBoolean(KEY.IPTV_SOURCE_SIMPLIFY.name, value).apply()
 
     /** 直播源 url */
     var iptvSourceUrl: String

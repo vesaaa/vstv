@@ -76,7 +76,6 @@ class LeanbackMainViewModel : ViewModel() {
                 iptvRepository.getIptvGroupList(
                     sourceUrl = SP.iptvSourceUrl,
                     cacheTime = SP.iptvSourceCacheTime,
-                    simplify = SP.iptvSourceSimplify,
                     requestHeadersText = headersForFetch,
                 )
             )

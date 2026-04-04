@@ -102,20 +102,6 @@ fun LeanbackSettingsCategoryIptv(
 
         item {
             LeanbackSettingsCategoryListItem(
-                headlineContent = "直播源精简",
-                supportingContent = if (settingsViewModel.iptvSourceSimplify) "显示精简直播源(仅央视、地方卫视)" else "显示完整直播源",
-                trailingContent = {
-                    Switch(checked = settingsViewModel.iptvSourceSimplify, onCheckedChange = null)
-                },
-                onSelected = {
-                    settingsViewModel.iptvSourceSimplify = !settingsViewModel.iptvSourceSimplify
-                    WebPushConfigNotifier.notifyConfigMayHaveChanged()
-                },
-            )
-        }
-
-        item {
-            LeanbackSettingsCategoryListItem(
                 headlineContent = "直播源缓存时间",
                 supportingContent = "短按增加1小时，长按设为0小时",
                 trailingContent = settingsViewModel.iptvSourceCacheTime.humanizeMs(),

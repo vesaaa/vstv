@@ -70,14 +70,6 @@ class LeanbackSettingsViewModel : ViewModel() {
             SP.iptvChannelChangeFlip = value
         }
 
-    private var _iptvSourceSimplify by mutableStateOf(SP.iptvSourceSimplify)
-    var iptvSourceSimplify: Boolean
-        get() = _iptvSourceSimplify
-        set(value) {
-            _iptvSourceSimplify = value
-            SP.iptvSourceSimplify = value
-        }
-
     private var _iptvSourceCacheTime by mutableLongStateOf(SP.iptvSourceCacheTime)
     var iptvSourceCacheTime: Long
         get() = _iptvSourceCacheTime

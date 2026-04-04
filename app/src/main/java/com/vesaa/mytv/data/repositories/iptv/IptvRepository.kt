@@ -5,10 +5,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.Request
 import com.vesaa.mytv.AppGlobal
-import com.vesaa.mytv.data.entities.Iptv
-import com.vesaa.mytv.data.entities.IptvGroup
 import com.vesaa.mytv.data.entities.IptvGroupList
-import com.vesaa.mytv.data.entities.IptvList
 import com.vesaa.mytv.data.repositories.FileCacheRepository
 import com.vesaa.mytv.data.repositories.iptv.parser.IptvParser
 import com.vesaa.mytv.utils.AppOkHttp
@@ -58,19 +55,11 @@ class IptvRepository : FileCacheRepository("iptv.txt") {
     }
 
     /**
-     * 简化规则
-     */
-    private fun simplifyTest(group: IptvGroup, iptv: Iptv): Boolean {
-        return iptv.name.lowercase().startsWith("cctv") || iptv.name.endsWith("卫视")
-    }
-
-    /**
      * 获取直播源分组列表
      */
     suspend fun getIptvGroupList(
         sourceUrl: String,
         cacheTime: Long,
-        simplify: Boolean = false,
         requestHeadersText: String = "",
     ): IptvGroupList {
         if (sourceUrl.isBlank()) {
@@ -86,16 +75,6 @@ class IptvRepository : FileCacheRepository("iptv.txt") {
                 val parser = IptvParser.instances.first { it.isSupport(sourceUrl, sourceData) }
                 var groupList = parser.parse(sourceData)
                 log.i("解析直播源完成：${groupList.size}个分组，${groupList.flatMap { it.iptvList }.size}个频道")
-
-                if (simplify) {
-                    groupList = IptvGroupList(groupList.map { group ->
-                        IptvGroup(
-                            name = group.name, iptvList = IptvList(group.iptvList.filter { iptv ->
-                                simplifyTest(group, iptv)
-                            })
-                        )
-                    }.filter { it.iptvList.isNotEmpty() })
-                }
 
                 groupList
             }
