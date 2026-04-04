@@ -1,6 +1,8 @@
 package com.vesaa.mytv
 
+import android.app.ActivityManager
 import android.app.Application
+import android.content.Context
 import java.io.File
 import coil.Coil
 import coil.ImageLoader
@@ -28,10 +30,18 @@ class MyTVApplication : Application() {
      */
     private fun initCoilImageLoader() {
         val logoDisk = File(cacheDir, "coil_logo_disk").apply { mkdirs() }
+        val am = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+        val maxHeap = Runtime.getRuntime().maxMemory()
+        // 低内存设备 / 小堆盒子：减小台标内存池，降低与播放、列表同时驻留时的 OOM 概率
+        val memFraction = when {
+            am.isLowRamDevice -> 0.08
+            maxHeap < 256L * 1024 * 1024 -> 0.10
+            else -> 0.20
+        }
         val loader = ImageLoader.Builder(this)
             .memoryCache {
                 MemoryCache.Builder(this)
-                    .maxSizePercent(0.2)
+                    .maxSizePercent(memFraction)
                     .build()
             }
             .diskCache {
