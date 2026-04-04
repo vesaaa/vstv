@@ -308,4 +308,12 @@ class LeanbackSettingsViewModel : ViewModel() {
             _videoPlayerAspectRatio = value
             SP.videoPlayerAspectRatio = value
         }
+
+    /** 主界面据此刷新「隐藏分组」过滤（设置里恢复、选台长按隐藏后 bump） */
+    private var _iptvHiddenGroupFilterEpoch by mutableIntStateOf(0)
+    val iptvHiddenGroupFilterEpoch: Int get() = _iptvHiddenGroupFilterEpoch
+
+    fun bumpIptvHiddenGroupFilterEpoch() {
+        _iptvHiddenGroupFilterEpoch++
+    }
 }

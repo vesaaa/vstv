@@ -94,6 +94,9 @@ object SP {
         /** 只看收藏：界面与换台顺序仅含收藏夹内频道（依赖收藏启用） */
         IPTV_CHANNEL_FAVORITES_ONLY_MODE,
 
+        /** 当前直播源下用户长按隐藏的分组名（StringSet） */
+        IPTV_HIDDEN_GROUP_NAMES,
+
         /** ==================== 节目单 ==================== */
         /** 启用节目单 */
         EPG_ENABLE,
@@ -197,7 +200,13 @@ object SP {
     /** 直播源 url */
     var iptvSourceUrl: String
         get() = sp.getString(KEY.IPTV_SOURCE_URL.name, "") ?: ""
-        set(value) = sp.edit().putString(KEY.IPTV_SOURCE_URL.name, value).apply()
+        set(value) {
+            val old = (sp.getString(KEY.IPTV_SOURCE_URL.name, "") ?: "").trim()
+            sp.edit().putString(KEY.IPTV_SOURCE_URL.name, value).apply()
+            if (old != value.trim()) {
+                clearIptvHiddenGroupNames()
+            }
+        }
 
     /** 拉取 m3u/tvbox 订阅时使用的额外请求头（每行「Name: Value」；单行无冒号时视为仅 User-Agent 取值） */
     var iptvSourceRequestHeaders: String
@@ -251,6 +260,7 @@ object SP {
      * 网页/扫码推送直播源后同步落盘（[apply] 异步可能导致用户立刻杀进程时配置未写入）。
      */
     fun commitIptvWebSettings(url: String, requestHeaders: String) {
+        val prevUrl = (sp.getString(KEY.IPTV_SOURCE_URL.name, "") ?: "").trim()
         val rawJson = sp.getString(KEY.IPTV_SOURCE_HEADERS_BY_URL_JSON.name, "{}") ?: "{}"
         val map = runCatching {
             spJson.decodeFromString<Map<String, String>>(rawJson).toMutableMap()
@@ -267,6 +277,9 @@ object SP {
             .putString(KEY.IPTV_SOURCE_REQUEST_HEADERS.name, requestHeaders)
             .putString(KEY.IPTV_SOURCE_HEADERS_BY_URL_JSON.name, spJson.encodeToString(map))
             .commit()
+        if (prevUrl != url.trim()) {
+            clearIptvHiddenGroupNames()
+        }
         val trimmed = url.trim()
         if (trimmed.isNotEmpty()) {
             val hist =
@@ -311,6 +324,18 @@ object SP {
     var iptvChannelFavoritesOnlyMode: Boolean
         get() = sp.getBoolean(KEY.IPTV_CHANNEL_FAVORITES_ONLY_MODE.name, false)
         set(value) = sp.edit().putBoolean(KEY.IPTV_CHANNEL_FAVORITES_ONLY_MODE.name, value).apply()
+
+    /**
+     * 当前直播源下被用户长按隐藏的分组名（与 M3U `group-title` 一致）。
+     * 切换 [iptvSourceUrl] 或网页推送变更 URL 时会 [clearIptvHiddenGroupNames]。
+     */
+    var iptvHiddenGroupNames: Set<String>
+        get() = sp.getStringSet(KEY.IPTV_HIDDEN_GROUP_NAMES.name, emptySet()) ?: emptySet()
+        set(value) = sp.edit().putStringSet(KEY.IPTV_HIDDEN_GROUP_NAMES.name, value).apply()
+
+    fun clearIptvHiddenGroupNames() {
+        sp.edit().remove(KEY.IPTV_HIDDEN_GROUP_NAMES.name).apply()
+    }
 
     /** 直播源频道收藏列表（旧版）；迁移逻辑见 [com.vesaa.mytv.data.IptvFavoriteMigration] */
     var iptvChannelFavoriteList: Set<String>

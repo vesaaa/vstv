@@ -28,10 +28,13 @@ import com.vesaa.mytv.data.entities.Epg
 import com.vesaa.mytv.data.entities.EpgList
 import com.vesaa.mytv.data.entities.EpgList.Companion.currentProgrammes
 import com.vesaa.mytv.data.IptvFavoriteMigration
+import com.vesaa.mytv.data.entities.Iptv
 import com.vesaa.mytv.data.entities.IptvFavoriteEntry
+import com.vesaa.mytv.data.entities.IptvGroup
 import com.vesaa.mytv.data.entities.IptvGroupList
 import com.vesaa.mytv.data.entities.IptvGroupList.Companion.iptvIdx
 import com.vesaa.mytv.data.entities.IptvGroupList.Companion.iptvList
+import com.vesaa.mytv.data.entities.withoutHiddenGroupNames
 import com.vesaa.mytv.ui.screens.leanback.classicpanel.LeanbackClassicPanelScreen
 import com.vesaa.mytv.ui.screens.leanback.components.LeanbackVisible
 import com.vesaa.mytv.ui.screens.leanback.monitor.LeanbackMonitorScreen
@@ -76,10 +79,21 @@ fun LeanbackMainContent(
     )
     val favoritesOnlyUi =
         settingsViewModel.iptvChannelFavoriteEnable && settingsViewModel.iptvChannelFavoritesOnlyMode
-    val uiIptvGroupList = if (favoritesOnlyUi) IptvGroupList() else iptvGroupList
+    val iptvGroupListFiltered = remember(iptvGroupList, settingsViewModel.iptvHiddenGroupFilterEpoch) {
+        iptvGroupList.withoutHiddenGroupNames(SP.iptvHiddenGroupNames)
+    }
+    val uiIptvGroupList = if (favoritesOnlyUi) IptvGroupList() else iptvGroupListFiltered
     val channelOrderList =
         if (favoritesOnlyUi) settingsViewModel.iptvChannelFavoriteEntries.map { it.toIptv() }
-        else iptvGroupList.iptvList
+        else iptvGroupListFiltered.iptvList
+
+    val onIptvGroupLongPressHide: (IptvGroup) -> Unit = { group ->
+        if (group.name.isNotBlank() && group.name != IptvGroup.FAVORITE_GROUP_NAME) {
+            SP.iptvHiddenGroupNames = SP.iptvHiddenGroupNames + group.name
+            settingsViewModel.bumpIptvHiddenGroupFilterEpoch()
+            LeanbackToastState.I.showToast("已隐藏分组：${group.name}")
+        }
+    }
 
     val mainContentState = rememberLeanbackMainContentState(
         videoPlayerState = videoPlayerState,
@@ -95,18 +109,39 @@ fun LeanbackMainContent(
         iptvGroupList,
         settingsViewModel.iptvChannelFavoriteEnable,
         settingsViewModel.iptvChannelFavoritesOnlyMode,
+        settingsViewModel.iptvHiddenGroupFilterEpoch,
     ) {
         mainContentState.updateIptvGroupList(uiIptvGroupList)
+    }
+
+    LaunchedEffect(
+        iptvGroupListFiltered,
+        favoritesOnlyUi,
+        settingsViewModel.iptvHiddenGroupFilterEpoch,
+    ) {
+        if (favoritesOnlyUi) return@LaunchedEffect
+        val visible = iptvGroupListFiltered.iptvList
+        if (visible.isEmpty()) {
+            if (mainContentState.currentIptv.urlList.isNotEmpty()) {
+                mainContentState.changeCurrentIptv(Iptv())
+            }
+            return@LaunchedEffect
+        }
+        val cur = mainContentState.currentIptv
+        if (cur !in visible) {
+            mainContentState.changeCurrentIptv(visible.first())
+        }
     }
 
     LaunchedEffect(
         iptvGroupList,
         favoritesOnlyUi,
         settingsViewModel.iptvChannelFavoriteEntries,
+        settingsViewModel.iptvHiddenGroupFilterEpoch,
     ) {
         val order =
             if (favoritesOnlyUi) settingsViewModel.iptvChannelFavoriteEntries.map { it.toIptv() }
-            else iptvGroupList.iptvList
+            else iptvGroupList.withoutHiddenGroupNames(SP.iptvHiddenGroupNames).iptvList
         mainContentState.syncChannelNavigation(
             order = order,
             streamHeadersForIptv = { iptv ->
@@ -373,6 +408,7 @@ fun LeanbackMainContent(
                         settingsViewModel.iptvChannelFavoriteListVisible = it
                     },
                     iptvFavoritesOnlyModeProvider = { favoritesOnlyUi },
+                    onIptvGroupLongPressHide = onIptvGroupLongPressHide,
                     onClose = { mainContentState.isPanelVisible = false },
                 )
             }
@@ -408,6 +444,7 @@ fun LeanbackMainContent(
                     onIptvFavoriteListVisibleChange = {
                         settingsViewModel.iptvChannelFavoriteListVisible = it
                     },
+                    onIptvGroupLongPressHide = onIptvGroupLongPressHide,
                     onClose = { mainContentState.isPanelVisible = false },
                     iptvFavoriteEnableProvider = { settingsViewModel.iptvChannelFavoriteEnable }
                 )

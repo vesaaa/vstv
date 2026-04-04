@@ -76,6 +76,18 @@ fun LeanbackSettingsCategoryApp(
 
         item {
             LeanbackSettingsCategoryListItem(
+                headlineContent = "恢复已隐藏分组",
+                supportingContent = "取消当前直播源下已隐藏的分组，全部频道重新显示。更换直播源后需重新设置隐藏。",
+                onSelected = {
+                    SP.clearIptvHiddenGroupNames()
+                    settingsViewModel.bumpIptvHiddenGroupFilterEpoch()
+                    LeanbackToastState.I.showToast("已显示全部分组")
+                },
+            )
+        }
+
+        item {
+            LeanbackSettingsCategoryListItem(
                 headlineContent = "应用更新",
                 supportingContent = when {
                     updateViewModel.isOpeningSystemInstaller ->

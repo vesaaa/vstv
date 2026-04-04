@@ -28,6 +28,7 @@ import com.vesaa.mytv.data.entities.EpgList
 import com.vesaa.mytv.data.entities.EpgList.Companion.currentProgrammes
 import com.vesaa.mytv.data.entities.Iptv
 import com.vesaa.mytv.data.entities.IptvFavoriteEntry
+import com.vesaa.mytv.data.entities.IptvGroup
 import com.vesaa.mytv.data.entities.IptvGroupList
 import com.vesaa.mytv.data.entities.IptvGroupList.Companion.iptvList
 import com.vesaa.mytv.data.entities.IptvList
@@ -62,6 +63,7 @@ fun LeanbackPanelScreen(
     iptvFavoritesOnlyModeProvider: () -> Boolean = { false },
     onIptvSelected: (Iptv, String?) -> Unit = { _, _ -> },
     onIptvFavoriteToggle: (Iptv) -> Unit = {},
+    onIptvGroupLongPressHide: (IptvGroup) -> Unit = {},
     onClose: () -> Unit = {},
     autoCloseState: PanelAutoCloseState = rememberPanelAutoCloseState(
         timeout = Constants.UI_SCREEN_AUTO_CLOSE_DELAY,
@@ -101,6 +103,7 @@ fun LeanbackPanelScreen(
             iptvFavoritesOnlyModeProvider = iptvFavoritesOnlyModeProvider,
             onIptvSelected = onIptvSelected,
             onIptvFavoriteToggle = onIptvFavoriteToggle,
+            onIptvGroupLongPressHide = onIptvGroupLongPressHide,
             onUserAction = { autoCloseState.active() },
         )
     }
@@ -154,6 +157,7 @@ private fun LeanbackPanelScreenBottom(
     iptvFavoritesOnlyModeProvider: () -> Boolean = { false },
     onIptvSelected: (Iptv, String?) -> Unit = { _, _ -> },
     onIptvFavoriteToggle: (Iptv) -> Unit = {},
+    onIptvGroupLongPressHide: (IptvGroup) -> Unit = {},
     onUserAction: () -> Unit = {},
 ) {
     val childPadding = rememberLeanbackChildPadding()
@@ -190,6 +194,7 @@ private fun LeanbackPanelScreenBottom(
                 iptvFavoritesOnlyModeProvider = iptvFavoritesOnlyModeProvider,
                 onIptvSelected = onIptvSelected,
                 onIptvFavoriteToggle = onIptvFavoriteToggle,
+                onIptvGroupLongPressHide = onIptvGroupLongPressHide,
                 onUserAction = onUserAction,
             )
         }
@@ -210,6 +215,7 @@ fun LeanbackPanelScreenBottomIptvList(
     iptvFavoritesOnlyModeProvider: () -> Boolean = { false },
     onIptvSelected: (Iptv, String?) -> Unit = { _, _ -> },
     onIptvFavoriteToggle: (Iptv) -> Unit = {},
+    onIptvGroupLongPressHide: (IptvGroup) -> Unit = {},
     onUserAction: () -> Unit = {},
 ) {
     val iptvFavoriteEnable = iptvFavoriteEnableProvider()
@@ -256,6 +262,7 @@ fun LeanbackPanelScreenBottomIptvList(
                 showProgrammeProgressProvider = showProgrammeProgressProvider,
                 onIptvSelected = { iptv -> onIptvSelected(iptv, null) },
                 onIptvFavoriteToggle = onIptvFavoriteToggle,
+                onIptvGroupLongPressHide = onIptvGroupLongPressHide,
                 onToFavorite = {
                     if (!iptvFavoriteEnable) return@LeanbackPanelIptvGroupList
 

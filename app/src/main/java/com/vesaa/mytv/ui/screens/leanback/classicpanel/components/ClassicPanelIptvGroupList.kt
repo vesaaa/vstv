@@ -48,6 +48,8 @@ fun LeanbackClassicPanelIptvGroupList(
     initialIptvGroupProvider: () -> IptvGroup = { IptvGroup() },
     exitFocusRequesterProvider: () -> FocusRequester = { FocusRequester.Default },
     onIptvGroupFocused: (IptvGroup) -> Unit = {},
+    /** 长按隐藏该分组（「我的收藏」无效） */
+    onIptvGroupLongPressHide: (IptvGroup) -> Unit = {},
     onUserAction: () -> Unit = {},
 ) {
     val iptvGroupList = iptvGroupListProvider()
@@ -95,6 +97,7 @@ fun LeanbackClassicPanelIptvGroupList(
                     focusedIptvGroup = it
                     onIptvGroupFocused(it)
                 },
+                onLongPressHide = onIptvGroupLongPressHide,
             )
         }
     }
@@ -107,6 +110,7 @@ private fun LeanbackClassicPanelIptvGroupItem(
     isSelectedProvider: () -> Boolean = { false },
     initialFocusedProvider: () -> Boolean = { false },
     onFocused: (IptvGroup) -> Unit = {},
+    onLongPressHide: (IptvGroup) -> Unit = {},
 ) {
     val iptvGroup = iptvGroupProvider()
 
@@ -138,6 +142,9 @@ private fun LeanbackClassicPanelIptvGroupItem(
                 .handleLeanbackKeyEvents(
                     onSelect = {
                         focusRequester.requestFocus()
+                    },
+                    onLongSelect = {
+                        if (isFocused) onLongPressHide(iptvGroup)
                     },
                 ),
             colors = ListItemDefaults.colors(

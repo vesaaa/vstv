@@ -35,3 +35,9 @@ data class IptvGroupList(
             get() = this.flatMap { it.iptvList }
     }
 }
+
+/** 按分组名剔除（用户隐藏整组）；[hiddenNames] 为空则原样返回 */
+fun IptvGroupList.withoutHiddenGroupNames(hiddenNames: Set<String>): IptvGroupList {
+    if (hiddenNames.isEmpty()) return this
+    return IptvGroupList(filter { it.name !in hiddenNames })
+}

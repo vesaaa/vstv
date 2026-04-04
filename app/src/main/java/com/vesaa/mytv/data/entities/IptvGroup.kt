@@ -13,4 +13,9 @@ data class IptvGroup(
      * 直播源列表
      */
     val iptvList: IptvList = IptvList(),
-)
+) {
+    companion object {
+        /** 经典选台左侧「我的收藏」分组名，勿与 M3U `group-title` 重名 */
+        const val FAVORITE_GROUP_NAME = "我的收藏"
+    }
+}

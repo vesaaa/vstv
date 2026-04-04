@@ -14,16 +14,26 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.tv.foundation.lazy.list.TvLazyColumn
 import androidx.tv.foundation.lazy.list.itemsIndexed
 import androidx.tv.foundation.lazy.list.rememberTvLazyListState
+import androidx.tv.material3.ListItem
+import androidx.tv.material3.ListItemDefaults
 import kotlinx.coroutines.flow.distinctUntilChanged
 import com.vesaa.mytv.data.entities.EpgList
 import com.vesaa.mytv.data.entities.Iptv
+import com.vesaa.mytv.data.entities.IptvGroup
 import com.vesaa.mytv.data.entities.IptvGroupList
 import com.vesaa.mytv.data.entities.IptvGroupList.Companion.iptvGroupIdx
 import com.vesaa.mytv.ui.rememberLeanbackChildPadding
@@ -41,6 +51,7 @@ fun LeanbackPanelIptvGroupList(
     onIptvSelected: (Iptv) -> Unit = {},
     onIptvFavoriteToggle: (Iptv) -> Unit = {},
     onToFavorite: () -> Unit = {},
+    onIptvGroupLongPressHide: (IptvGroup) -> Unit = {},
     onUserAction: () -> Unit = {},
 ) {
     val iptvGroupList = iptvGroupListProvider()
@@ -62,20 +73,40 @@ fun LeanbackPanelIptvGroupList(
         contentPadding = PaddingValues(bottom = childPadding.bottom),
     ) {
         itemsIndexed(iptvGroupList) { index, iptvGroup ->
-            Row(
-                modifier = Modifier.padding(start = childPadding.start),
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                CompositionLocalProvider(
-                    LocalTextStyle provides MaterialTheme.typography.labelMedium,
-                ) {
-                    Text(text = iptvGroup.name)
-                    Text(
-                        text = "${iptvGroup.iptvList.size}个频道",
-                        color = LocalContentColor.current.copy(alpha = 0.8f),
-                    )
-                }
-            }
+            val headerFocusRequester = remember(iptvGroup.name, index) { FocusRequester() }
+            var headerFocused by remember { mutableStateOf(false) }
+            ListItem(
+                modifier = Modifier
+                    .padding(start = childPadding.start)
+                    .focusRequester(headerFocusRequester)
+                    .onFocusChanged { headerFocused = it.isFocused || it.hasFocus }
+                    .handleLeanbackKeyEvents(
+                        onLongSelect = {
+                            if (headerFocused) onIptvGroupLongPressHide(iptvGroup)
+                        },
+                    ),
+                colors = ListItemDefaults.colors(
+                    focusedContainerColor = MaterialTheme.colorScheme.onBackground,
+                    selectedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(
+                        alpha = 0.5f,
+                    ),
+                ),
+                selected = false,
+                onClick = {},
+                headlineContent = {
+                    CompositionLocalProvider(
+                        LocalTextStyle provides MaterialTheme.typography.labelMedium,
+                    ) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text(text = iptvGroup.name)
+                            Text(
+                                text = "${iptvGroup.iptvList.size}个频道",
+                                color = LocalContentColor.current.copy(alpha = 0.8f),
+                            )
+                        }
+                    }
+                },
+            )
 
             Spacer(modifier = Modifier.height(6.dp))
 
