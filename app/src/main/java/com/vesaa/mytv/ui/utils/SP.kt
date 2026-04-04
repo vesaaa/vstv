@@ -28,21 +28,6 @@ object SP {
     fun init(context: Context) {
         if (::sp.isInitialized) return
         sp = getInstance(context.applicationContext)
-        seedDefaultIptvSourceIfNeeded()
-    }
-
-    /**
-     * 新安装且从未配置过直播源时，写入内置默认地址与请求头，并加入历史列表（设置页可见）。
-     */
-    private fun seedDefaultIptvSourceIfNeeded() {
-        val url = Constants.IPTV_SOURCE_URL
-        if (url.isBlank()) return
-        val existing = sp.getString(KEY.IPTV_SOURCE_URL.name, "") ?: ""
-        if (existing.isNotBlank()) return
-        val history = sp.getStringSet(KEY.IPTV_SOURCE_URL_HISTORY_LIST.name, emptySet()) ?: emptySet()
-        if (history.isNotEmpty()) return
-        commitIptvWebSettings(url, Constants.IPTV_SOURCE_DEFAULT_REQUEST_HEADERS)
-        iptvSourceUrlHistoryList = linkedSetOf(url)
     }
 
     enum class KEY {
@@ -290,6 +275,13 @@ object SP {
             .putString(KEY.IPTV_SOURCE_REQUEST_HEADERS.name, requestHeaders)
             .putString(KEY.IPTV_SOURCE_HEADERS_BY_URL_JSON.name, spJson.encodeToString(map))
             .commit()
+        val trimmed = url.trim()
+        if (trimmed.isNotEmpty()) {
+            val hist =
+                (sp.getStringSet(KEY.IPTV_SOURCE_URL_HISTORY_LIST.name, emptySet()) ?: emptySet()).toMutableSet()
+            hist.add(trimmed)
+            sp.edit().putStringSet(KEY.IPTV_SOURCE_URL_HISTORY_LIST.name, hist).commit()
+        }
     }
 
     /** 直播源缓存时间（毫秒） */

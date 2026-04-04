@@ -31,6 +31,7 @@ import androidx.tv.foundation.lazy.list.items
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import com.vesaa.mytv.data.repositories.iptv.IptvRepository
 import com.vesaa.mytv.ui.screens.leanback.components.LeanbackQrcodeDialog
@@ -51,6 +52,13 @@ fun LeanbackSettingsCategoryIptv(
     settingsViewModel: LeanbackSettingsViewModel = viewModel(),
 ) {
     val coroutineScope = rememberCoroutineScope()
+
+    LaunchedEffect(Unit) {
+        settingsViewModel.reloadWebPushedStreamingConfigFromDisk()
+        WebPushConfigNotifier.updates.collect {
+            settingsViewModel.reloadWebPushedStreamingConfigFromDisk()
+        }
+    }
 
     TvLazyColumn(
         modifier = modifier,

@@ -193,6 +193,16 @@ class LeanbackSettingsViewModel : ViewModel() {
         _iptvChannelFavoriteEntries = SP.loadFavoriteEntries()
     }
 
+    /** 网页推送等直接写入 SP 后，刷新内存中的直播源/节目单配置（设置页与 SP 一致）。 */
+    fun reloadWebPushedStreamingConfigFromDisk() {
+        _iptvSourceUrl = SP.iptvSourceUrl
+        _iptvSourceRequestHeaders = SP.iptvSourceRequestHeaders
+        _iptvSourceUrlHistoryList = SP.iptvSourceUrlHistoryList
+        _epgXmlUrl = SP.epgXmlUrl
+        _epgXmlRequestHeaders = SP.epgXmlRequestHeaders
+        _epgXmlUrlHistoryList = SP.epgXmlUrlHistoryList
+    }
+
     private var _epgEnable by mutableStateOf(SP.epgEnable)
     var epgEnable: Boolean
         get() = _epgEnable
