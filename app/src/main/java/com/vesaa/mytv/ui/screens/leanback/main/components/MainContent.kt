@@ -390,16 +390,16 @@ fun LeanbackMainContent(
                     },
                     onIptvFavoriteToggle = {
                         if (!settingsViewModel.iptvChannelFavoriteEnable) {
-                            LeanbackToastState.I.showToast("请先在设置 → 收藏 中启用收藏")
+                            LeanbackToastState.I.showToast("请先在设置 → 精选设置 中启用精选")
                             return@LeanbackPanelScreen
                         }
 
                         val was = settingsViewModel.isIptvFavorite(it)
                         settingsViewModel.toggleIptvFavorite(it)
                         if (was) {
-                            LeanbackToastState.I.showToast("取消收藏: ${it.channelName}")
+                            LeanbackToastState.I.showToast("已移出精选: ${it.channelName}")
                         } else {
-                            LeanbackToastState.I.showToast("已收藏: ${it.channelName}")
+                            LeanbackToastState.I.showToast("已加入精选: ${it.channelName}")
                         }
                     },
                     iptvFavoriteEntriesProvider = { settingsViewModel.iptvChannelFavoriteEntries },
@@ -427,16 +427,16 @@ fun LeanbackMainContent(
                     },
                     onIptvFavoriteToggle = {
                         if (!settingsViewModel.iptvChannelFavoriteEnable) {
-                            LeanbackToastState.I.showToast("请先在设置 → 收藏 中启用收藏")
+                            LeanbackToastState.I.showToast("请先在设置 → 精选设置 中启用精选")
                             return@LeanbackClassicPanelScreen
                         }
 
                         val was = settingsViewModel.isIptvFavorite(it)
                         settingsViewModel.toggleIptvFavorite(it)
                         if (was) {
-                            LeanbackToastState.I.showToast("取消收藏: ${it.channelName}")
+                            LeanbackToastState.I.showToast("已移出精选: ${it.channelName}")
                         } else {
-                            LeanbackToastState.I.showToast("已收藏: ${it.channelName}")
+                            LeanbackToastState.I.showToast("已加入精选: ${it.channelName}")
                         }
                     },
                     iptvFavoriteEntriesProvider = { settingsViewModel.iptvChannelFavoriteEntries },

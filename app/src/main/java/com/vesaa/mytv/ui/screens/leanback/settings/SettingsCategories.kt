@@ -21,7 +21,7 @@ enum class LeanbackSettingsCategories(
     IPTV(Icons.Default.LiveTv, "直播源"),
     EPG(Icons.Default.Menu, "节目单"),
     UI(Icons.Default.DisplaySettings, "界面"),
-    FAVORITE(Icons.Default.Star, "收藏"),
+    FAVORITE(Icons.Default.Star, "精选设置"),
     VIDEO_PLAYER(Icons.Default.SmartDisplay, "播放器"),
     NETWORK(Icons.Default.Wifi, "网络"),
     LOG(Icons.Default.FormatListNumbered, "日志"),

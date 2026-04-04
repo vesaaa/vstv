@@ -48,7 +48,7 @@ fun LeanbackClassicPanelIptvGroupList(
     initialIptvGroupProvider: () -> IptvGroup = { IptvGroup() },
     exitFocusRequesterProvider: () -> FocusRequester = { FocusRequester.Default },
     onIptvGroupFocused: (IptvGroup) -> Unit = {},
-    /** 长按隐藏该分组（「我的收藏」无效） */
+    /** 长按隐藏该分组（「精选频道」无效） */
     onIptvGroupLongPressHide: (IptvGroup) -> Unit = {},
     onUserAction: () -> Unit = {},
 ) {

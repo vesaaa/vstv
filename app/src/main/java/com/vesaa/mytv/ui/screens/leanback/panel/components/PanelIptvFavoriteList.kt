@@ -85,7 +85,7 @@ fun LeanbackPanelIptvFavoriteList(
             CompositionLocalProvider(
                 LocalTextStyle provides MaterialTheme.typography.labelMedium,
             ) {
-                Text(text = "收藏")
+                Text(text = "精选")
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
                     text = "${entries.size}个频道",

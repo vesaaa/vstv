@@ -270,7 +270,7 @@ fun LeanbackPanelScreenBottomIptvList(
                         favoriteListVisible = true
                         onIptvFavoriteListVisibleChange(true)
                     } else {
-                        LeanbackToastState.I.showToast("没有收藏的频道")
+                        LeanbackToastState.I.showToast("没有精选频道")
                     }
                 },
                 onUserAction = onUserAction,

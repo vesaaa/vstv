@@ -15,7 +15,7 @@ data class IptvGroup(
     val iptvList: IptvList = IptvList(),
 ) {
     companion object {
-        /** 经典选台左侧「我的收藏」分组名，勿与 M3U `group-title` 重名 */
-        const val FAVORITE_GROUP_NAME = "我的收藏"
+        /** 经典选台左侧「精选频道」分组名，勿与 M3U `group-title` 重名 */
+        const val FAVORITE_GROUP_NAME = "精选频道"
     }
 }

@@ -26,8 +26,8 @@ fun LeanbackSettingsCategoryFavorite(
     ) {
         item {
             LeanbackSettingsCategoryListItem(
-                headlineContent = "收藏启用",
-                supportingContent = "在频道上长按确定键可收藏或取消收藏",
+                headlineContent = "启用精选",
+                supportingContent = "在频道上长按确定键可加入或移出精选",
                 trailingContent = {
                     Switch(
                         checked = settingsViewModel.iptvChannelFavoriteEnable,
@@ -43,8 +43,8 @@ fun LeanbackSettingsCategoryFavorite(
 
         item {
             LeanbackSettingsCategoryListItem(
-                headlineContent = "只看收藏",
-                supportingContent = "启用后，只会显示收藏夹和里面的频道，其他频道都会隐藏。适合老人儿童只看选定的几个台",
+                headlineContent = "只看精选",
+                supportingContent = "启用后，只会显示精选频道分组及其中频道，其他频道都会隐藏。适合老人儿童只看选定的几个台",
                 trailingContent = {
                     Switch(
                         checked = settingsViewModel.iptvChannelFavoritesOnlyMode,
@@ -56,7 +56,7 @@ fun LeanbackSettingsCategoryFavorite(
                     if (!settingsViewModel.iptvChannelFavoriteEnable) return@LeanbackSettingsCategoryListItem
                     val next = !settingsViewModel.iptvChannelFavoritesOnlyMode
                     if (next && settingsViewModel.iptvChannelFavoriteEntries.isEmpty()) {
-                        LeanbackToastState.I.showToast("请先收藏至少一个频道")
+                        LeanbackToastState.I.showToast("请先精选至少一个频道")
                         return@LeanbackSettingsCategoryListItem
                     }
                     settingsViewModel.iptvChannelFavoritesOnlyMode = next
@@ -66,7 +66,7 @@ fun LeanbackSettingsCategoryFavorite(
 
         item {
             LeanbackSettingsCategoryListItem(
-                headlineContent = "当前已收藏",
+                headlineContent = "当前精选",
                 supportingContent = "已保存播放地址与请求头，删除订阅后仍可播放",
                 trailingContent = "${settingsViewModel.iptvChannelFavoriteEntries.size}个频道",
             )
@@ -74,8 +74,8 @@ fun LeanbackSettingsCategoryFavorite(
 
         item {
             LeanbackSettingsCategoryListItem(
-                headlineContent = "清空全部收藏",
-                supportingContent = "短按立即清空全部收藏",
+                headlineContent = "清空全部精选",
+                supportingContent = "短按立即清空全部精选",
                 onSelected = {
                     settingsViewModel.iptvChannelFavoriteEntries = emptyList()
                     settingsViewModel.iptvChannelFavoriteListVisible = false
