@@ -132,7 +132,7 @@ private fun LeanbackToastScreenAnimationPreview() {
 
         LaunchedEffect(Unit) {
             while (true) {
-                state.showToast("新版本: v1.2.7")
+                state.showToast("新版本: v1.2.8")
                 delay(1000)
                 state.showToast("新版本: v9.9.9")
                 delay(5000)
@@ -149,8 +149,9 @@ private fun LeanbackToastScreenPreview() {
     LeanbackTheme {
         LeanbackToastItem(
             modifier = Modifier.padding(16.dp),
-            property = LeanbackToastProperty(message = "新版本: v1.2.7"),
+            property = LeanbackToastProperty(message = "新版本: v1.2.8"),
         )
     }
 }
+
 

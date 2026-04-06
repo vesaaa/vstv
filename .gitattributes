@@ -1,0 +1,23 @@
+# Default text handling: normalize to LF in repository.
+* text=auto eol=lf
+
+# Windows scripts should keep CRLF for local execution compatibility.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# Common binary files.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.keystore binary
+*.jks binary
+*.apk binary
+*.aab binary
+*.aar binary
+*.so binary
+*.ttf binary
+*.otf binary
