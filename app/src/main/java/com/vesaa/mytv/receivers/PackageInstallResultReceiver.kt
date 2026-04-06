@@ -9,6 +9,7 @@ import android.os.Looper
 import android.widget.Toast
 import com.vesaa.mytv.ui.screens.leanback.toast.LeanbackToastProperty
 import com.vesaa.mytv.ui.screens.leanback.toast.LeanbackToastState
+import com.vesaa.mytv.ui.utils.InstallFallbackNotifier
 import com.vesaa.mytv.utils.ApkInstaller
 import java.io.File
 
@@ -60,9 +61,9 @@ class PackageInstallResultReceiver : BroadcastReceiver() {
                             id = "packageInstallFallback",
                         )
                     } catch (_: Throwable) {
-                        Toast.makeText(app, "已打开系统安装界面", Toast.LENGTH_LONG).show()
+                        Toast.makeText(app, "即将打开系统安装界面", Toast.LENGTH_LONG).show()
                     }
-                    ApkInstaller.installWithIntentView(app, file)
+                    InstallFallbackNotifier.notifyFallbackInstall(file.absolutePath)
                 }
                 return
             }

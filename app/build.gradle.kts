@@ -27,7 +27,7 @@ fun semverToVersionCode(versionName: String): Int {
         parts[2].coerceIn(0, 999)
 }
 
-    val defaultVersionName = "1.2.8"
+    val defaultVersionName = "1.2.9"
 val resolvedVersionName = releaseVersion.ifEmpty { defaultVersionName }
 val resolvedVersionCode =
     (project.findProperty("versionCode") as String?)?.toIntOrNull()
@@ -183,4 +183,5 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
 }
+
 

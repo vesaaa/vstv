@@ -18,6 +18,7 @@ import kotlinx.coroutines.launch
 import com.vesaa.mytv.AppGlobal
 import com.vesaa.mytv.ui.screens.leanback.toast.LeanbackToastState
 import com.vesaa.mytv.ui.screens.leanback.update.components.LeanbackUpdateDialog
+import com.vesaa.mytv.ui.utils.InstallFallbackNotifier
 import com.vesaa.mytv.utils.ApkInstaller
 import java.io.File
 
@@ -61,6 +62,17 @@ fun LeanbackUpdateScreen(
                     launcher.launch(intent)
                 }
             }
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        InstallFallbackNotifier.apkPathUpdates.collect { path ->
+            val file = File(path)
+            if (!file.exists()) {
+                LeanbackToastState.I.showToast("安装包不存在，请重新下载")
+                return@collect
+            }
+            ApkInstaller.installWithIntentView(context, file)
         }
     }
 
