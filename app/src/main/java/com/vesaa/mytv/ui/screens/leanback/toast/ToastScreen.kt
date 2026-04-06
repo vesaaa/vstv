@@ -1,4 +1,4 @@
-package com.vesaa.mytv.ui.screens.leanback.toast
+﻿package com.vesaa.mytv.ui.screens.leanback.toast
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.focusable
@@ -132,7 +132,7 @@ private fun LeanbackToastScreenAnimationPreview() {
 
         LaunchedEffect(Unit) {
             while (true) {
-                state.showToast("新版本: v1.2.6")
+                state.showToast("新版本: v1.2.7")
                 delay(1000)
                 state.showToast("新版本: v9.9.9")
                 delay(5000)
@@ -149,7 +149,8 @@ private fun LeanbackToastScreenPreview() {
     LeanbackTheme {
         LeanbackToastItem(
             modifier = Modifier.padding(16.dp),
-            property = LeanbackToastProperty(message = "新版本: v1.2.6"),
+            property = LeanbackToastProperty(message = "新版本: v1.2.7"),
         )
     }
 }
+

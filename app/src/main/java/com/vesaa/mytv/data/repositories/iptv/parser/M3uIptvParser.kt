@@ -17,6 +17,9 @@ class M3uIptvParser : IptvParser {
 
         lines.forEachIndexed { index, line ->
             if (!line.startsWith("#EXTINF")) return@forEachIndexed
+            val url = lines.getOrNull(index + 1)?.trim().orEmpty()
+            // 截断或异常 M3U：#EXTINF 后无有效 URL 时跳过，避免越界导致整源解析失败
+            if (url.isBlank() || url.startsWith("#")) return@forEachIndexed
 
             val name = line.split(",").last()
             val channelName = Regex("""tvg-name="(.+?)"""").find(line)?.groupValues?.get(1) ?: name
@@ -32,7 +35,7 @@ class M3uIptvParser : IptvParser {
                     tvgId = tvgId,
                     logoUrl = logoUrl,
                     groupName = groupName.trim(),
-                    url = lines[index + 1].trim(),
+                    url = url,
                 )
             )
         }
