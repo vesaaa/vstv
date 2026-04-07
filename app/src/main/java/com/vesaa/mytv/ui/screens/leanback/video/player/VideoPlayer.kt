@@ -146,6 +146,8 @@ abstract class LeanbackVideoPlayer(
     data class Metadata(
         /** 视频编码 */
         val videoMimeType: String = "",
+        /** 视频 codecs（例如 avc1.640028 / hev1 / dvhe） */
+        val videoCodecs: String = "",
         /** 视频宽度 */
         val videoWidth: Int = 0,
         /** 视频高度 */
@@ -161,6 +163,8 @@ abstract class LeanbackVideoPlayer(
 
         /** 音频编码 */
         val audioMimeType: String = "",
+        /** 音频 codecs（例如 mp4a.40.2 / ec-3 / ec+3） */
+        val audioCodecs: String = "",
         /** 音频通道 */
         val audioChannels: Int = 0,
         /** 音频采样率 */

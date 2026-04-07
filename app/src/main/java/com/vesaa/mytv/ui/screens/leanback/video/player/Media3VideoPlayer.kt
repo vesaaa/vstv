@@ -195,6 +195,7 @@ class LeanbackMedia3VideoPlayer(
         ) {
             metadata = metadata.copy(
                 videoMimeType = format.sampleMimeType ?: "",
+                videoCodecs = format.codecs ?: "",
                 videoWidth = format.width,
                 videoHeight = format.height,
                 videoColor = format.colorInfo?.toLogString() ?: "",
@@ -222,6 +223,7 @@ class LeanbackMedia3VideoPlayer(
         ) {
             metadata = metadata.copy(
                 audioMimeType = format.sampleMimeType ?: "",
+                audioCodecs = format.codecs ?: "",
                 audioChannels = format.channelCount,
                 audioSampleRate = format.sampleRate,
             )

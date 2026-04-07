@@ -10,7 +10,9 @@ internal fun formatQuickPanelVideoMenuSubtitle(m: LeanbackVideoPlayer.Metadata):
     } else {
         "分辨率未知"
     }
-    return "$res · ${shortVideoCodecLabel(m.videoMimeType)}"
+    val dr = videoDynamicRangeShortTag(m)
+    val codec = shortVideoCodecLabel(m.videoMimeType)
+    return if (dr != null) "$res · $codec · $dr" else "$res · $codec"
 }
 
 /** 底部按钮单行：分辨率,AVC（与旧版 Toast 展示习惯一致，尽量短） */
@@ -31,7 +33,9 @@ internal fun formatQuickPanelAudioMenuSubtitle(m: LeanbackVideoPlayer.Metadata):
         m.audioChannels == 2 -> "立体声"
         else -> "${m.audioChannels} 声道"
     }
-    return "$ch · ${shortAudioCodecLabel(m.audioMimeType)}"
+    val codec = shortAudioCodecLabel(m.audioMimeType)
+    val dolby = audioDolbyShortTag(m)
+    return if (dolby != null) "$ch · $codec · $dolby" else "$ch · $codec"
 }
 
 /** 立体声,mp4a-latm 形式：声道说明 + 原始 mime 尾缀（去掉 audio/） */
@@ -54,6 +58,8 @@ internal fun formatQuickPanelAudioButtonLabel(m: LeanbackVideoPlayer.Metadata): 
 
 internal fun formatQuickPanelVideoDetailBody(m: LeanbackVideoPlayer.Metadata): String = buildString {
     appendLine(formatQuickPanelVideoLine(m))
+    val dr = videoDynamicRangeLabel(m)
+    if (dr != null) appendLine("动态范围：$dr")
     if (m.videoBitrate > 0) {
         appendLine("视频码率约 ${m.videoBitrate / 1024} kbps")
     } else {
@@ -69,6 +75,8 @@ internal fun formatQuickPanelVideoDetailBody(m: LeanbackVideoPlayer.Metadata): S
 
 internal fun formatQuickPanelAudioDetailBody(m: LeanbackVideoPlayer.Metadata): String = buildString {
     appendLine(formatQuickPanelAudioLine(m))
+    val dolby = audioDolbyLabel(m)
+    if (dolby != null) appendLine("杜比：$dolby")
     if (m.audioDecoder.isNotBlank()) {
         appendLine("音频解码：${m.audioDecoder}")
     }
@@ -174,5 +182,49 @@ internal fun formatQuickPanelStreamExtraLine(m: LeanbackVideoPlayer.Metadata): S
     if (m.videoColor.isNotBlank()) {
         lines += "色彩 ${m.videoColor}"
     }
+    videoDynamicRangeLabel(m)?.let { lines += "动态范围 $it" }
+    audioDolbyLabel(m)?.let { lines += "杜比 $it" }
     return lines.joinToString("\n")
+}
+
+private fun videoDynamicRangeLabel(m: LeanbackVideoPlayer.Metadata): String? {
+    val src = "${m.videoMimeType} ${m.videoCodecs} ${m.videoColor}".lowercase(Locale.ROOT)
+    return when {
+        "dolby" in src || "dovi" in src || "dvhe" in src || "dvh1" in src -> "Dolby Vision (HDR)"
+        "hlg" in src -> "HLG (HDR)"
+        "st2084" in src || "pq" in src || "hdr10" in src -> "HDR10/PQ"
+        m.videoColor.isNotBlank() -> "SDR"
+        else -> null
+    }
+}
+
+private fun audioDolbyLabel(m: LeanbackVideoPlayer.Metadata): String? {
+    val src = "${m.audioMimeType} ${m.audioCodecs}".lowercase(Locale.ROOT)
+    return when {
+        "joc" in src || "atmos" in src || "ec+3" in src -> "Dolby Atmos"
+        "eac3" in src || "ec-3" in src -> "Dolby Digital Plus (E-AC-3)"
+        "ac-3" in src || "ac3" in src -> "Dolby Digital (AC-3)"
+        else -> null
+    }
+}
+
+private fun videoDynamicRangeShortTag(m: LeanbackVideoPlayer.Metadata): String? {
+    val src = "${m.videoMimeType} ${m.videoCodecs} ${m.videoColor}".lowercase(Locale.ROOT)
+    return when {
+        "dolby" in src || "dovi" in src || "dvhe" in src || "dvh1" in src -> "DV"
+        "hlg" in src -> "HLG"
+        "st2084" in src || "pq" in src || "hdr10" in src -> "HDR"
+        m.videoColor.isNotBlank() -> "SDR"
+        else -> null
+    }
+}
+
+private fun audioDolbyShortTag(m: LeanbackVideoPlayer.Metadata): String? {
+    val src = "${m.audioMimeType} ${m.audioCodecs}".lowercase(Locale.ROOT)
+    return when {
+        "joc" in src || "atmos" in src || "ec+3" in src -> "Atmos"
+        "eac3" in src || "ec-3" in src -> "DD+"
+        "ac-3" in src || "ac3" in src -> "DD"
+        else -> null
+    }
 }

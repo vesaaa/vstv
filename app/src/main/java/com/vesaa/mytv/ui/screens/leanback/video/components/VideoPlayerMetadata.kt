@@ -13,6 +13,8 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.vesaa.mytv.ui.screens.leanback.quickpanel.formatQuickPanelAudioDetailBody
+import com.vesaa.mytv.ui.screens.leanback.quickpanel.formatQuickPanelVideoDetailBody
 import com.vesaa.mytv.ui.screens.leanback.video.player.LeanbackVideoPlayer
 import com.vesaa.mytv.ui.theme.LeanbackTheme
 
@@ -38,11 +40,16 @@ fun LeanbackVideoPlayerMetadata(
                 Text("视频", style = MaterialTheme.typography.bodyMedium)
                 Column(modifier = Modifier.padding(start = 10.dp)) {
                     Text("编码: ${metadata.videoMimeType}")
+                    if (metadata.videoCodecs.isNotBlank()) Text("codecs: ${metadata.videoCodecs}")
                     Text("解码器: ${metadata.videoDecoder}")
                     Text("分辨率: ${metadata.videoWidth}x${metadata.videoHeight}")
                     Text("色彩: ${metadata.videoColor}")
                     Text("帧率: ${metadata.videoFrameRate}")
                     Text("比特率: ${metadata.videoBitrate / 1024} kbps")
+                    val dr = formatQuickPanelVideoDetailBody(metadata)
+                        .lineSequence()
+                        .firstOrNull { it.startsWith("动态范围：") }
+                    if (!dr.isNullOrBlank()) Text(dr)
                 }
             }
 
@@ -50,9 +57,14 @@ fun LeanbackVideoPlayerMetadata(
                 Text("音频", style = MaterialTheme.typography.bodyMedium)
                 Column(modifier = Modifier.padding(start = 10.dp)) {
                     Text("编码: ${metadata.audioMimeType}")
+                    if (metadata.audioCodecs.isNotBlank()) Text("codecs: ${metadata.audioCodecs}")
                     Text("解码器: ${metadata.audioDecoder}")
                     Text("声道数: ${metadata.audioChannels}")
                     Text("采样率: ${metadata.audioSampleRate} Hz")
+                    val dolby = formatQuickPanelAudioDetailBody(metadata)
+                        .lineSequence()
+                        .firstOrNull { it.startsWith("杜比：") }
+                    if (!dolby.isNullOrBlank()) Text(dolby)
                 }
             }
         }
