@@ -27,7 +27,7 @@ fun semverToVersionCode(versionName: String): Int {
         parts[2].coerceIn(0, 999)
 }
 
-    val defaultVersionName = "1.2.9"
+    val defaultVersionName = "1.3.0"
 val resolvedVersionName = releaseVersion.ifEmpty { defaultVersionName }
 val resolvedVersionCode =
     (project.findProperty("versionCode") as String?)?.toIntOrNull()
@@ -57,7 +57,9 @@ android {
         }
     }
 
-    flavorDimensions += "dist"
+    // dist：包名/应用名；logo：是否编译出台标（Coil）。lite 无台标，可减轻低配盒子内存压力。
+    // 例：assembleOriginalWithLogoRelease、assembleOriginalLiteRelease
+    flavorDimensions += listOf("dist", "logo")
     productFlavors {
         create("original") {
             dimension = "dist"
@@ -74,6 +76,14 @@ android {
                 abiFilters.clear()
                 abiFilters.addAll(listOf("armeabi-v7a", "arm64-v8a", "x86_64"))
             }
+        }
+        create("withLogo") {
+            dimension = "logo"
+            buildConfigField("boolean", "CHANNEL_LOGOS_ENABLED", "true")
+        }
+        create("lite") {
+            dimension = "logo"
+            buildConfigField("boolean", "CHANNEL_LOGOS_ENABLED", "false")
         }
     }
 

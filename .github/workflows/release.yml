@@ -1,8 +1,9 @@
-# 打标签后构建 2 个 release APK 并发布到 GitHub Releases。
+# 打标签后构建 3 个 release APK 并发布到 GitHub Releases。
 #
 # 产物（前缀 vstv）：
-#   vstv-<ver>-all-sdk21.apk          — 常规版（包名 com.vesaa.mytv）
-#   vstv-<ver>-all-sdk21-HarmonyOS.apk — 鸿蒙/兼容向（包名 com.chinablue.tv，桌面名 Z视介）
+#   vstv-<ver>-all-sdk21.apk           — 常规 + 台标（包名 com.vesaa.mytv）
+#   vstv-<ver>-all-sdk21-lite.apk      — lite 无台标（低配盒子；在线更新会匹配本附件）
+#   vstv-<ver>-all-sdk21-HarmonyOS.apk — 鸿蒙/兼容向 + 台标（包名 com.chinablue.tv，桌面名 Z视介）
 #
 # 标签：v*.*.*、v*.*.*-*（本仓库 1.0.x 等正式线；推送标签前须已写入 CHANGELOG 对应章节，见下方校验步骤）
 # Secrets（正式发版请配置齐）：KEYSTORE_BASE64、KEYSTORE_PASSWORD、KEY_ALIAS、KEY_PASSWORD、PROPRIETARY_AGE_PASSPHRASE
@@ -162,8 +163,9 @@ jobs:
             ls -lh "$dest"
           }
 
-          copy_flavor "original" "$ROOT/artifacts/vstv-${VER}-all-sdk21.apk"
-          copy_flavor "disguised" "$ROOT/artifacts/vstv-${VER}-all-sdk21-HarmonyOS.apk"
+          copy_flavor "originalWithLogo" "$ROOT/artifacts/vstv-${VER}-all-sdk21.apk"
+          copy_flavor "originalLite" "$ROOT/artifacts/vstv-${VER}-all-sdk21-lite.apk"
+          copy_flavor "disguisedWithLogo" "$ROOT/artifacts/vstv-${VER}-all-sdk21-HarmonyOS.apk"
 
           echo "=== 即将上传的 artifacts ==="
           ls -lh "$ROOT/artifacts/"

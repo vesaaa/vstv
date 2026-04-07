@@ -4,6 +4,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import com.vesaa.mytv.BuildConfig
 import com.vesaa.mytv.data.entities.GitRelease
 
 class GithubGitReleaseParser : GitReleaseParser {
@@ -18,7 +19,7 @@ class GithubGitReleaseParser : GitReleaseParser {
         if (assets.isEmpty()) {
             throw Exception("Release 未包含任何附件，请确认已上传 APK")
         }
-        val url = assets.pickVstvDefaultApkBrowserUrl()
+        val url = assets.pickVstvDefaultApkBrowserUrl(preferLiteApk = !BuildConfig.CHANNEL_LOGOS_ENABLED)
             ?: assets[0].jsonObject["browser_download_url"]!!.jsonPrimitive.content
         // 使用 GitHub 直链：mirror.ghproxy.com 等第三方镜像易失效，会导致「下载更新失败」
         return GitRelease(

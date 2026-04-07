@@ -4,6 +4,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import com.vesaa.mytv.BuildConfig
 import com.vesaa.mytv.data.entities.GitRelease
 
 class GiteeGitReleaseParser : GitReleaseParser {
@@ -15,7 +16,7 @@ class GiteeGitReleaseParser : GitReleaseParser {
         val json = Json.parseToJsonElement(data).jsonObject
 
         val assets = json.getValue("assets").jsonArray
-        val url = assets.pickVstvDefaultApkBrowserUrl()
+        val url = assets.pickVstvDefaultApkBrowserUrl(preferLiteApk = !BuildConfig.CHANNEL_LOGOS_ENABLED)
             ?: assets[0].jsonObject["browser_download_url"]!!.jsonPrimitive.content
         return GitRelease(
             version = json.getValue("tag_name").jsonPrimitive.content.removePrefix("v").trim(),

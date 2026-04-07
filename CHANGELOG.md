@@ -4,6 +4,12 @@
 
 > **说明**：本文件仍由人编写条目，**不会由机器人自动撰写内容**。推送 **Release 标签**（`v*.*.*`）时，GitHub Actions 会检查 `CHANGELOG.md` 中是否已有对应章节 **`## [x.y.z]`**（`x.y.z` 为标签去掉 `v`/`tv-` 及预发布后缀 `-…` 的核心版本）；**未写入则 Release 构建失败**，避免发版记录遗漏。若需对照历史，见 [GitHub Releases](https://github.com/vesaaa/vstv/releases)。
 
+## [1.3.0] - 2026-04-07
+
+- **构建**：新增 **lite** 变体（无台标、不初始化 Coil），便于低配盒子使用；Gradle 任务示例：`assembleOriginalLiteRelease`。
+- **发版**：GitHub Release 固定产出 3 个 APK：常规、**`…-all-sdk21-lite.apk`**、HarmonyOS 兼容包（仅常规与 HarmonyOS 提供台标版）。
+- **在线更新**：根据当前安装包类型选择 Release 附件——lite 安装包优先下载 **`…-all-sdk21-lite.apk`**，常规包优先 **`…-all-sdk21.apk`**（避免 lite 用户误下全量台标包）。
+
 ## [1.2.9] - 2026-04-06
 
 - **更新安装**：应用内安装异常回退时，不再由广播直接拉起系统安装器；改为通知前台 UpdateScreen 使用 Activity context 拉起，提升海信等定制电视 ROM 的稳定性。

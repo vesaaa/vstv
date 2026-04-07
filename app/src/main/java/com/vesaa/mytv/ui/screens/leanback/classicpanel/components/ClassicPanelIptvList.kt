@@ -46,6 +46,7 @@ import com.vesaa.mytv.data.entities.EpgProgrammeCurrent
 import com.vesaa.mytv.data.entities.Iptv
 import com.vesaa.mytv.data.entities.IptvGroup
 import com.vesaa.mytv.data.entities.IptvList
+import com.vesaa.mytv.BuildConfig
 import com.vesaa.mytv.ui.components.IptvLogoImage
 import com.vesaa.mytv.ui.theme.LeanbackTheme
 import com.vesaa.mytv.ui.utils.handleLeanbackKeyEvents
@@ -211,12 +212,16 @@ private fun LeanbackClassicPanelIptvItem(
                 ),
                 selected = isSelectedProvider(),
                 onClick = { },
-                leadingContent = {
-                    IptvLogoImage(
-                        logoUrl = iptv.logoUrl,
-                        contentDescription = iptv.name,
-                        size = 36.dp,
-                    )
+                leadingContent = if (BuildConfig.CHANNEL_LOGOS_ENABLED && iptv.logoUrl.isNotBlank()) {
+                    {
+                        IptvLogoImage(
+                            logoUrl = iptv.logoUrl,
+                            contentDescription = iptv.name,
+                            size = 36.dp,
+                        )
+                    }
+                } else {
+                    null
                 },
                 headlineContent = {
                     Text(text = iptv.name, maxLines = 2)

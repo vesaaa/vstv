@@ -35,6 +35,7 @@ import com.vesaa.mytv.data.entities.EpgProgramme
 import com.vesaa.mytv.data.entities.EpgProgramme.Companion.isLive
 import com.vesaa.mytv.data.entities.EpgProgramme.Companion.progress
 import com.vesaa.mytv.data.entities.Iptv
+import com.vesaa.mytv.BuildConfig
 import com.vesaa.mytv.ui.components.IptvLogoImage
 import com.vesaa.mytv.ui.theme.LeanbackTheme
 import com.vesaa.mytv.ui.utils.handleLeanbackKeyEvents
@@ -111,7 +112,7 @@ fun LeanbackPanelIptvItem(
                     .padding(horizontal = 6.dp, vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                if (iptv.logoUrl.isNotBlank()) {
+                if (BuildConfig.CHANNEL_LOGOS_ENABLED && iptv.logoUrl.isNotBlank()) {
                     IptvLogoImage(
                         logoUrl = iptv.logoUrl,
                         contentDescription = iptv.name,
