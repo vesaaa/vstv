@@ -1,6 +1,7 @@
 package com.vesaa.mytv.ui.screens.leanback.panel.components
 
 import android.net.TrafficStats
+import android.os.Build
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -71,8 +72,20 @@ private fun PanelPlayerInfoFps(
         else -> 0f
     }
     val videoFpsText = if (effectiveVideoFps > 0.05f) effectiveVideoFps.toInt().toString() else "N/A"
-    val deviceRefreshRate = view.display?.refreshRate ?: 0f
-    val deviceFpsText = if (deviceRefreshRate > 1f) deviceRefreshRate.toInt().toString() else "N/A"
+    val display = view.display
+    val activeRefreshRate = display?.refreshRate ?: 0f
+    val maxSupportedRefreshRate = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+        display?.supportedModes?.maxOfOrNull { it.refreshRate } ?: 0f
+    } else {
+        0f
+    }
+    val activeFpsText = if (activeRefreshRate > 1f) activeRefreshRate.toInt().toString() else "N/A"
+    val maxFpsText = if (maxSupportedRefreshRate > 1f) maxSupportedRefreshRate.toInt().toString() else ""
+    val deviceFpsText = if (maxFpsText.isNotEmpty() && maxSupportedRefreshRate - activeRefreshRate > 1f) {
+        "$activeFpsText($maxFpsText)"
+    } else {
+        activeFpsText
+    }
 
     Text(
         text = "帧率：$videoFpsText/$deviceFpsText FPS",
