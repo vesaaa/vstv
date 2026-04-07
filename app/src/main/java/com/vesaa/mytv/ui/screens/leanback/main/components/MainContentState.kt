@@ -184,7 +184,10 @@ class LeanbackMainContentState(
         streamRequestHeaders: String? = null,
         reason: ChangeReason = ChangeReason.USER,
     ) {
-        _isPanelVisible = false
+        // 自动线路轮询不应打断用户正在操作的选台界面
+        if (reason == ChangeReason.USER || reason == ChangeReason.INIT) {
+            _isPanelVisible = false
+        }
 
         streamRequestHeadersForPlayback = streamRequestHeaders
 
