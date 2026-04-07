@@ -6,7 +6,7 @@ import kotlinx.coroutines.CoroutineScope
 
 class LeanbackRoutingVideoPlayer(
     private val media3Player: LeanbackMedia3VideoPlayer,
-    private val ijkPlayer: LeanbackIjkVideoPlayer,
+    private val vlcPlayer: LeanbackVlcVideoPlayer,
     coroutineScope: CoroutineScope,
 ) : LeanbackVideoPlayer(coroutineScope) {
     private var currentPlayer: LeanbackVideoPlayer = media3Player
@@ -15,20 +15,24 @@ class LeanbackRoutingVideoPlayer(
     override fun initialize() {
         super.initialize()
         media3Player.initialize()
-        ijkPlayer.initialize()
+        vlcPlayer.initialize()
         bindChild(media3Player)
-        bindChild(ijkPlayer)
+        bindChild(vlcPlayer)
     }
 
     override fun release() {
         media3Player.release()
-        ijkPlayer.release()
+        vlcPlayer.release()
         super.release()
     }
 
     override fun prepare(url: String, streamRequestHeaders: String?) {
-        val target = if (isRtsp(url)) ijkPlayer else media3Player
-        currentPlayer.pause()
+        val target = if (isRtsp(url)) vlcPlayer else media3Player
+        if (currentPlayer != target) {
+            currentPlayer.onDeactivate()
+        } else {
+            currentPlayer.pause()
+        }
         currentPlayer = target
         currentSurfaceView?.let { currentPlayer.setVideoSurfaceView(it) }
         currentPlayer.prepare(url, streamRequestHeaders)

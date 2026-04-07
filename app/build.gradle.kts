@@ -166,9 +166,8 @@ dependencies {
     implementation(libs.androidx.media3.exoplayer.dash)
     implementation(libs.androidx.media3.exoplayer.smoothstreaming)
     implementation(libs.androidx.media3.exoplayer.rtsp)
-    // RTSP 专用兜底播放器（IJK 内核；仅 rtsp:// 协议路由到 IJK，其它协议仍走 Media3）
-    implementation(libs.gsyvideoplayer.java)
-    implementation(libs.gsyvideoplayer.ex.so)
+    // RTSP 专用兜底播放器（VLC 内核；仅 rtsp:// 协议路由到 VLC，其它协议仍走 Media3）
+    implementation(libs.libvlc.all)
 
     // 序列化
     implementation(libs.kotlinx.serialization)

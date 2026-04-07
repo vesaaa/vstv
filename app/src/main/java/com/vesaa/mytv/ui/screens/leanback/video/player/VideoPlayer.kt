@@ -26,6 +26,9 @@ abstract class LeanbackVideoPlayer(
         clearAllListeners()
     }
 
+    /** 当路由层切换到其它播放器内核时调用，用于停止当前会话并清理瞬时状态。 */
+    open fun onDeactivate() = Unit
+
     /**
      * @param streamRequestHeaders 非 null 且非空白时，按多行请求头解析 UA 与其它头用于拉流；null 或空白则用 [SP.playbackHttpUserAgent] 等全局行为。
      */

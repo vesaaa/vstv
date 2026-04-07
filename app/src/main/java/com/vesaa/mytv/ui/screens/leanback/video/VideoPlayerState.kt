@@ -14,10 +14,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
-import com.vesaa.mytv.ui.screens.leanback.video.player.LeanbackIjkVideoPlayer
 import com.vesaa.mytv.ui.screens.leanback.video.player.LeanbackMedia3VideoPlayer
 import com.vesaa.mytv.ui.screens.leanback.video.player.LeanbackRoutingVideoPlayer
 import com.vesaa.mytv.ui.screens.leanback.video.player.LeanbackVideoPlayer
+import com.vesaa.mytv.ui.screens.leanback.video.player.LeanbackVlcVideoPlayer
 
 /**
  * 播放器状态
@@ -110,11 +110,11 @@ fun rememberLeanbackVideoPlayerState(
     val coroutineScope = rememberCoroutineScope()
     val state = remember {
         val media3 = LeanbackMedia3VideoPlayer(context, coroutineScope)
-        val ijk = LeanbackIjkVideoPlayer(context, coroutineScope)
+        val vlc = LeanbackVlcVideoPlayer(context, coroutineScope)
         LeanbackVideoPlayerState(
             LeanbackRoutingVideoPlayer(
                 media3Player = media3,
-                ijkPlayer = ijk,
+                vlcPlayer = vlc,
                 coroutineScope = coroutineScope,
             ),
             defaultAspectRatioProvider = defaultAspectRatioProvider,

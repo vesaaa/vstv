@@ -18,7 +18,7 @@ tvFoundation = "1.0.0-alpha10"
 tvMaterial = "1.0.0-beta01"
 coil = "2.7.0"
 workManager = "2.9.1"
-gsy = "12.1.0"
+libvlc = "3.6.2"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -51,8 +51,7 @@ androidx-tv-material = { group = "androidx.tv", name = "tv-material", version.re
 androidx-material-icons-extended = { module = "androidx.compose.material:material-icons-extended" }
 coil-compose = { module = "io.coil-kt:coil-compose", version.ref = "coil" }
 androidx-work-runtime-ktx = { group = "androidx.work", name = "work-runtime-ktx", version.ref = "workManager" }
-gsyvideoplayer-java = { module = "io.github.carguo:gsyvideoplayer-java", version.ref = "gsy" }
-gsyvideoplayer-ex-so = { module = "io.github.carguo:gsyvideoplayer-ex_so", version.ref = "gsy" }
+libvlc-all = { module = "org.videolan.android:libvlc-all", version.ref = "libvlc" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

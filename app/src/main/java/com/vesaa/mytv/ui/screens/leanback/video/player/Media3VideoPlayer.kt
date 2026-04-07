@@ -327,6 +327,14 @@ class LeanbackMedia3VideoPlayer(
         videoPlayer.pause()
     }
 
+    override fun onDeactivate() {
+        updatePositionJob?.cancel()
+        updatePositionJob = null
+        videoPlayer.stop()
+        videoPlayer.clearMediaItems()
+        triggerBuffering(false)
+    }
+
     override fun setVideoSurfaceView(surfaceView: SurfaceView) {
         videoPlayer.setVideoSurfaceView(surfaceView)
     }
