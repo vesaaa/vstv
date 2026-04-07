@@ -4,6 +4,11 @@
 
 > **说明**：本文件仍由人编写条目，**不会由机器人自动撰写内容**。推送 **Release 标签**（`v*.*.*`）时，GitHub Actions 会检查 `CHANGELOG.md` 中是否已有对应章节 **`## [x.y.z]`**（`x.y.z` 为标签去掉 `v`/`tv-` 及预发布后缀 `-…` 的核心版本）；**未写入则 Release 构建失败**，避免发版记录遗漏。若需对照历史，见 [GitHub Releases](https://github.com/vesaaa/vstv/releases)。
 
+## [1.4.1] - 2026-04-07
+
+- **播放器**：将 **Media3** 从 `1.10.0` 调整为 **`1.4.1`**，恢复与当前构建链（AGP 8.5、`compileSdk 34`）兼容，避免 `AAR metadata` 要求 `compileSdk 36` 导致构建失败。
+- **构建**：`compileSdk` 回调至 **34**（与 AGP 8.5 推荐范围一致），确保 `disguisedLiteRelease` 等变体可正常打包。
+
 ## [1.4.0] - 2026-04-07
 
 - **界面（TV）**：在 `LeanbackApp` 中于主界面之前初始化 `rememberLeanbackToastState()`，保证全局 `LeanbackToastState.I` 在使用前已赋值，缓解 **Android 16**（如 **ColorOS**）上长按 **精选**、**长按隐藏分组** 等操作因 Toast 未初始化导致的闪退。
