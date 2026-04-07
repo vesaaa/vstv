@@ -7,7 +7,6 @@ import com.vesaa.mytv.data.entities.IptvList
 
 class M3uIptvParser : IptvParser {
 
-    /** 在「空格 + #EXTINF」处切开，保留每条以 #EXTINF 开头 */
     private val extinfSplitRegex = Regex("""\s+(?=#EXTINF)""")
 
     private val streamUrlPrefix =
@@ -43,7 +42,7 @@ class M3uIptvParser : IptvParser {
 
             var url = if (nextLooksLikeUrl) next else ""
             if (url.isBlank()) {
-                url = extractStreamUrlFromExtinfLine(line)
+                url = streamUrlInExtinf.find(line)?.value?.trim().orEmpty()
             }
             if (url.isBlank() || url.startsWith("#")) {
                 i++
@@ -91,9 +90,6 @@ class M3uIptvParser : IptvParser {
         })
     }
 
-    /**
-     * 将「同一物理行内多个 #EXTINF … url … #EXTINF …」拆成多行（常见于联通等内网源整行粘贴）。
-     */
     private fun expandLinesWithMultipleExtinf(rawLines: List<String>): List<String> {
         val out = mutableListOf<String>()
         for (line in rawLines) {
@@ -120,13 +116,4 @@ class M3uIptvParser : IptvParser {
         val groupName: String,
         val url: String,
     )
-
-    /**
-     * 从 #EXTINF 行内提取流地址（rtsp / http(s) / udp）。
-     * 说明：播放器侧目前对 **udp://** 组播未做专门支持，解析出来也可能无法播放。
-     */
-    private fun extractStreamUrlFromExtinfLine(extinfLine: String): String {
-        val m = streamUrlInExtinf.find(extinfLine) ?: return ""
-        return m.value.trim()
-    }
 }
