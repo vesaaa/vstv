@@ -73,8 +73,8 @@
                                         v-model="settings.iptvSourceRequestHeaders" type="textarea" rows="3"></van-field>
                                 </div>
                                 <van-space size="small" wrap class="mt-4px">
-                                    <van-button size="small" type="primary" plain @click="setIptvUaPreset('Mursor')">
-                                        Mursor
+                                    <van-button size="small" type="primary" plain @click="setIptvUaPreset('okHttp')">
+                                        okHttp
                                     </van-button>
                                     <van-button size="small" type="primary" plain @click="setIptvUaPreset('APTV')">
                                         APTV
@@ -144,7 +144,7 @@
 
         /** IPTV UA 预设 */
         const IPTV_UA_PRESETS = {
-            Mursor: 'okHttp/Mod-1.5.0.0',
+            okHttp: 'okHttp/Mod-1.5.0.0',
             APTV: 'aptv',
             Browser: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
             CTC: 'IPTV/1.0 (Linux; U; Android 9.0; STB) CTC/2.0',
