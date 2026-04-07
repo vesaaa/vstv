@@ -96,10 +96,14 @@ abstract class LeanbackVideoPlayer(
             cutoffTimeoutJob?.cancel()
             cutoffTimeoutJob = coroutineScope.launch {
                 delay(SP.videoPlayerLoadTimeout)
-                onCutoffListeners.forEach { it() }
+                triggerCutoff()
             }
         }
         currentPosition = newPosition
+    }
+
+    protected fun triggerCutoff() {
+        onCutoffListeners.forEach { it() }
     }
 
     fun onResolution(listener: (width: Int, height: Int) -> Unit) {
