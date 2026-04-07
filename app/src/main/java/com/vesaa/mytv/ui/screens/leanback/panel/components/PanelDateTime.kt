@@ -21,13 +21,14 @@ import java.util.Locale
 fun LeanbackPanelDateTime(
     modifier: Modifier = Modifier,
     timestamp: Long = rememberTimestamp(),
+    horizontalAlignment: Alignment.Horizontal = Alignment.CenterHorizontally,
 ) {
     val timeFormat = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
     val dateFormat = SimpleDateFormat("MM/dd EEE", Locale.getDefault())
 
     Column(
         modifier = modifier,
-        horizontalAlignment = Alignment.CenterHorizontally,
+        horizontalAlignment = horizontalAlignment,
     ) {
         Text(
             text = dateFormat.format(timestamp),

@@ -1,11 +1,8 @@
 package com.vesaa.mytv.ui.screens.leanback.panel
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -15,14 +12,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 import com.vesaa.mytv.data.utils.Constants
 import com.vesaa.mytv.ui.rememberLeanbackChildPadding
+import com.vesaa.mytv.ui.screens.leanback.panel.components.LeanbackPanelDateTime
 import com.vesaa.mytv.ui.theme.LeanbackTheme
 import com.vesaa.mytv.ui.utils.SP
-import java.text.SimpleDateFormat
-import java.util.Locale
 
 @Composable
 fun LeanbackPanelDateTimeScreen(
@@ -31,7 +26,6 @@ fun LeanbackPanelDateTimeScreen(
 ) {
     val childPadding = rememberLeanbackChildPadding()
 
-    var timeText by remember { mutableStateOf("") }
     var visible by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         while (true) {
@@ -50,30 +44,18 @@ fun LeanbackPanelDateTimeScreen(
                 }
             }
 
-            if (visible) {
-                timeText = when (showModeProvider()) {
-                    SP.UiTimeShowMode.ALWAYS -> SimpleDateFormat("HH:mm", Locale.getDefault())
-                    else -> SimpleDateFormat("HH:mm:ss", Locale.getDefault())
-                }.format(timestamp)
-            }
-
             delay(1000)
         }
     }
 
     Box(modifier = modifier.fillMaxSize()) {
         if (visible) {
-            Text(
-                text = timeText,
-                style = MaterialTheme.typography.titleLarge,
+            // 与详情面板顶部 [LeanbackPanelDateTime] 同款：日期 + 时间双行，无黑底块
+            LeanbackPanelDateTime(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
-                    .padding(top = childPadding.top, end = childPadding.end)
-                    .background(
-                        color = MaterialTheme.colorScheme.surface.copy(0.8f),
-                        shape = MaterialTheme.shapes.small,
-                    )
-                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                    .padding(top = childPadding.top, end = childPadding.end),
+                horizontalAlignment = Alignment.End,
             )
         }
     }
