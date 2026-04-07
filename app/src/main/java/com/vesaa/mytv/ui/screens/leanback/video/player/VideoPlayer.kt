@@ -158,6 +158,8 @@ abstract class LeanbackVideoPlayer(
         val videoFrameRate: Float = 0f,
         /** 视频比特率 */
         val videoBitrate: Int = 0,
+        /** 最近一次切台到首帧就绪耗时（毫秒）；未知为 null */
+        val zapLatencyMs: Long? = null,
         /** 视频解码器 */
         val videoDecoder: String = "",
 

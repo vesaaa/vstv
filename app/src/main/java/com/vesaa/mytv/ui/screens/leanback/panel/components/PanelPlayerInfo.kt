@@ -16,6 +16,7 @@ import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
@@ -33,27 +34,38 @@ fun LeanbackPanelPlayerInfo(
         LocalContentColor provides MaterialTheme.colorScheme.onBackground
     ) {
         Row(modifier = modifier, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            PanelPlayerInfoResolution(
-                resolutionProvider = {
-                    val metadata = metadataProvider()
-                    metadata.videoWidth to metadata.videoHeight
-                }
-            )
-
+            PanelPlayerInfoLatency(latencyMsProvider = { metadataProvider().zapLatencyMs })
+            PanelPlayerInfoFps(videoFrameRateProvider = { metadataProvider().videoFrameRate })
             PanelPlayerInfoNetSpeed()
         }
     }
 }
 
 @Composable
-private fun PanelPlayerInfoResolution(
+private fun PanelPlayerInfoLatency(
     modifier: Modifier = Modifier,
-    resolutionProvider: () -> Pair<Int, Int> = { 0 to 0 },
+    latencyMsProvider: () -> Long? = { null },
 ) {
-    val resolution = resolutionProvider()
+    val latencyMs = latencyMsProvider()
+    Text(
+        text = if (latencyMs != null && latencyMs >= 0) "延迟：${latencyMs} ms" else "延迟：N/A（切台后显示）",
+        modifier = modifier,
+    )
+}
+
+@Composable
+private fun PanelPlayerInfoFps(
+    modifier: Modifier = Modifier,
+    videoFrameRateProvider: () -> Float = { 0f },
+) {
+    val view = LocalView.current
+    val videoFps = videoFrameRateProvider()
+    val videoFpsText = if (videoFps > 0.05f) videoFps.toInt().toString() else "N/A"
+    val deviceRefreshRate = view.display?.refreshRate ?: 0f
+    val deviceFpsText = if (deviceRefreshRate > 1f) deviceRefreshRate.toInt().toString() else "N/A"
 
     Text(
-        text = "分辨率：${resolution.first}×${resolution.second}",
+        text = "帧率：$videoFpsText/$deviceFpsText FPS",
         modifier = modifier,
     )
 }
@@ -102,6 +114,7 @@ private fun LeanbackPanelPlayerInfoPreview() {
                 LeanbackVideoPlayer.Metadata(
                     videoWidth = 1920,
                     videoHeight = 1080,
+                    videoFrameRate = 59.94f,
                 )
             },
         )

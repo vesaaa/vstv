@@ -2,6 +2,7 @@ package com.vesaa.mytv.ui.screens.leanback.video.player
 
 import android.content.Context
 import android.net.Uri
+import android.os.SystemClock
 import android.view.SurfaceView
 import androidx.annotation.OptIn
 import androidx.media3.common.C
@@ -48,6 +49,8 @@ class LeanbackMedia3VideoPlayer(
 
     private val contentTypeAttempts = mutableMapOf<Int, Boolean>()
     private var updatePositionJob: Job? = null
+    private var latestZapStartElapsedMs: Long = 0L
+    private var awaitingFirstReadyAfterPrepare: Boolean = false
 
     /** 同一次播放会话内重试容器类型时沿用（收藏夹 per-entry 头等） */
     private var activeStreamRequestHeaders: String? = null
@@ -120,6 +123,10 @@ class LeanbackMedia3VideoPlayer(
         }
 
         if (mediaSource != null) {
+            latestZapStartElapsedMs = SystemClock.elapsedRealtime()
+            awaitingFirstReadyAfterPrepare = true
+            metadata = metadata.copy(zapLatencyMs = null)
+            triggerMetadata(metadata)
             contentTypeAttempts[contentType ?: Util.inferContentType(uri)] = true
             videoPlayer.setMediaSource(mediaSource)
             videoPlayer.prepare()
@@ -169,6 +176,12 @@ class LeanbackMedia3VideoPlayer(
                 triggerError(null)
                 triggerBuffering(true)
             } else if (playbackState == Player.STATE_READY) {
+                if (awaitingFirstReadyAfterPrepare && latestZapStartElapsedMs > 0L) {
+                    val elapsed = (SystemClock.elapsedRealtime() - latestZapStartElapsedMs).coerceAtLeast(0L)
+                    metadata = metadata.copy(zapLatencyMs = elapsed)
+                    triggerMetadata(metadata)
+                    awaitingFirstReadyAfterPrepare = false
+                }
                 triggerReady()
 
                 updatePositionJob?.cancel()

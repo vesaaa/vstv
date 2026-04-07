@@ -4,6 +4,11 @@
 
 > **说明**：本文件仍由人编写条目，**不会由机器人自动撰写内容**。推送 **Release 标签**（`v*.*.*`）时，GitHub Actions 会检查 `CHANGELOG.md` 中是否已有对应章节 **`## [x.y.z]`**（`x.y.z` 为标签去掉 `v`/`tv-` 及预发布后缀 `-…` 的核心版本）；**未写入则 Release 构建失败**，避免发版记录遗漏。若需对照历史，见 [GitHub Releases](https://github.com/vesaaa/vstv/releases)。
 
+## [1.4.6] - 2026-04-07
+
+- **播放信息**：底部播放器信息改为 `延迟 / 帧率 / 网速` 三项；帧率显示为 `视频FPS/设备刷新率FPS`（如 `60/120 FPS`）。
+- **延迟指标**：接入“切台到首帧就绪”耗时统计（每次 `prepare` 到首次 `STATE_READY`），并在切台后显示 `XX ms`；未产生样本时显示 `N/A（切台后显示）`。
+
 ## [1.4.5] - 2026-04-07
 
 - **播放信息增强**：播放器元数据新增 `videoCodecs` / `audioCodecs` 字段采集（来自 Media3 `Format.codecs`）。
