@@ -4,6 +4,12 @@
 
 > **说明**：本文件仍由人编写条目，**不会由机器人自动撰写内容**。推送 **Release 标签**（`v*.*.*`）时，GitHub Actions 会检查 `CHANGELOG.md` 中是否已有对应章节 **`## [x.y.z]`**（`x.y.z` 为标签去掉 `v`/`tv-` 及预发布后缀 `-…` 的核心版本）；**未写入则 Release 构建失败**，避免发版记录遗漏。若需对照历史，见 [GitHub Releases](https://github.com/vesaaa/vstv/releases)。
 
+## [1.4.0] - 2026-04-07
+
+- **界面（TV）**：在 `LeanbackApp` 中于主界面之前初始化 `rememberLeanbackToastState()`，保证全局 `LeanbackToastState.I` 在使用前已赋值，缓解 **Android 16**（如 **ColorOS**）上长按 **精选**、**长按隐藏分组** 等操作因 Toast 未初始化导致的闪退。
+- **界面（TV）**：`Modifier.handleLeanbackKeyEvents` 中系统导航键（`KEYCODE_SYSTEM_NAVIGATION_*`）改为 `buildMap` 正确写入映射（原 `mapOf { }.apply { … }` 未真正加入键值）。
+- **精选**：`toggleIptvFavorite` 对同一频道稳定键在约 **450ms** 内去抖，减轻遥控器长按与触摸长按同时触发时的重复切换。
+
 ## [1.3.5] - 2026-04-09
 
 - **播放器**：**Media3（ExoPlayer）** 由 **1.3.1** 升级至 **1.10.0**。新版 RTSP 栈含多项修复与行为改进（例如 SETUP 走 UDP 返回 461 时改试 TCP、RTP 分包与鉴权等），有利于运营商内网 `rtsp://` 源；HLS/DASH 等亦随主线修复受益。请在常用设备上回归直播与换台。

@@ -7,6 +7,7 @@ import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
+import android.os.SystemClock
 import com.vesaa.mytv.AppGlobal
 import com.vesaa.mytv.data.entities.Iptv
 import com.vesaa.mytv.data.work.EpgRefreshWorkScheduler
@@ -168,9 +169,18 @@ class LeanbackSettingsViewModel : ViewModel() {
         return iptvChannelFavoriteEntries.any { it.stableKey() == key }
     }
 
+    private var lastIptvFavoriteToggleKey: String? = null
+    private var lastIptvFavoriteToggleElapsedMs: Long = 0L
+
     /** 与列表中某频道同一稳定键时移除，否则按当前订阅头快照新增 */
     fun toggleIptvFavorite(iptv: Iptv) {
         val key = IptvFavoriteEntry.stableKeyFrom(iptv.urlList, iptv.channelName)
+        val now = SystemClock.elapsedRealtime()
+        if (key == lastIptvFavoriteToggleKey && now - lastIptvFavoriteToggleElapsedMs < 450L) {
+            return
+        }
+        lastIptvFavoriteToggleKey = key
+        lastIptvFavoriteToggleElapsedMs = now
         val cur = iptvChannelFavoriteEntries
         if (cur.any { it.stableKey() == key }) {
             iptvChannelFavoriteEntries = cur.filter { it.stableKey() != key }

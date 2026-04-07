@@ -11,7 +11,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -22,15 +21,17 @@ import kotlinx.coroutines.flow.debounce
 import com.vesaa.mytv.ui.screens.leanback.components.LeanbackPadding
 import com.vesaa.mytv.ui.screens.leanback.main.LeanbackMainScreen
 import com.vesaa.mytv.ui.screens.leanback.toast.LeanbackToastScreen
-import com.vesaa.mytv.ui.screens.leanback.toast.LeanbackToastState
+import com.vesaa.mytv.ui.screens.leanback.toast.rememberLeanbackToastState
 
 @Composable
 fun LeanbackApp(
     modifier: Modifier = Modifier,
     onBackPressed: () -> Unit = {},
 ) {
-    val context = LocalContext.current
     val doubleBackPressedExitState = rememberLeanbackDoubleBackPressedExitState()
+    // 必须在 MainScreen 之前初始化：全局 LeanbackToastState.I 在 remember 中赋值，
+    // 否则首帧或部分系统上可能在长按收藏等回调里尚未赋值导致崩溃。
+    val toastState = rememberLeanbackToastState()
 
     LeanbackMainScreen(
         modifier = modifier,
@@ -39,12 +40,12 @@ fun LeanbackApp(
                 onBackPressed()
             } else {
                 doubleBackPressedExitState.backPress()
-                LeanbackToastState.I.showToast("再按一次退出")
+                toastState.showToast("再按一次退出")
             }
         },
     )
     // 后绘制，避免被设置页 Dialog 等遮挡
-    LeanbackToastScreen()
+    LeanbackToastScreen(state = toastState)
 }
 
 

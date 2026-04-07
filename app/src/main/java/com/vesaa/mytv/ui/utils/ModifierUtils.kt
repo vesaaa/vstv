@@ -11,6 +11,7 @@ import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.unit.dp
+import kotlin.collections.buildMap
 import kotlin.math.absoluteValue
 
 fun Modifier.handleLeanbackKeyEvents(
@@ -105,41 +106,41 @@ fun Modifier.handleLeanbackKeyEvents(
     onSettings: () -> Unit = {},
     onNumber: (Int) -> Unit = {},
 ) = this then handleLeanbackKeyEvents(
-    onKeyTap = mapOf(
-        KeyEvent.KEYCODE_DPAD_LEFT to onLeft,
-        KeyEvent.KEYCODE_DPAD_RIGHT to onRight,
-        KeyEvent.KEYCODE_DPAD_UP to onUp,
-        KeyEvent.KEYCODE_CHANNEL_UP to onUp,
-        KeyEvent.KEYCODE_DPAD_DOWN to onDown,
-        KeyEvent.KEYCODE_CHANNEL_DOWN to onDown,
+    onKeyTap = buildMap {
+        put(KeyEvent.KEYCODE_DPAD_LEFT, onLeft)
+        put(KeyEvent.KEYCODE_DPAD_RIGHT, onRight)
+        put(KeyEvent.KEYCODE_DPAD_UP, onUp)
+        put(KeyEvent.KEYCODE_CHANNEL_UP, onUp)
+        put(KeyEvent.KEYCODE_DPAD_DOWN, onDown)
+        put(KeyEvent.KEYCODE_CHANNEL_DOWN, onDown)
 
-        KeyEvent.KEYCODE_DPAD_CENTER to onSelect,
-        KeyEvent.KEYCODE_ENTER to onSelect,
-        KeyEvent.KEYCODE_NUMPAD_ENTER to onSelect,
+        put(KeyEvent.KEYCODE_DPAD_CENTER, onSelect)
+        put(KeyEvent.KEYCODE_ENTER, onSelect)
+        put(KeyEvent.KEYCODE_NUMPAD_ENTER, onSelect)
 
-        KeyEvent.KEYCODE_MENU to onSettings,
-        KeyEvent.KEYCODE_SETTINGS to onSettings,
-        KeyEvent.KEYCODE_HELP to onSettings,
-        KeyEvent.KEYCODE_H to onSettings,
+        put(KeyEvent.KEYCODE_MENU, onSettings)
+        put(KeyEvent.KEYCODE_SETTINGS, onSettings)
+        put(KeyEvent.KEYCODE_HELP, onSettings)
+        put(KeyEvent.KEYCODE_H, onSettings)
 
-        KeyEvent.KEYCODE_L to onLongSelect,
+        put(KeyEvent.KEYCODE_L, onLongSelect)
 
-        KeyEvent.KEYCODE_0 to { onNumber(0) },
-        KeyEvent.KEYCODE_1 to { onNumber(1) },
-        KeyEvent.KEYCODE_2 to { onNumber(2) },
-        KeyEvent.KEYCODE_3 to { onNumber(3) },
-        KeyEvent.KEYCODE_4 to { onNumber(4) },
-        KeyEvent.KEYCODE_5 to { onNumber(5) },
-        KeyEvent.KEYCODE_6 to { onNumber(6) },
-        KeyEvent.KEYCODE_7 to { onNumber(7) },
-        KeyEvent.KEYCODE_8 to { onNumber(8) },
-        KeyEvent.KEYCODE_9 to { onNumber(9) },
-    ).apply {
+        put(KeyEvent.KEYCODE_0) { onNumber(0) }
+        put(KeyEvent.KEYCODE_1) { onNumber(1) }
+        put(KeyEvent.KEYCODE_2) { onNumber(2) }
+        put(KeyEvent.KEYCODE_3) { onNumber(3) }
+        put(KeyEvent.KEYCODE_4) { onNumber(4) }
+        put(KeyEvent.KEYCODE_5) { onNumber(5) }
+        put(KeyEvent.KEYCODE_6) { onNumber(6) }
+        put(KeyEvent.KEYCODE_7) { onNumber(7) }
+        put(KeyEvent.KEYCODE_8) { onNumber(8) }
+        put(KeyEvent.KEYCODE_9) { onNumber(9) }
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N_MR1) {
-            KeyEvent.KEYCODE_SYSTEM_NAVIGATION_LEFT to onLeft
-            KeyEvent.KEYCODE_SYSTEM_NAVIGATION_RIGHT to onRight
-            KeyEvent.KEYCODE_SYSTEM_NAVIGATION_UP to onUp
-            KeyEvent.KEYCODE_SYSTEM_NAVIGATION_DOWN to onDown
+            put(KeyEvent.KEYCODE_SYSTEM_NAVIGATION_LEFT, onLeft)
+            put(KeyEvent.KEYCODE_SYSTEM_NAVIGATION_RIGHT, onRight)
+            put(KeyEvent.KEYCODE_SYSTEM_NAVIGATION_UP, onUp)
+            put(KeyEvent.KEYCODE_SYSTEM_NAVIGATION_DOWN, onDown)
         }
     },
     onKeyLongTap = mapOf(
