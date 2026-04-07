@@ -47,7 +47,7 @@ fun LeanbackSettingsCategoryAbout(
         item {
             LeanbackSettingsCategoryListItem(
                 headlineContent = "应用版本",
-                trailingContent = packageInfo.versionName,
+                trailingContent = packageInfo.versionName ?: "0.0.0",
             )
         }
 

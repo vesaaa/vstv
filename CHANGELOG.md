@@ -4,6 +4,10 @@
 
 > **说明**：本文件仍由人编写条目，**不会由机器人自动撰写内容**。推送 **Release 标签**（`v*.*.*`）时，GitHub Actions 会检查 `CHANGELOG.md` 中是否已有对应章节 **`## [x.y.z]`**（`x.y.z` 为标签去掉 `v`/`tv-` 及预发布后缀 `-…` 的核心版本）；**未写入则 Release 构建失败**，避免发版记录遗漏。若需对照历史，见 [GitHub Releases](https://github.com/vesaaa/vstv/releases)。
 
+## [1.4.3] - 2026-04-07
+
+- **构建修复**：修复 `SettingsCategoryAbout` 中 `packageInfo.versionName` 可空导致的 `LeanbackSettingsCategoryListItem` 参数匹配失败，避免 `compile*ReleaseKotlin` 编译报错。
+
 ## [1.4.2] - 2026-04-07
 
 - **构建链**：升级 **AGP** 至 `8.6.0`，与 `compileSdk 35` 正式兼容（项目 `Gradle 8.7` 已满足要求）。
