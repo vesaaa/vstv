@@ -35,7 +35,10 @@ fun LeanbackPanelPlayerInfo(
     ) {
         Row(modifier = modifier, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             PanelPlayerInfoLatency(latencyMsProvider = { metadataProvider().zapLatencyMs })
-            PanelPlayerInfoFps(videoFrameRateProvider = { metadataProvider().videoFrameRate })
+            PanelPlayerInfoFps(
+                videoFrameRateProvider = { metadataProvider().videoFrameRate },
+                videoRenderedFpsProvider = { metadataProvider().videoRenderedFps },
+            )
             PanelPlayerInfoNetSpeed()
         }
     }
@@ -57,10 +60,17 @@ private fun PanelPlayerInfoLatency(
 private fun PanelPlayerInfoFps(
     modifier: Modifier = Modifier,
     videoFrameRateProvider: () -> Float = { 0f },
+    videoRenderedFpsProvider: () -> Float = { 0f },
 ) {
     val view = LocalView.current
-    val videoFps = videoFrameRateProvider()
-    val videoFpsText = if (videoFps > 0.05f) videoFps.toInt().toString() else "N/A"
+    val declaredFps = videoFrameRateProvider()
+    val renderedFps = videoRenderedFpsProvider()
+    val effectiveVideoFps = when {
+        declaredFps > 0.05f -> declaredFps
+        renderedFps > 0.05f -> renderedFps
+        else -> 0f
+    }
+    val videoFpsText = if (effectiveVideoFps > 0.05f) effectiveVideoFps.toInt().toString() else "N/A"
     val deviceRefreshRate = view.display?.refreshRate ?: 0f
     val deviceFpsText = if (deviceRefreshRate > 1f) deviceRefreshRate.toInt().toString() else "N/A"
 

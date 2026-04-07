@@ -51,6 +51,7 @@ class LeanbackMedia3VideoPlayer(
     private var updatePositionJob: Job? = null
     private var latestZapStartElapsedMs: Long = 0L
     private var awaitingFirstReadyAfterPrepare: Boolean = false
+    private var lastRenderedFpsElapsedMs: Long = 0L
 
     /** 同一次播放会话内重试容器类型时沿用（收藏夹 per-entry 头等） */
     private var activeStreamRequestHeaders: String? = null
@@ -125,7 +126,8 @@ class LeanbackMedia3VideoPlayer(
         if (mediaSource != null) {
             latestZapStartElapsedMs = SystemClock.elapsedRealtime()
             awaitingFirstReadyAfterPrepare = true
-            metadata = metadata.copy(zapLatencyMs = null)
+            lastRenderedFpsElapsedMs = 0L
+            metadata = metadata.copy(zapLatencyMs = null, videoRenderedFps = 0f)
             triggerMetadata(metadata)
             contentTypeAttempts[contentType ?: Util.inferContentType(uri)] = true
             videoPlayer.setMediaSource(mediaSource)
@@ -250,6 +252,30 @@ class LeanbackMedia3VideoPlayer(
             initializationDurationMs: Long,
         ) {
             metadata = metadata.copy(audioDecoder = decoderName)
+            triggerMetadata(metadata)
+        }
+
+        override fun onVideoFrameProcessingOffset(
+            eventTime: AnalyticsListener.EventTime,
+            totalProcessingOffsetUs: Long,
+            frameCount: Int,
+        ) {
+            if (frameCount <= 0) return
+            val nowMs = SystemClock.elapsedRealtime()
+            val lastMs = lastRenderedFpsElapsedMs
+            lastRenderedFpsElapsedMs = nowMs
+            if (lastMs <= 0L) return
+            val dtMs = nowMs - lastMs
+            if (dtMs <= 0L) return
+
+            val instantFps = frameCount * 1000f / dtMs.toFloat()
+            val clamped = instantFps.coerceIn(1f, 240f)
+            val smoothed = if (metadata.videoRenderedFps > 0.1f) {
+                metadata.videoRenderedFps * 0.7f + clamped * 0.3f
+            } else {
+                clamped
+            }
+            metadata = metadata.copy(videoRenderedFps = smoothed)
             triggerMetadata(metadata)
         }
     }

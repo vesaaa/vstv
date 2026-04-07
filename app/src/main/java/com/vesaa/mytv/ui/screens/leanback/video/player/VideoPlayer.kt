@@ -156,6 +156,8 @@ abstract class LeanbackVideoPlayer(
         val videoColor: String = "",
         /** 视频帧率 */
         val videoFrameRate: Float = 0f,
+        /** 实时估算视频帧率（基于渲染帧统计） */
+        val videoRenderedFps: Float = 0f,
         /** 视频比特率 */
         val videoBitrate: Int = 0,
         /** 最近一次切台到首帧就绪耗时（毫秒）；未知为 null */
