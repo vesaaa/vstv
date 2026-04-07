@@ -4,6 +4,11 @@
 
 > **说明**：本文件仍由人编写条目，**不会由机器人自动撰写内容**。推送 **Release 标签**（`v*.*.*`）时，GitHub Actions 会检查 `CHANGELOG.md` 中是否已有对应章节 **`## [x.y.z]`**（`x.y.z` 为标签去掉 `v`/`tv-` 及预发布后缀 `-…` 的核心版本）；**未写入则 Release 构建失败**，避免发版记录遗漏。若需对照历史，见 [GitHub Releases](https://github.com/vesaaa/vstv/releases)。
 
+## [1.4.8] - 2026-04-07
+
+- **帧率采集修复**：将 FPS 兜底统计从 `onVideoFrameProcessingOffset` 调整为 `VideoFrameMetadataListener` 的实际渲染帧回调，提升部分直播源/设备上 FPS 采集命中率。
+- **稳定性**：增加渲染帧统计时间窗与闲置重置逻辑，减少 FPS 长时间 `N/A` 或异常跳变。
+
 ## [1.4.7] - 2026-04-07
 
 - **帧率显示优化**：当流未提供 `Format.frameRate` 时，新增基于渲染帧回调的实时 FPS 估算（平滑处理），降低视频帧率长期显示 `N/A` 的概率。

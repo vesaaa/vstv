@@ -25,6 +25,7 @@ import androidx.media3.exoplayer.rtsp.RtspMediaSource
 import androidx.media3.exoplayer.smoothstreaming.SsMediaSource
 import androidx.media3.exoplayer.source.ProgressiveMediaSource
 import androidx.media3.exoplayer.util.EventLogger
+import androidx.media3.exoplayer.video.VideoFrameMetadataListener
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -52,6 +53,8 @@ class LeanbackMedia3VideoPlayer(
     private var latestZapStartElapsedMs: Long = 0L
     private var awaitingFirstReadyAfterPrepare: Boolean = false
     private var lastRenderedFpsElapsedMs: Long = 0L
+    private var fpsWindowStartNs: Long = 0L
+    private var fpsWindowFrameCount: Int = 0
 
     /** 同一次播放会话内重试容器类型时沿用（收藏夹 per-entry 头等） */
     private var activeStreamRequestHeaders: String? = null
@@ -255,20 +258,21 @@ class LeanbackMedia3VideoPlayer(
             triggerMetadata(metadata)
         }
 
-        override fun onVideoFrameProcessingOffset(
-            eventTime: AnalyticsListener.EventTime,
-            totalProcessingOffsetUs: Long,
-            frameCount: Int,
-        ) {
-            if (frameCount <= 0) return
-            val nowMs = SystemClock.elapsedRealtime()
-            val lastMs = lastRenderedFpsElapsedMs
-            lastRenderedFpsElapsedMs = nowMs
-            if (lastMs <= 0L) return
-            val dtMs = nowMs - lastMs
-            if (dtMs <= 0L) return
+    }
 
-            val instantFps = frameCount * 1000f / dtMs.toFloat()
+    private val videoFrameMetadataListener = VideoFrameMetadataListener { presentationTimeUs, releaseTimeNs, format, mediaFormat ->
+        val nowMs = SystemClock.elapsedRealtime()
+        val lastMs = lastRenderedFpsElapsedMs
+        lastRenderedFpsElapsedMs = nowMs
+
+        if (fpsWindowStartNs <= 0L) {
+            fpsWindowStartNs = releaseTimeNs
+            fpsWindowFrameCount = 0
+        }
+        fpsWindowFrameCount += 1
+        val dtNs = releaseTimeNs - fpsWindowStartNs
+        if (dtNs >= 500_000_000L && fpsWindowFrameCount > 0) {
+            val instantFps = fpsWindowFrameCount * 1_000_000_000f / dtNs.toFloat()
             val clamped = instantFps.coerceIn(1f, 240f)
             val smoothed = if (metadata.videoRenderedFps > 0.1f) {
                 metadata.videoRenderedFps * 0.7f + clamped * 0.3f
@@ -276,6 +280,13 @@ class LeanbackMedia3VideoPlayer(
                 clamped
             }
             metadata = metadata.copy(videoRenderedFps = smoothed)
+            triggerMetadata(metadata)
+            fpsWindowStartNs = releaseTimeNs
+            fpsWindowFrameCount = 0
+        }
+
+        if (lastMs > 0L && nowMs - lastMs > 2500L && metadata.videoRenderedFps > 0f) {
+            metadata = metadata.copy(videoRenderedFps = 0f)
             triggerMetadata(metadata)
         }
     }
@@ -287,12 +298,14 @@ class LeanbackMedia3VideoPlayer(
         videoPlayer.addListener(playerListener)
         videoPlayer.addAnalyticsListener(metadataListener)
         videoPlayer.addAnalyticsListener(eventLogger)
+        videoPlayer.setVideoFrameMetadataListener(videoFrameMetadataListener)
     }
 
     override fun release() {
         videoPlayer.removeListener(playerListener)
         videoPlayer.removeAnalyticsListener(metadataListener)
         videoPlayer.removeAnalyticsListener(eventLogger)
+        videoPlayer.setVideoFrameMetadataListener(null)
         videoPlayer.release()
         super.release()
     }
