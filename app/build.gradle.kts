@@ -170,7 +170,7 @@ dependencies {
     implementation(libs.ijk.java)
     implementation(libs.ijk.armv7a)
     implementation(libs.ijk.arm64)
-    implementation(libs.ijk.x86.`64`)
+    implementation(libs.ijk.x8664)
 
     // 序列化
     implementation(libs.kotlinx.serialization)

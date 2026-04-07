@@ -54,7 +54,7 @@ androidx-work-runtime-ktx = { group = "androidx.work", name = "work-runtime-ktx"
 ijk-java = { module = "tv.danmaku.ijk.media:ijkplayer-java", version.ref = "ijk" }
 ijk-armv7a = { module = "tv.danmaku.ijk.media:ijkplayer-armv7a", version.ref = "ijk" }
 ijk-arm64 = { module = "tv.danmaku.ijk.media:ijkplayer-arm64", version.ref = "ijk" }
-ijk-x86-64 = { module = "tv.danmaku.ijk.media:ijkplayer-x86_64", version.ref = "ijk" }
+ijk-x8664 = { module = "tv.danmaku.ijk.media:ijkplayer-x86_64", version.ref = "ijk" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
