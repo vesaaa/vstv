@@ -7,6 +7,15 @@ import com.vesaa.mytv.data.entities.IptvList
 
 class M3uIptvParser : IptvParser {
 
+    /** 在「空格 + #EXTINF」处切开，保留每条以 #EXTINF 开头 */
+    private val extinfSplitRegex = Regex("""\s+(?=#EXTINF)""")
+
+    private val streamUrlPrefix =
+        Regex("""^(rtsp|https?|udp)://""", RegexOption.IGNORE_CASE)
+
+    private val streamUrlInExtinf =
+        Regex("""\b(rtsp|https?|udp)://[^\s#]+""", RegexOption.IGNORE_CASE)
+
     override fun isSupport(url: String, data: String): Boolean {
         val normalized = data.trimStart('\uFEFF')
         val first = normalized.lineSequence().firstOrNull { it.isNotBlank() }?.trim().orEmpty()
@@ -30,7 +39,7 @@ class M3uIptvParser : IptvParser {
             val nextLooksLikeUrl =
                 next.isNotBlank() &&
                     !next.startsWith("#") &&
-                    STREAM_URL_PREFIX.containsMatchIn(next)
+                    streamUrlPrefix.containsMatchIn(next)
 
             var url = if (nextLooksLikeUrl) next else ""
             if (url.isBlank()) {
@@ -93,7 +102,7 @@ class M3uIptvParser : IptvParser {
                 out.add(line.trim())
                 continue
             }
-            val parts = line.split(EXTINF_SPLIT_REGEX).map { it.trim() }.filter { it.isNotBlank() }
+            val parts = line.split(extinfSplitRegex).map { it.trim() }.filter { it.isNotBlank() }
             if (parts.size > 1) {
                 out.addAll(parts)
             } else {
@@ -117,18 +126,7 @@ class M3uIptvParser : IptvParser {
      * 说明：播放器侧目前对 **udp://** 组播未做专门支持，解析出来也可能无法播放。
      */
     private fun extractStreamUrlFromExtinfLine(extinfLine: String): String {
-        val m = STREAM_URL_IN_EXTINF.find(extinfLine) ?: return ""
+        val m = streamUrlInExtinf.find(extinfLine) ?: return ""
         return m.value.trim()
-    }
-
-    companion object {
-        /** 在「空格 + #EXTINF」处切开，保留每条以 #EXTINF 开头 */
-        private val EXTINF_SPLIT_REGEX = Regex("""\s+(?=#EXTINF)""")
-
-        private val STREAM_URL_PREFIX =
-            Regex("""^(rtsp|https?|udp)://""", RegexOption.IGNORE_CASE)
-
-        private val STREAM_URL_IN_EXTINF =
-            Regex("""\b(rtsp|https?|udp)://[^\s#]+""", RegexOption.IGNORE_CASE)
     }
 }
