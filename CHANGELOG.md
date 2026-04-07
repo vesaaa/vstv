@@ -4,6 +4,10 @@
 
 > **说明**：本文件仍由人编写条目，**不会由机器人自动撰写内容**。推送 **Release 标签**（`v*.*.*`）时，GitHub Actions 会检查 `CHANGELOG.md` 中是否已有对应章节 **`## [x.y.z]`**（`x.y.z` 为标签去掉 `v`/`tv-` 及预发布后缀 `-…` 的核心版本）；**未写入则 Release 构建失败**，避免发版记录遗漏。若需对照历史，见 [GitHub Releases](https://github.com/vesaaa/vstv/releases)。
 
+## [1.3.5] - 2026-04-09
+
+- **播放器**：**Media3（ExoPlayer）** 由 **1.3.1** 升级至 **1.10.0**。新版 RTSP 栈含多项修复与行为改进（例如 SETUP 走 UDP 返回 461 时改试 TCP、RTP 分包与鉴权等），有利于运营商内网 `rtsp://` 源；HLS/DASH 等亦随主线修复受益。请在常用设备上回归直播与换台。
+
 ## [1.3.4] - 2026-04-09
 
 - **直播源**：`M3uIptvParser` 精简结构（内联同行 URL 提取、`IptvResponseItem` 置于类末尾），避免部分 Kotlin 编译环境对成员顺序/KDoc 解析异常导致 Release 失败。

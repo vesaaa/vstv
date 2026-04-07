@@ -27,7 +27,7 @@ fun semverToVersionCode(versionName: String): Int {
         parts[2].coerceIn(0, 999)
 }
 
-    val defaultVersionName = "1.3.4"
+    val defaultVersionName = "1.3.5"
 val resolvedVersionName = releaseVersion.ifEmpty { defaultVersionName }
 val resolvedVersionCode =
     (project.findProperty("versionCode") as String?)?.toIntOrNull()
@@ -38,7 +38,7 @@ val ciUseDebugSigning = project.hasProperty("ciUseDebugSigning")
 
 android {
     namespace = "com.vesaa.mytv"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.vesaa.mytv"
