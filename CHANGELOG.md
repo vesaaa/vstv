@@ -4,6 +4,11 @@
 
 > **说明**：本文件仍由人编写条目，**不会由机器人自动撰写内容**。推送 **Release 标签**（`v*.*.*`）时，GitHub Actions 会检查 `CHANGELOG.md` 中是否已有对应章节 **`## [x.y.z]`**（`x.y.z` 为标签去掉 `v`/`tv-` 及预发布后缀 `-…` 的核心版本）；**未写入则 Release 构建失败**，避免发版记录遗漏。若需对照历史，见 [GitHub Releases](https://github.com/vesaaa/vstv/releases)。
 
+## [1.4.9] - 2026-04-07
+
+- **编译修复**：修复 `Media3VideoPlayer.release()` 中将 `VideoFrameMetadataListener` 置 `null` 导致的 Kotlin 编译错误（当前 API 参数为非空）。
+- **兼容处理**：释放阶段改为设置空实现监听器，保持类型安全并避免构建失败。
+
 ## [1.4.8] - 2026-04-07
 
 - **帧率采集修复**：将 FPS 兜底统计从 `onVideoFrameProcessingOffset` 调整为 `VideoFrameMetadataListener` 的实际渲染帧回调，提升部分直播源/设备上 FPS 采集命中率。

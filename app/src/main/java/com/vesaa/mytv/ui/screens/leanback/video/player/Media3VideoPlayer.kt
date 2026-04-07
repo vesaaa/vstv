@@ -291,6 +291,8 @@ class LeanbackMedia3VideoPlayer(
         }
     }
 
+    private val noopVideoFrameMetadataListener = VideoFrameMetadataListener { _, _, _, _ -> }
+
     private val eventLogger = EventLogger()
 
     override fun initialize() {
@@ -305,7 +307,7 @@ class LeanbackMedia3VideoPlayer(
         videoPlayer.removeListener(playerListener)
         videoPlayer.removeAnalyticsListener(metadataListener)
         videoPlayer.removeAnalyticsListener(eventLogger)
-        videoPlayer.setVideoFrameMetadataListener(null)
+        videoPlayer.setVideoFrameMetadataListener(noopVideoFrameMetadataListener)
         videoPlayer.release()
         super.release()
     }
