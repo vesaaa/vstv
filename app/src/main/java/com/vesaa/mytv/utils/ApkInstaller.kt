@@ -239,10 +239,11 @@ object ApkInstaller {
     /** 供 [PackageInstallResultReceiver] 在会话安装误报失败时调用（与 [installApk] 内回退逻辑一致） */
     internal fun installWithIntentView(context: Context, sourceFile: File) {
         val appCtx = context.applicationContext
+        val launchContext = context
         try {
             val uri = prepareUriForInstall(appCtx, sourceFile)
             Handler(Looper.getMainLooper()).post {
-                if (!tryLaunchSystemPackageInstallers(appCtx, uri)) {
+                if (!tryLaunchSystemPackageInstallers(launchContext, uri)) {
                     Log.e(TAG, "未找到可处理 APK 的安装界面")
                     Toast.makeText(
                         appCtx,
