@@ -32,7 +32,7 @@ class LeanbackMainContentState(
 ) : Loggable() {
     enum class ChangeReason { INIT, USER, AUTO_RETRY, CUTOFF_RETRY }
 
-    /** 用户手动切台后的一小段保护窗口：忽略迟到错误，避免旧会话错误串扰到新频道。 */
+    /** 用户手动切台后的一小段保护窗口：忽略迟到错误/断流重试，避免旧会话回调串扰到新频道。 */
     private var suppressAutoRetryUntilElapsedMs: Long = 0L
 
     /** 与 [rememberLeanbackMainContentState] 首次传入一致；后续由 [updateIptvGroupList] 与界面同步（避免 remember 无 key 时永远停留在空列表） */
@@ -140,7 +140,9 @@ class LeanbackMainContentState(
         }
 
         videoPlayerState.onCutoff {
-            if (_currentIptv.urlList.isNotEmpty()) {
+            val now = SystemClock.elapsedRealtime()
+            val suppressAutoRetry = now < suppressAutoRetryUntilElapsedMs
+            if (_currentIptv.urlList.isNotEmpty() && !suppressAutoRetry) {
                 changeCurrentIptv(_currentIptv, _currentIptvUrlIdx, reason = ChangeReason.CUTOFF_RETRY)
             }
         }
@@ -193,7 +195,7 @@ class LeanbackMainContentState(
 
         // 用户手动切台（尤其切组后）时，短时间内忽略自动轮询，防止旧错误回调串扰到新频道。
         if (reason == ChangeReason.USER && iptv != _currentIptv) {
-            suppressAutoRetryUntilElapsedMs = SystemClock.elapsedRealtime() + 1800L
+            suppressAutoRetryUntilElapsedMs = SystemClock.elapsedRealtime() + 3000L
         }
 
         if (iptv == _currentIptv && urlIdx == null) return

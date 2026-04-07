@@ -36,6 +36,8 @@ class LeanbackVideoPlayerState(
 
     fun prepare(url: String, streamRequestHeaders: String? = null) {
         error = null
+        // 新播放请求前先停掉旧会话，降低旧错误回调串扰到新频道的概率。
+        instance.onDeactivate()
         instance.prepare(url, streamRequestHeaders)
     }
 
