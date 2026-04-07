@@ -18,7 +18,7 @@
 
 如果你觉得本项目好用，欢迎自愿打赏支持：
 
-<img src="./shangzan.jpg" alt="赞赏码" />
+<img src="./shangzan.jpg" alt="赞赏码" width="50%" />
 
 ---
 
