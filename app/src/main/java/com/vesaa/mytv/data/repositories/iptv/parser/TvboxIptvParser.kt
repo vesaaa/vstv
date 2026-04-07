@@ -26,13 +26,14 @@ class TvboxIptvParser : IptvParser {
                 if (res.size < 2) return@forEach
 
                 iptvList.addAll(res[1].split("#").map { url ->
+                    val normalizedUrl = normalizeChannelUrl(url)
                     IptvResponseItem(
                         name = res[0].trim(),
                         channelName = res[0].trim(),
                         groupName = groupName?.trim() ?: "其他",
-                        url = url.trim(),
+                        url = normalizedUrl,
                     )
-                })
+                }.filter { it.url.isNotBlank() })
             }
         }
 
@@ -57,4 +58,11 @@ class TvboxIptvParser : IptvParser {
         val groupName: String,
         val url: String,
     )
+
+    /** 兼容 `url$1920×1080` 这类分辨率后缀，仅保留可请求的真实地址 */
+    private fun normalizeChannelUrl(raw: String): String {
+        val trimmed = raw.trim()
+        if (trimmed.isBlank()) return ""
+        return trimmed.substringBefore("$").trim()
+    }
 }
