@@ -170,11 +170,37 @@ jobs:
           echo "=== 即将上传的 artifacts ==="
           ls -lh "$ROOT/artifacts/"
 
+      # GitHub 自带的 generate_release_notes 多为提交列表 +「Full Changelog」链接，可读性差。
+      # 正式说明以仓库根目录 CHANGELOG.md 中对应「## [x.y.z]」章节为准，写入 Release 正文。
+      - name: Prepare release notes from CHANGELOG
+        env:
+          VERSION_CORE: ${{ steps.ver.outputs.versionCore }}
+        run: |
+          python3 << 'PY'
+          import os
+          import pathlib
+          import re
+          import sys
+
+          core = os.environ["VERSION_CORE"]
+          text = pathlib.Path("CHANGELOG.md").read_text(encoding="utf-8")
+          pattern = rf"^## \[{re.escape(core)}\].*?(?=^## \[|\Z)"
+          m = re.search(pattern, text, re.MULTILINE | re.DOTALL)
+          if not m:
+              print(f"::error::未能从 CHANGELOG.md 提取 ## [{core}] 章节正文", file=sys.stderr)
+              sys.exit(1)
+          body = m.group(0).rstrip() + "\n"
+          pathlib.Path("release_body.md").write_text(body, encoding="utf-8")
+          print("---- release_body.md（预览，截断）----")
+          print(body[:4000] if len(body) > 4000 else body)
+          PY
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         if: success()
         with:
           files: artifacts/*
-          generate_release_notes: true
+          body_path: release_body.md
+          generate_release_notes: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
