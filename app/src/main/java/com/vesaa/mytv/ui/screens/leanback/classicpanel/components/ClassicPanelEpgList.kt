@@ -55,6 +55,8 @@ import kotlin.math.max
 fun LeanbackClassicPanelEpgList(
     modifier: Modifier = Modifier,
     epgProvider: () -> Epg? = { Epg() },
+    replaySupportedProvider: () -> Boolean = { false },
+    onSelectProgramme: (EpgProgramme) -> Unit = {},
     exitFocusRequesterProvider: () -> FocusRequester = { FocusRequester.Default },
     onUserAction: () -> Unit = {},
 ) {
@@ -107,6 +109,8 @@ fun LeanbackClassicPanelEpgList(
                 items(programmes) { programme ->
                     LeanbackClassicPanelEpgItem(
                         epgProgrammeProvider = { programme },
+                        replaySupportedProvider = replaySupportedProvider,
+                        onSelectProgramme = onSelectProgramme,
                     )
                 }
             }
@@ -139,9 +143,12 @@ fun LeanbackClassicPanelEpgList(
 private fun LeanbackClassicPanelEpgItem(
     modifier: Modifier = Modifier,
     epgProgrammeProvider: () -> EpgProgramme = { EpgProgramme() },
+    replaySupportedProvider: () -> Boolean = { false },
+    onSelectProgramme: (EpgProgramme) -> Unit = {},
 ) {
     val programme = epgProgrammeProvider()
     val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
+    val canReplay = replaySupportedProvider() && programme.endAt in 1 until System.currentTimeMillis()
 
     val focusRequester = remember { FocusRequester() }
     var isFocused by remember { mutableStateOf(false) }
@@ -159,6 +166,7 @@ private fun LeanbackClassicPanelEpgItem(
                 .handleLeanbackKeyEvents(
                     onSelect = {
                         focusRequester.requestFocus()
+                        if (canReplay) onSelectProgramme(programme)
                     },
                 ),
             colors = ListItemDefaults.colors(
@@ -168,7 +176,7 @@ private fun LeanbackClassicPanelEpgItem(
                 ),
             ),
             selected = programme.isLive(),
-            onClick = { },
+            onClick = { if (canReplay) onSelectProgramme(programme) },
             headlineContent = {
                 Text(
                     text = programme.title,
@@ -187,6 +195,14 @@ private fun LeanbackClassicPanelEpgItem(
             trailingContent = {
                 if (programme.isLive()) {
                     Icon(Icons.Default.PlayArrow, contentDescription = "playing")
+                } else if (canReplay) {
+                    Text(
+                        text = "回看",
+                        style = MaterialTheme.typography.labelSmall,
+                        modifier = Modifier
+                            .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.78f), MaterialTheme.shapes.extraSmall)
+                            .padding(horizontal = 6.dp, vertical = 2.dp),
+                    )
                 }
             },
         )

@@ -511,6 +511,10 @@ fun LeanbackMainContent(
                     },
                     onIptvGroupLongPressHide = onIptvGroupLongPressHide,
                     onIptvGroupLongPressAddToFavorites = onIptvGroupLongPressAddToFavorites,
+                    replaySupportedForIptv = { iptv -> IptvCatchup.supportCatchup(iptv) },
+                    onReplayByProgramme = { startMs, endMs ->
+                        playReplayWindow(startMs, endMs, "回看中 - 节目回看")
+                    },
                     onClose = { mainContentState.isPanelVisible = false },
                     iptvFavoriteEnableProvider = { settingsViewModel.iptvChannelFavoriteEnable }
                 )

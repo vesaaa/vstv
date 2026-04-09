@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -200,6 +201,8 @@ private fun QuickPanelEpgProgrammeRow(
         }
     }
 
+    val canReplay = replaySupported && programme.endAt in 1 until System.currentTimeMillis()
+
     CompositionLocalProvider(
         LocalContentColor provides if (isFocused) MaterialTheme.colorScheme.background
         else MaterialTheme.colorScheme.onBackground,
@@ -214,7 +217,7 @@ private fun QuickPanelEpgProgrammeRow(
                 .handleLeanbackKeyEvents(
                     onSelect = {
                         focusRequester.requestFocus()
-                        onSelect()
+                        if (canReplay) onSelect()
                     },
                 ),
             colors = ListItemDefaults.colors(
@@ -223,7 +226,7 @@ private fun QuickPanelEpgProgrammeRow(
                 selectedContainerColor = Color.Transparent,
             ),
             selected = programme.isLive(),
-            onClick = onSelect,
+            onClick = { if (canReplay) onSelect() },
             headlineContent = {
                 Text(
                     text = programme.title.ifBlank { "（无标题）" },
@@ -245,11 +248,18 @@ private fun QuickPanelEpgProgrammeRow(
                         Icons.Default.PlayArrow,
                         contentDescription = "正在播出",
                     )
-                } else if (replaySupported && programme.endAt in 1 until System.currentTimeMillis()) {
-                    Icon(
-                        Icons.Default.Schedule,
-                        contentDescription = "可回看",
-                    )
+                } else if (canReplay) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            Icons.Default.Schedule,
+                            contentDescription = "可回看",
+                        )
+                        Text(
+                            text = "回看",
+                            style = MaterialTheme.typography.labelSmall,
+                            modifier = Modifier.padding(start = 4.dp),
+                        )
+                    }
                 }
             },
         )
