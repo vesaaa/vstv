@@ -133,6 +133,7 @@ object HttpServer : Loggable() {
                         iptvSourceIsLocal = SP.iptvSourceUrl.trim()
                             .startsWith(SP.IPTV_LOCAL_SOURCE_URL),
                         iptvSourceRequestHeaders = SP.iptvSourceRequestHeaders,
+                        iptvChannelRequestHeaders = SP.iptvChannelRequestHeaders,
                         epgXmlUrl = SP.epgXmlUrl,
                         epgXmlRequestHeaders = SP.epgXmlRequestHeaders,
                         httpServerAdvertiseIp = SP.httpServerAdvertiseIp,
@@ -191,15 +192,26 @@ object HttpServer : Loggable() {
                 } else {
                     SP.iptvSourceRequestHeaders
                 }
+            val iptvChannelRequestHeaders =
+                if (body.has("iptvChannelRequestHeaders")) {
+                    normalizeIptvRequestHeadersInput(body.optString("iptvChannelRequestHeaders", ""))
+                } else {
+                    // 仅提交订阅 UA 时，默认同步到频道 UA，减少重复填写。
+                    iptvSourceRequestHeaders
+                }
             SP.writeIptvLocalUpload(trimmed)
-            SP.commitIptvWebSettings(SP.IPTV_LOCAL_SOURCE_URL, iptvSourceRequestHeaders)
+            SP.commitIptvWebSettings(
+                SP.IPTV_LOCAL_SOURCE_URL,
+                iptvSourceRequestHeaders,
+                iptvChannelRequestHeaders,
+            )
             IptvRepository().clearCache()
             WebPushConfigNotifier.notifyConfigMayHaveChanged()
             wrapResponse(response).send("success")
             return
         }
 
-        if (body.has("iptvSourceUrl") || body.has("iptvSourceRequestHeaders")) {
+        if (body.has("iptvSourceUrl") || body.has("iptvSourceRequestHeaders") || body.has("iptvChannelRequestHeaders")) {
             val iptvSourceUrl =
                 if (body.has("iptvSourceUrl")) body.optString("iptvSourceUrl", "") else SP.iptvSourceUrl
             val iptvSourceRequestHeaders =
@@ -208,10 +220,24 @@ object HttpServer : Loggable() {
                 } else {
                     SP.iptvSourceRequestHeaders
                 }
+            val iptvChannelRequestHeaders =
+                if (body.has("iptvChannelRequestHeaders")) {
+                    normalizeIptvRequestHeadersInput(body.optString("iptvChannelRequestHeaders", ""))
+                } else if (body.has("iptvSourceRequestHeaders")) {
+                    // 仅提交订阅 UA 时，默认同步到频道 UA，减少重复填写。
+                    iptvSourceRequestHeaders
+                } else {
+                    SP.iptvChannelRequestHeaders
+                }
             val iptvChanged = SP.iptvSourceUrl != iptvSourceUrl ||
-                SP.iptvSourceRequestHeaders != iptvSourceRequestHeaders
+                SP.iptvSourceRequestHeaders != iptvSourceRequestHeaders ||
+                SP.iptvChannelRequestHeaders != iptvChannelRequestHeaders
             if (iptvChanged) {
-                SP.commitIptvWebSettings(iptvSourceUrl, iptvSourceRequestHeaders)
+                SP.commitIptvWebSettings(
+                    iptvSourceUrl,
+                    iptvSourceRequestHeaders,
+                    iptvChannelRequestHeaders,
+                )
                 IptvRepository().clearCache()
             }
         }
@@ -248,7 +274,7 @@ object HttpServer : Loggable() {
             }
         }
 
-        if (body.has("iptvSourceUrl") || body.has("iptvSourceRequestHeaders") ||
+        if (body.has("iptvSourceUrl") || body.has("iptvSourceRequestHeaders") || body.has("iptvChannelRequestHeaders") ||
             body.has("epgXmlUrl") || body.has("epgXmlRequestHeaders")
         ) {
             WebPushConfigNotifier.notifyConfigMayHaveChanged()
@@ -271,6 +297,7 @@ private data class AllSettings(
     val iptvSourceUrl: String,
     val iptvSourceIsLocal: Boolean = false,
     val iptvSourceRequestHeaders: String = "",
+    val iptvChannelRequestHeaders: String = "",
     val epgXmlUrl: String = "",
     val epgXmlRequestHeaders: String = "",
     val httpServerAdvertiseIp: String = "",

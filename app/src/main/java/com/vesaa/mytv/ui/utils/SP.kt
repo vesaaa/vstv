@@ -99,6 +99,9 @@ object SP {
         /** 直播源拉取时附加的 HTTP 请求头（多行 Name: Value） */
         IPTV_SOURCE_REQUEST_HEADERS,
 
+        /** 播放频道流时附加的 HTTP 请求头（多行 Name: Value） */
+        IPTV_CHANNEL_REQUEST_HEADERS,
+
         /** 各订阅 URL 对应的请求头（JSON 对象） */
         IPTV_SOURCE_HEADERS_BY_URL_JSON,
 
@@ -246,12 +249,18 @@ object SP {
         get() = sp.getString(KEY.IPTV_SOURCE_REQUEST_HEADERS.name, "") ?: ""
         set(value) = sp.edit().putString(KEY.IPTV_SOURCE_REQUEST_HEADERS.name, value).apply()
 
+    /** 播放频道流时使用的额外请求头（每行「Name: Value」；单行无冒号时视为仅 User-Agent 取值） */
+    var iptvChannelRequestHeaders: String
+        get() = sp.getString(KEY.IPTV_CHANNEL_REQUEST_HEADERS.name, "") ?: ""
+        set(value) = sp.edit().putString(KEY.IPTV_CHANNEL_REQUEST_HEADERS.name, value).apply()
+
     /**
-     * 播放频道流时的 HTTP User-Agent：与 [iptvSourceRequestHeaders] 中的 User-Agent 一致；
-     * 未配置 User-Agent 时使用 [Constants.VIDEO_PLAYER_USER_AGENT]。
+     * 播放频道流时的 HTTP User-Agent：优先 [iptvChannelRequestHeaders]，为空时回退 [iptvSourceRequestHeaders]；
+     * 仍未配置时使用 [Constants.VIDEO_PLAYER_USER_AGENT]。
      */
     fun playbackHttpUserAgent(): String {
-        val map = normalizeIptvRequestHeadersInput(iptvSourceRequestHeaders).parseHttpHeaderLines()
+        val raw = iptvChannelRequestHeaders.ifBlank { iptvSourceRequestHeaders }
+        val map = normalizeIptvRequestHeadersInput(raw).parseHttpHeaderLines()
         val ua = map.entries.firstOrNull { it.key.equals("User-Agent", ignoreCase = true) }
             ?.value?.trim()
         return ua?.takeIf { it.isNotEmpty() } ?: Constants.VIDEO_PLAYER_USER_AGENT
@@ -292,7 +301,11 @@ object SP {
     /**
      * 网页/扫码推送直播源后同步落盘（[apply] 异步可能导致用户立刻杀进程时配置未写入）。
      */
-    fun commitIptvWebSettings(url: String, requestHeaders: String) {
+    fun commitIptvWebSettings(
+        url: String,
+        requestHeaders: String,
+        channelRequestHeaders: String = requestHeaders,
+    ) {
         val u = url.trim()
         if (!u.startsWith(IPTV_LOCAL_SOURCE_URL)) {
             clearIptvLocalUpload()
@@ -312,6 +325,7 @@ object SP {
         sp.edit()
             .putString(KEY.IPTV_SOURCE_URL.name, url)
             .putString(KEY.IPTV_SOURCE_REQUEST_HEADERS.name, requestHeaders)
+            .putString(KEY.IPTV_CHANNEL_REQUEST_HEADERS.name, channelRequestHeaders)
             .putString(KEY.IPTV_SOURCE_HEADERS_BY_URL_JSON.name, spJson.encodeToString(map))
             .commit()
         if (prevUrl != url.trim()) {
@@ -380,16 +394,11 @@ object SP {
         set(value) = sp.edit().putStringSet(KEY.IPTV_CHANNEL_FAVORITE_LIST.name, value).apply()
 
     /**
-     * 当前订阅拉流用的请求头快照：优先该订阅 URL 在 JSON 里绑定的头，否则全局 [iptvSourceRequestHeaders]。
+     * 当前频道拉流用的请求头快照：优先 [iptvChannelRequestHeaders]，为空时回退 [iptvSourceRequestHeaders]。
      * 写入收藏时固化，删除源后仍按快照播放。
      */
     fun currentIptvSourceRequestHeadersSnapshot(): String {
-        val url = iptvSourceUrl.trim()
-        if (url.isNotEmpty()) {
-            val per = getIptvSourceHeadersForUrl(url).trim()
-            if (per.isNotEmpty()) return per
-        }
-        return iptvSourceRequestHeaders.trim()
+        return iptvChannelRequestHeaders.ifBlank { iptvSourceRequestHeaders }.trim()
     }
 
     fun loadFavoriteEntries(): List<IptvFavoriteEntry> {

@@ -95,6 +95,14 @@ class LeanbackSettingsViewModel : ViewModel() {
             SP.iptvSourceRequestHeaders = value
         }
 
+    private var _iptvChannelRequestHeaders by mutableStateOf(SP.iptvChannelRequestHeaders)
+    var iptvChannelRequestHeaders: String
+        get() = _iptvChannelRequestHeaders
+        set(value) {
+            _iptvChannelRequestHeaders = value
+            SP.iptvChannelRequestHeaders = value
+        }
+
     private var _httpServerAdvertiseIp by mutableStateOf(SP.httpServerAdvertiseIp)
     var httpServerAdvertiseIp: String
         get() = _httpServerAdvertiseIp
@@ -199,6 +207,7 @@ class LeanbackSettingsViewModel : ViewModel() {
     fun reloadWebPushedStreamingConfigFromDisk() {
         _iptvSourceUrl = SP.iptvSourceUrl
         _iptvSourceRequestHeaders = SP.iptvSourceRequestHeaders
+        _iptvChannelRequestHeaders = SP.iptvChannelRequestHeaders
         _iptvSourceUrlHistoryList = SP.iptvSourceUrlHistoryList
         _epgXmlUrl = SP.epgXmlUrl
         _epgXmlRequestHeaders = SP.epgXmlRequestHeaders
