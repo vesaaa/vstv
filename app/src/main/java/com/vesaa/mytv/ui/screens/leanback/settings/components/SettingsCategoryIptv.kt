@@ -132,12 +132,17 @@ fun LeanbackSettingsCategoryIptv(
                             },
                         )
                         append("\n")
-                        append("User-Agent：")
-                        val raw = settingsViewModel.iptvSourceRequestHeaders.ifBlank {
+                        val subRaw = settingsViewModel.iptvSourceRequestHeaders.ifBlank {
                             SP.getIptvSourceHeadersForUrl(settingsViewModel.iptvSourceUrl)
                         }
-                        val ua = userAgentValueFromHeadersText(raw)
-                        append(if (ua.isBlank()) "（未配置）" else ua)
+                        val subUa = userAgentValueFromHeadersText(subRaw)
+                        append("拉取订阅 User-Agent：")
+                        append(if (subUa.isBlank()) "（未配置）" else subUa)
+                        append("\n")
+                        val chRaw = settingsViewModel.iptvChannelRequestHeaders.ifBlank { subRaw }
+                        val chUa = userAgentValueFromHeadersText(chRaw)
+                        append("播放频道 User-Agent：")
+                        append(if (chUa.isBlank()) "（未配置）" else chUa)
                     }
                 } else {
                     "未设置默认：请扫码或网页推送；多源时在列表中选「当前默认」"
@@ -155,6 +160,7 @@ fun LeanbackSettingsCategoryIptv(
                 },
                 currentIptvSourceProvider = { settingsViewModel.iptvSourceUrl },
                 currentIptvRequestHeadersProvider = { settingsViewModel.iptvSourceRequestHeaders },
+                currentIptvChannelRequestHeadersProvider = { settingsViewModel.iptvChannelRequestHeaders },
                 onSelected = {
                     showDialog = false
                     if (settingsViewModel.iptvSourceUrl != it) {
@@ -193,12 +199,18 @@ private fun LeanbackSettingsIptvSourceHistoryDialog(
     iptvSourceHistoryProvider: () -> ImmutableList<String> = { persistentListOf() },
     currentIptvSourceProvider: () -> String = { "" },
     currentIptvRequestHeadersProvider: () -> String = { "" },
+    currentIptvChannelRequestHeadersProvider: () -> String = { "" },
     onSelected: (String) -> Unit = {},
     onDeleted: (String) -> Unit = {},
 ) {
     val iptvSourceHistory = listOf("") + iptvSourceHistoryProvider()
     val currentIptvSource = currentIptvSourceProvider()
     val currentIptvRequestHeaders = currentIptvRequestHeadersProvider()
+    val currentIptvChannelRequestHeaders = currentIptvChannelRequestHeadersProvider()
+    val globalPlaybackUaDisplay = {
+        val chRaw = currentIptvChannelRequestHeaders.ifBlank { currentIptvRequestHeaders }
+        userAgentValueFromHeadersText(chRaw).let { v -> if (v.isBlank()) "（未配置）" else v }
+    }
 
     if (showDialogProvider()) {
         AlertDialog(
@@ -228,7 +240,7 @@ private fun LeanbackSettingsIptvSourceHistoryDialog(
                             }
                             else -> SP.getIptvSourceHeadersForUrl(source)
                         }
-                        val uaDisplay = userAgentValueFromHeadersText(headersText)
+                        val subUaDisplay = userAgentValueFromHeadersText(headersText)
                             .let { v -> if (v.isBlank()) "（未配置）" else v }
 
                         LaunchedEffect(Unit) {
@@ -268,12 +280,14 @@ private fun LeanbackSettingsIptvSourceHistoryDialog(
                             supportingContent = {
                                 androidx.tv.material3.Text(
                                     text = if (source.isBlank()) {
-                                        "User-Agent：（无订阅，不适用）"
+                                        "拉取订阅 User-Agent：（无订阅，不适用）\n播放频道 User-Agent：${
+                                            globalPlaybackUaDisplay()
+                                        }"
                                     } else {
-                                        "User-Agent：$uaDisplay"
+                                        "拉取订阅 User-Agent：$subUaDisplay\n播放频道 User-Agent：${globalPlaybackUaDisplay()}"
                                     },
                                     modifier = Modifier.fillMaxWidth(),
-                                    maxLines = if (isFocused) Int.MAX_VALUE else 2,
+                                    maxLines = if (isFocused) Int.MAX_VALUE else 4,
                                 )
                             },
                             trailingContent = {
