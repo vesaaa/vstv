@@ -91,6 +91,23 @@ class LeanbackMainContentState(
     /** 换台目标若需独立拉流头（仅收藏模式下的条目），由此解析；否则 null */
     private var navStreamHeadersForIptv: (Iptv) -> String? = { null }
 
+    private fun String?.normHeaderKey(): String = this?.trim().orEmpty()
+
+    /**
+     * 在频道导航顺序中定位当前频道下标：
+     * 1) 优先按「频道 + 当前生效请求头」联合匹配，避免同频道不同头时命中错误条目；
+     * 2) 再回退到仅按频道匹配（兼容旧行为）。
+     */
+    private fun findCurrentOrderIndex(order: List<Iptv>): Int {
+        if (order.isEmpty()) return -1
+        val curHeader = streamRequestHeadersForPlayback.normHeaderKey()
+        val idxByIptvAndHeader = order.indexOfFirst { item ->
+            item == _currentIptv && navStreamHeadersForIptv(item).normHeaderKey() == curHeader
+        }
+        if (idxByIptvAndHeader >= 0) return idxByIptvAndHeader
+        return order.indexOfFirst { it == _currentIptv }
+    }
+
     fun syncChannelNavigation(
         order: List<Iptv>,
         streamHeadersForIptv: (Iptv) -> String?,
@@ -151,7 +168,7 @@ class LeanbackMainContentState(
     private fun getPrevIptv(): Iptv {
         val order = channelNavigationOrder
         if (order.isNotEmpty()) {
-            val i = order.indexOfFirst { it == _currentIptv }
+            val i = findCurrentOrderIndex(order)
             return if (i >= 0) {
                 order.getOrElse(i - 1) { order.last() }
             } else {
@@ -167,7 +184,7 @@ class LeanbackMainContentState(
     private fun getNextIptv(): Iptv {
         val order = channelNavigationOrder
         if (order.isNotEmpty()) {
-            val i = order.indexOfFirst { it == _currentIptv }
+            val i = findCurrentOrderIndex(order)
             return if (i >= 0) {
                 order.getOrElse(i + 1) { order.first() }
             } else {

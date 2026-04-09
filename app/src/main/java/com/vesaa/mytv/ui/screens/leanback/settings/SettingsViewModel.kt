@@ -10,7 +10,6 @@ import androidx.lifecycle.ViewModel
 import android.os.SystemClock
 import com.vesaa.mytv.AppGlobal
 import com.vesaa.mytv.data.entities.Iptv
-import com.vesaa.mytv.data.entities.Iptv
 import com.vesaa.mytv.data.work.EpgRefreshWorkScheduler
 import com.vesaa.mytv.data.entities.IptvFavoriteEntry
 import com.vesaa.mytv.ui.utils.SP
