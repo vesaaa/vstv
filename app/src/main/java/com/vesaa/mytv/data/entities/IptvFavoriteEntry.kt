@@ -13,6 +13,9 @@ data class IptvFavoriteEntry(
     val tvgId: String = "",
     /** 与 [Iptv.logoUrl] 一致，收藏时快照 */
     val logoUrl: String = "",
+    val catchup: String = "",
+    val catchupSource: String = "",
+    val catchupDays: Int = 0,
     val urlList: List<String> = emptyList(),
     /** 来源直播源 key（用于按源区分精选/多源合并）；历史数据可能为空。 */
     val sourceKey: String = "",
@@ -27,6 +30,9 @@ data class IptvFavoriteEntry(
         channelName = channelName,
         tvgId = tvgId,
         logoUrl = logoUrl,
+        catchup = catchup,
+        catchupSource = catchupSource,
+        catchupDays = catchupDays,
         urlList = urlList,
     )
 
@@ -44,6 +50,9 @@ data class IptvFavoriteEntry(
                 channelName = iptv.channelName,
                 tvgId = iptv.tvgId,
                 logoUrl = iptv.logoUrl.trim(),
+                catchup = iptv.catchup.trim(),
+                catchupSource = iptv.catchupSource.trim(),
+                catchupDays = iptv.catchupDays,
                 urlList = iptv.urlList,
                 sourceKey = sourceKey.trim(),
                 playbackRequestHeaders = playbackRequestHeaders.trim(),

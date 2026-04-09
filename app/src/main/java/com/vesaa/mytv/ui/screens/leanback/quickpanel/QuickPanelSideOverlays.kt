@@ -98,6 +98,7 @@ fun LeanbackQuickPanelEpgLeftSheet(
     iptvProvider: () -> Iptv,
     epgProvider: () -> Epg,
     autoCloseState: PanelAutoCloseState,
+    onSelectProgramme: (EpgProgramme) -> Unit = {},
 ) {
     val iptv = iptvProvider()
     val epg = epgProvider()
@@ -157,6 +158,7 @@ fun LeanbackQuickPanelEpgLeftSheet(
                                 hasFocusedFlag = hasFocused,
                                 onFocusedLive = { hasFocused = true },
                                 autoCloseState = autoCloseState,
+                                onSelect = { onSelectProgramme(programme) },
                             )
                         }
                     } else {
@@ -182,6 +184,7 @@ private fun QuickPanelEpgProgrammeRow(
     hasFocusedFlag: Boolean,
     onFocusedLive: () -> Unit,
     autoCloseState: PanelAutoCloseState,
+    onSelect: () -> Unit,
 ) {
     var isFocused by remember { mutableStateOf(false) }
     val focusRequester = remember { FocusRequester() }
@@ -205,7 +208,10 @@ private fun QuickPanelEpgProgrammeRow(
                     if (isFocused) autoCloseState.active()
                 }
                 .handleLeanbackKeyEvents(
-                    onSelect = { focusRequester.requestFocus() },
+                    onSelect = {
+                        focusRequester.requestFocus()
+                        onSelect()
+                    },
                 ),
             colors = ListItemDefaults.colors(
                 containerColor = Color.Transparent,
@@ -213,7 +219,7 @@ private fun QuickPanelEpgProgrammeRow(
                 selectedContainerColor = Color.Transparent,
             ),
             selected = programme.isLive(),
-            onClick = { },
+            onClick = onSelect,
             headlineContent = {
                 Text(
                     text = programme.title.ifBlank { "（无标题）" },

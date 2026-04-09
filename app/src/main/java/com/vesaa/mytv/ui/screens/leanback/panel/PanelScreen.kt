@@ -53,6 +53,7 @@ fun LeanbackPanelScreen(
     epgListProvider: () -> EpgList = { EpgList() },
     currentIptvProvider: () -> Iptv = { Iptv() },
     currentIptvUrlIdxProvider: () -> Int = { 0 },
+    playbackStatusProvider: () -> String = { "" },
     videoPlayerMetadataProvider: () -> LeanbackVideoPlayer.Metadata = { LeanbackVideoPlayer.Metadata() },
     showProgrammeProgressProvider: () -> Boolean = { false },
     iptvFavoriteEnableProvider: () -> Boolean = { true },
@@ -95,6 +96,7 @@ fun LeanbackPanelScreen(
             epgListProvider = epgListProvider,
             currentIptvProvider = currentIptvProvider,
             currentIptvUrlIdxProvider = currentIptvUrlIdxProvider,
+            playbackStatusProvider = playbackStatusProvider,
             videoPlayerMetadataProvider = videoPlayerMetadataProvider,
             showProgrammeProgressProvider = showProgrammeProgressProvider,
             iptvFavoriteEnableProvider = iptvFavoriteEnableProvider,
@@ -150,6 +152,7 @@ private fun LeanbackPanelScreenBottom(
     epgListProvider: () -> EpgList = { EpgList() },
     currentIptvProvider: () -> Iptv = { Iptv() },
     currentIptvUrlIdxProvider: () -> Int = { 0 },
+    playbackStatusProvider: () -> String = { "" },
     videoPlayerMetadataProvider: () -> LeanbackVideoPlayer.Metadata = { LeanbackVideoPlayer.Metadata() },
     showProgrammeProgressProvider: () -> Boolean = { false },
     iptvFavoriteEnableProvider: () -> Boolean = { true },
@@ -177,7 +180,8 @@ private fun LeanbackPanelScreenBottom(
                 iptvUrlIdxProvider = currentIptvUrlIdxProvider,
                 currentProgrammesProvider = {
                     epgListProvider().currentProgrammes(currentIptvProvider())
-                }
+                },
+                playbackStatusProvider = playbackStatusProvider,
             )
 
             LeanbackPanelPlayerInfo(

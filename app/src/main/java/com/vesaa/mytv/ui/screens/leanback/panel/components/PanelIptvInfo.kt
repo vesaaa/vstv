@@ -28,10 +28,12 @@ fun LeanbackPanelIptvInfo(
     iptvProvider: () -> Iptv = { Iptv() },
     iptvUrlIdxProvider: () -> Int = { 0 },
     currentProgrammesProvider: () -> EpgProgrammeCurrent? = { null },
+    playbackStatusProvider: () -> String = { "" },
 ) {
     val iptv = iptvProvider()
     val iptvUrlIdx = iptvUrlIdxProvider()
     val currentProgrammes = currentProgrammesProvider()
+    val playbackStatus = playbackStatusProvider().trim()
 
     Column(modifier = modifier) {
         Row(verticalAlignment = Alignment.Bottom) {
@@ -64,6 +66,13 @@ fun LeanbackPanelIptvInfo(
                     if (iptv.urlList.size > 1) {
                         Text(
                             text = "${iptvUrlIdx + 1}/${iptv.urlList.size}",
+                            modifier = textModifier,
+                        )
+                    }
+
+                    if (playbackStatus.isNotEmpty()) {
+                        Text(
+                            text = playbackStatus,
                             modifier = textModifier,
                         )
                     }

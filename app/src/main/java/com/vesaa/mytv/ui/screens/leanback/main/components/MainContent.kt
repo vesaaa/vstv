@@ -55,6 +55,7 @@ import com.vesaa.mytv.ui.screens.leanback.video.rememberLeanbackVideoPlayerState
 import com.vesaa.mytv.ui.utils.SP
 import com.vesaa.mytv.ui.utils.handleLeanbackDragGestures
 import com.vesaa.mytv.ui.utils.handleLeanbackKeyEvents
+import com.vesaa.mytv.utils.IptvCatchup
 
 @Composable
 fun LeanbackMainContent(
@@ -77,6 +78,10 @@ fun LeanbackMainContent(
                 }
             }
         }
+    )
+    val mainContentState = rememberLeanbackMainContentState(
+        videoPlayerState = videoPlayerState,
+        iptvGroupList = iptvGroupList,
     )
     val favoritesOnlyUi =
         settingsViewModel.iptvChannelFavoriteEnable && settingsViewModel.iptvChannelFavoritesOnlyMode
@@ -122,6 +127,53 @@ fun LeanbackMainContent(
     val channelOrderList =
         if (favoritesOnlyUi) currentFavorites.map { it.toIptv() }
         else uiIptvGroupList.iptvList
+    val playReplayWindow: (Long, Long, String) -> Unit = replay@{ rawStartMs, rawEndMs, replayHint ->
+        val iptv = mainContentState.currentIptv
+        if (!IptvCatchup.supportCatchup(iptv)) {
+            LeanbackToastState.I.showToast("当前频道不支持回看")
+            return@replay
+        }
+        val maxHours = IptvCatchup.maxCatchupHours(iptv)
+        val window = IptvCatchup.clampWindow(
+            rawStartMs = rawStartMs,
+            rawEndMs = rawEndMs,
+            maxHours = maxHours,
+        )
+        if (window == null) {
+            LeanbackToastState.I.showToast("回看时间无效或超出范围")
+            return@replay
+        }
+        val idx = mainContentState.currentIptvUrlIdx.coerceIn(iptv.urlList.indices)
+        val baseUrl = iptv.urlList.getOrNull(idx).orEmpty()
+        val replayUrl = IptvCatchup.buildCatchupUrl(iptv, baseUrl, window)
+        if (replayUrl.isNullOrBlank()) {
+            LeanbackToastState.I.showToast("该源未提供回看地址模板")
+            return@replay
+        }
+        mainContentState.playCurrentIptvWithOverrideUrl(
+            overrideUrl = replayUrl,
+            streamRequestHeaders = resolveExtraStreamHeaders(iptv),
+            replayHint = replayHint,
+        )
+        LeanbackToastState.I.showToast("已开始回看")
+    }
+    val playbackStatusText =
+        if (mainContentState.playbackMode == LeanbackMainContentState.PlaybackMode.REPLAY) {
+            mainContentState.replayHint.ifBlank { "回看中" }
+        } else {
+            ""
+        }
+    var lastReplayError by remember { mutableStateOf("") }
+    LaunchedEffect(mainContentState.playbackMode, videoPlayerState.error) {
+        if (mainContentState.playbackMode != LeanbackMainContentState.PlaybackMode.REPLAY) {
+            lastReplayError = ""
+            return@LaunchedEffect
+        }
+        val err = videoPlayerState.error?.trim().orEmpty()
+        if (err.isBlank() || err == lastReplayError) return@LaunchedEffect
+        lastReplayError = err
+        LeanbackToastState.I.showToast(replayErrorTip(err))
+    }
 
     val onIptvGroupLongPressHide: (IptvGroup) -> Unit = { group ->
         val isSpecial = group.name == IptvGroup.FAVORITE_GROUP_NAME ||
@@ -144,11 +196,6 @@ fun LeanbackMainContent(
             LeanbackToastState.I.showToast("该分组频道已全部在精选中")
         }
     }
-
-    val mainContentState = rememberLeanbackMainContentState(
-        videoPlayerState = videoPlayerState,
-        iptvGroupList = uiIptvGroupList,
-    )
 
     LaunchedEffect(iptvGroupList) {
         IptvFavoriteMigration.runOnceIfNeeded(iptvGroupList)
@@ -418,6 +465,7 @@ fun LeanbackMainContent(
                     currentIptvProvider = { mainContentState.currentIptv },
                     currentIptvUrlIdxProvider = { mainContentState.currentIptvUrlIdx },
                     currentProgrammesProvider = { epgList.currentProgrammes(mainContentState.currentIptv) },
+                    playbackStatusProvider = { playbackStatusText },
                     showProgrammeProgressProvider = { settingsViewModel.uiShowEpgProgrammeProgress },
                 )
             }
@@ -429,6 +477,7 @@ fun LeanbackMainContent(
                     epgListProvider = { epgList },
                     currentIptvProvider = { mainContentState.currentIptv },
                     currentIptvUrlIdxProvider = { mainContentState.currentIptvUrlIdx },
+                    playbackStatusProvider = { playbackStatusText },
                     videoPlayerMetadataProvider = { videoPlayerState.metadata },
                     showProgrammeProgressProvider = { settingsViewModel.uiShowEpgProgrammeProgress },
                     onIptvSelected = { iptv, streamHeaders ->
@@ -468,6 +517,7 @@ fun LeanbackMainContent(
                     iptvGroupListProvider = { uiIptvGroupList },
                     epgListProvider = { epgList },
                     currentIptvProvider = { mainContentState.currentIptv },
+                    playbackStatusProvider = { playbackStatusText },
                     showProgrammeProgressProvider = { settingsViewModel.uiShowEpgProgrammeProgress },
                     onIptvSelected = { iptv, streamHeaders ->
                         mainContentState.changeCurrentIptv(
@@ -507,6 +557,7 @@ fun LeanbackMainContent(
                 currentIptvProvider = { mainContentState.currentIptv },
                 currentIptvUrlIdxProvider = { mainContentState.currentIptvUrlIdx },
                 currentProgrammesProvider = { epgList.currentProgrammes(mainContentState.currentIptv) },
+                    playbackStatusProvider = { playbackStatusText },
                 currentEpgProvider = {
                     epgList.firstOrNull { it.matchesIptv(mainContentState.currentIptv) } ?: Epg()
                 },
@@ -522,6 +573,27 @@ fun LeanbackMainContent(
                         iptv = mainContentState.currentIptv,
                         urlIdx = it,
                     )
+                },
+                catchupSupportedProvider = {
+                    IptvCatchup.supportCatchup(mainContentState.currentIptv)
+                },
+                isReplayActiveProvider = {
+                    mainContentState.playbackMode == LeanbackMainContentState.PlaybackMode.REPLAY
+                },
+                onBackToLive = {
+                    mainContentState.backToLive()
+                    LeanbackToastState.I.showToast("已返回直播")
+                },
+                catchupMaxHoursProvider = {
+                    IptvCatchup.maxCatchupHours(mainContentState.currentIptv)
+                },
+                onReplayByBackMinutes = { backMinutes ->
+                    val end = System.currentTimeMillis()
+                    val start = end - backMinutes * 60L * 1000L
+                    playReplayWindow(start, end, "回看中 -${backMinutes}分钟")
+                },
+                onReplayByProgramme = { startMs, endMs ->
+                    playReplayWindow(startMs, endMs, "回看中 - 节目回看")
                 },
                 subPanel = mainContentState.quickPanelSubPanel,
                 onSubPanelChange = { mainContentState.quickPanelSubPanel = it },
@@ -586,3 +658,15 @@ fun LeanbackBackPressHandledArea(
         .then(modifier),
     content = content,
 )
+
+private fun replayErrorTip(errorText: String): String {
+    val t = errorText.uppercase()
+    return when {
+        "BEHIND_LIVE_WINDOW" in t -> "回看时间窗已失效，请重新选择回看时间"
+        "PARSING_CONTAINER_UNSUPPORTED" in t || "UNSUPPORTED" in t ->
+            "回看流格式不受支持，请换其他频道或时间"
+        "HTTP" in t || "4" in t || "5" in t ->
+            "回看请求被服务端拒绝或链接失效"
+        else -> "回看播放失败，请尝试更短时长或返回直播"
+    }
+}

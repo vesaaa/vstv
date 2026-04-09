@@ -59,6 +59,7 @@ fun LeanbackClassicPanelIptvList(
     iptvListProvider: () -> IptvList = { IptvList() },
     epgListProvider: () -> EpgList = { EpgList() },
     initialIptvProvider: () -> Iptv = { Iptv() },
+    playbackStatusProvider: () -> String = { "" },
     onIptvSelected: (Iptv) -> Unit = {},
     onIptvFavoriteToggle: (Iptv) -> Unit = {},
     onIptvFocused: (Iptv, FocusRequester) -> Unit = { _, _ -> },
@@ -121,6 +122,7 @@ fun LeanbackClassicPanelIptvList(
             LeanbackClassicPanelIptvItem(
                 iptvProvider = { iptv },
                 epgProgrammeCurrentProvider = { epgListProvider().currentProgrammes(iptv) },
+                playbackStatusProvider = playbackStatusProvider,
                 focusRequesterProvider = { itemFocusRequesterList[index] },
                 isSelectedProvider = { isSelected },
                 initialFocusedProvider = { initialFocused },
@@ -156,6 +158,7 @@ private fun LeanbackClassicPanelIptvItem(
     modifier: Modifier = Modifier,
     iptvProvider: () -> Iptv = { Iptv() },
     epgProgrammeCurrentProvider: () -> EpgProgrammeCurrent? = { null },
+    playbackStatusProvider: () -> String = { "" },
     focusRequesterProvider: () -> FocusRequester = { FocusRequester() },
     isSelectedProvider: () -> Boolean = { false },
     initialFocusedProvider: () -> Boolean = { false },
@@ -169,6 +172,7 @@ private fun LeanbackClassicPanelIptvItem(
     val iptv = iptvProvider()
     val focusRequester = focusRequesterProvider()
     val currentProgramme = epgProgrammeCurrentProvider()?.primaryProgramme()
+    val playbackStatus = playbackStatusProvider().trim()
 
     var isFocused by remember { mutableStateOf(false) }
 
@@ -230,8 +234,13 @@ private fun LeanbackClassicPanelIptvItem(
                     Text(text = iptv.name, maxLines = 2)
                 },
                 supportingContent = {
+                    val prefix = if (isSelectedProvider() && playbackStatus.isNotEmpty()) {
+                        "$playbackStatus | "
+                    } else {
+                        ""
+                    }
                     Text(
-                        text = currentProgramme?.title ?: "无节目",
+                        text = "$prefix${currentProgramme?.title ?: "无节目"}",
                         style = MaterialTheme.typography.labelMedium,
                         maxLines = 1,
                         modifier = Modifier.alpha(0.8f),

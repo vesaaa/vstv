@@ -58,6 +58,9 @@ class M3uIptvParser : IptvParser {
             val logoUrl =
                 Regex("""tvg-logo="(.+?)"""").find(line)?.groupValues?.get(1)?.trim().orEmpty()
             val groupName = Regex("""group-title="(.+?)"""").find(line)?.groupValues?.get(1) ?: "其他"
+            val catchup = Regex("""catchup="(.+?)"""").find(line)?.groupValues?.get(1)?.trim().orEmpty()
+            val catchupSource = Regex("""catchup-source="(.+?)"""").find(line)?.groupValues?.get(1)?.trim().orEmpty()
+            val catchupDays = Regex("""catchup-days="(.+?)"""").find(line)?.groupValues?.get(1)?.trim()?.toIntOrNull() ?: 0
 
             iptvList.add(
                 IptvResponseItem(
@@ -67,6 +70,9 @@ class M3uIptvParser : IptvParser {
                     logoUrl = logoUrl,
                     groupName = groupName.trim(),
                     url = url,
+                    catchup = catchup,
+                    catchupSource = catchupSource,
+                    catchupDays = catchupDays,
                 )
             )
 
@@ -83,6 +89,9 @@ class M3uIptvParser : IptvParser {
                         channelName = rows.first().channelName,
                         tvgId = rows.first().tvgId,
                         logoUrl = rows.firstOrNull { it.logoUrl.isNotBlank() }?.logoUrl?.trim().orEmpty(),
+                        catchup = rows.firstOrNull { it.catchup.isNotBlank() }?.catchup.orEmpty(),
+                        catchupSource = rows.firstOrNull { it.catchupSource.isNotBlank() }?.catchupSource.orEmpty(),
+                        catchupDays = rows.maxOfOrNull { it.catchupDays } ?: 0,
                         urlList = rows.map { it.url },
                     )
                 })
@@ -115,5 +124,8 @@ class M3uIptvParser : IptvParser {
         val logoUrl: String,
         val groupName: String,
         val url: String,
+        val catchup: String,
+        val catchupSource: String,
+        val catchupDays: Int,
     )
 }

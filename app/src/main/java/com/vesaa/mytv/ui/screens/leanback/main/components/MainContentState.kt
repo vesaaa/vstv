@@ -31,6 +31,7 @@ class LeanbackMainContentState(
     initialIptvGroupList: IptvGroupList,
 ) : Loggable() {
     enum class ChangeReason { INIT, USER, AUTO_RETRY, CUTOFF_RETRY }
+    enum class PlaybackMode { LIVE, REPLAY }
 
     /** 用户手动切台后的一小段保护窗口：忽略迟到错误/断流重试，避免旧会话回调串扰到新频道。 */
     private var suppressAutoRetryUntilElapsedMs: Long = 0L
@@ -49,6 +50,10 @@ class LeanbackMainContentState(
 
     /** null 表示使用全局 [SP.playbackHttpUserAgent]；非 null 为本次拉流请求头快照（收藏条目等） */
     private var streamRequestHeadersForPlayback: String? = null
+    private var _playbackMode by mutableStateOf(PlaybackMode.LIVE)
+    val playbackMode get() = _playbackMode
+    private var _replayHint by mutableStateOf("")
+    val replayHint get() = _replayHint
 
     private var _isPanelVisible by mutableStateOf(false)
     var isPanelVisible
@@ -141,6 +146,13 @@ class LeanbackMainContentState(
         }
 
         videoPlayerState.onError {
+            if (_playbackMode == PlaybackMode.REPLAY) {
+                if (_currentIptv.urlList.isNotEmpty()) {
+                    val idx = _currentIptvUrlIdx.coerceIn(_currentIptv.urlList.indices)
+                    SP.iptvPlayableHostList -= getUrlHost(_currentIptv.urlList[idx])
+                }
+                return@onError
+            }
             val now = SystemClock.elapsedRealtime()
             val suppressAutoRetry = now < suppressAutoRetryUntilElapsedMs
             if (_currentIptv.urlList.isNotEmpty() &&
@@ -209,6 +221,8 @@ class LeanbackMainContentState(
         }
 
         streamRequestHeadersForPlayback = streamRequestHeaders
+        _playbackMode = PlaybackMode.LIVE
+        _replayHint = ""
 
         // 用户手动切台（尤其切组后）时，短时间内忽略自动轮询，防止旧错误回调串扰到新频道。
         if (reason == ChangeReason.USER && iptv != _currentIptv) {
@@ -271,6 +285,34 @@ class LeanbackMainContentState(
         changeCurrentIptv(
             iptv = iptv,
             streamRequestHeaders = navStreamHeadersForIptv(iptv),
+            reason = ChangeReason.USER,
+        )
+    }
+
+    fun playCurrentIptvWithOverrideUrl(
+        overrideUrl: String,
+        streamRequestHeaders: String? = null,
+        replayHint: String = "回看中",
+    ) {
+        if (overrideUrl.isBlank()) return
+        _isTempPanelVisible = true
+        streamRequestHeadersForPlayback = streamRequestHeaders
+        _playbackMode = PlaybackMode.REPLAY
+        _replayHint = replayHint
+        log.d("回看播放${_currentIptv.name}: $overrideUrl")
+        videoPlayerState.prepare(
+            overrideUrl,
+            streamRequestHeadersForPlayback?.trim()?.takeIf { it.isNotEmpty() },
+        )
+    }
+
+    fun backToLive() {
+        if (_currentIptv.urlList.isEmpty()) return
+        val idx = _currentIptvUrlIdx.coerceIn(_currentIptv.urlList.indices)
+        changeCurrentIptv(
+            iptv = _currentIptv,
+            urlIdx = idx,
+            streamRequestHeaders = streamRequestHeadersForPlayback,
             reason = ChangeReason.USER,
         )
     }

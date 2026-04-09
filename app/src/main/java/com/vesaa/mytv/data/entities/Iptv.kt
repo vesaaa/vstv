@@ -31,6 +31,21 @@ data class Iptv(
      * 播放地址
      */
     val urlList: List<String> = emptyList(),
+
+    /**
+     * 回看类型（M3U catchup/timeshift）
+     */
+    val catchup: String = "",
+
+    /**
+     * 回看 URL 模板（M3U catchup-source）
+     */
+    val catchupSource: String = "",
+
+    /**
+     * 最大回看天数（M3U catchup-days）
+     */
+    val catchupDays: Int = 0,
 ) {
     companion object {
         val EXAMPLE = Iptv(

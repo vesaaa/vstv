@@ -23,9 +23,12 @@ import androidx.compose.material.icons.filled.AltRoute
 import androidx.compose.material.icons.filled.AspectRatio
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.filled.LiveTv
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Memory
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Videocam
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -107,6 +110,8 @@ private val QuickPanelMenuIconTextGap = (4f * QuickPanelMenuLayoutFactor).dp
 /** 底部快捷栏横向列表槽位（用 [items] DSL，避免依赖部分 tv-foundation 版本不存在的 [item] 导入） */
 private enum class QuickPanelBottomMenuSlot {
     Epg,
+    Replay,
+    BackLive,
     MultiLine,
     AspectRatio,
     Video,
@@ -127,6 +132,13 @@ fun LeanbackQuickPanelScreen(
     videoPlayerAspectRatioProvider: () -> Float = { 16f / 9f },
     onChangeVideoPlayerAspectRatio: (Float) -> Unit = {},
     onIptvUrlIdxChange: (Int) -> Unit = {},
+    playbackStatusProvider: () -> String = { "" },
+    isReplayActiveProvider: () -> Boolean = { false },
+    onBackToLive: () -> Unit = {},
+    catchupSupportedProvider: () -> Boolean = { false },
+    catchupMaxHoursProvider: () -> Int = { 24 },
+    onReplayByBackMinutes: (Int) -> Unit = {},
+    onReplayByProgramme: (Long, Long) -> Unit = { _, _ -> },
     subPanel: LeanbackQuickPanelSubPanel = LeanbackQuickPanelSubPanel.None,
     onSubPanelChange: (LeanbackQuickPanelSubPanel) -> Unit = {},
     onMoreSettings: () -> Unit = {},
@@ -144,6 +156,7 @@ fun LeanbackQuickPanelScreen(
     val focusMenuStream = remember { FocusRequester() }
     var lastSubPanel by remember { mutableStateOf(LeanbackQuickPanelSubPanel.None) }
     val showBottomChrome = subPanel != LeanbackQuickPanelSubPanel.Epg
+    var showReplayDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         autoCloseState.active()
@@ -222,6 +235,12 @@ fun LeanbackQuickPanelScreen(
                         iptvProvider = currentIptvProvider,
                         epgProvider = currentEpgProvider,
                         autoCloseState = autoCloseState,
+                        onSelectProgramme = { programme ->
+                            if (programme.endAt in 1 until System.currentTimeMillis()) {
+                                onReplayByProgramme(programme.startAt, programme.endAt)
+                                onSubPanelChange(LeanbackQuickPanelSubPanel.None)
+                            }
+                        },
                     )
 
                 LeanbackQuickPanelSubPanel.VideoDetail ->
@@ -298,6 +317,7 @@ fun LeanbackQuickPanelScreen(
                         iptvProvider = currentIptvProvider,
                         iptvUrlIdxProvider = currentIptvUrlIdxProvider,
                         currentProgrammesProvider = currentProgrammesProvider,
+                        playbackStatusProvider = playbackStatusProvider,
                     )
 
                     LeanbackPanelPlayerInfo(
@@ -306,9 +326,11 @@ fun LeanbackQuickPanelScreen(
 
                     val menuListState = rememberTvLazyListState()
                     val showMultiLineMenuItem = currentIptvProvider().urlList.size > 1
-                    val menuSlots = remember(showMultiLineMenuItem) {
+                    val menuSlots = remember(showMultiLineMenuItem, catchupSupportedProvider()) {
                         buildList {
                             add(QuickPanelBottomMenuSlot.Epg)
+                            if (catchupSupportedProvider()) add(QuickPanelBottomMenuSlot.Replay)
+                            if (isReplayActiveProvider()) add(QuickPanelBottomMenuSlot.BackLive)
                             if (showMultiLineMenuItem) add(QuickPanelBottomMenuSlot.MultiLine)
                             add(QuickPanelBottomMenuSlot.AspectRatio)
                             add(QuickPanelBottomMenuSlot.Video)
@@ -355,6 +377,21 @@ fun LeanbackQuickPanelScreen(
                                         currentIptvUrlIdxProvider = currentIptvUrlIdxProvider,
                                         onIptvUrlIdxChange = onIptvUrlIdxChange,
                                         onUserAction = { autoCloseState.active() },
+                                    )
+
+                                QuickPanelBottomMenuSlot.Replay ->
+                                    LeanbackQuickPanelButton(
+                                        leadingIcon = Icons.Filled.Schedule,
+                                        titleProvider = { "回看" },
+                                        subtitleProvider = { "最长${catchupMaxHoursProvider()}小时" },
+                                        onSelect = { showReplayDialog = true },
+                                    )
+
+                                QuickPanelBottomMenuSlot.BackLive ->
+                                    LeanbackQuickPanelButton(
+                                        leadingIcon = Icons.Filled.LiveTv,
+                                        titleProvider = { "返回直播" },
+                                        onSelect = onBackToLive,
                                     )
 
                                 QuickPanelBottomMenuSlot.AspectRatio ->
@@ -436,7 +473,43 @@ fun LeanbackQuickPanelScreen(
                 }
             }
         }
+        LeanbackQuickPanelReplayDialog(
+            show = showReplayDialog,
+            maxHours = catchupMaxHoursProvider(),
+            onDismissRequest = { showReplayDialog = false },
+            onSelectBackMinutes = {
+                onReplayByBackMinutes(it)
+                showReplayDialog = false
+            },
+        )
     }
+}
+
+@Composable
+private fun LeanbackQuickPanelReplayDialog(
+    show: Boolean,
+    maxHours: Int,
+    onDismissRequest: () -> Unit,
+    onSelectBackMinutes: (Int) -> Unit,
+) {
+    if (!show) return
+    val options = listOf(15, 30, 60, 120, 1440).filter { it <= maxHours * 60 }
+    AlertDialog(
+        onDismissRequest = onDismissRequest,
+        title = { Text("按时间回看") },
+        text = {
+            TvLazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                items(options, key = { it }) { minutes ->
+                    LeanbackQuickPanelButton(
+                        leadingIcon = Icons.Filled.Schedule,
+                        titleProvider = { "${minutes}分钟" },
+                        onSelect = { onSelectBackMinutes(minutes) },
+                    )
+                }
+            }
+        },
+        confirmButton = { Text("选择时长后开始回看") },
+    )
 }
 
 @Composable
