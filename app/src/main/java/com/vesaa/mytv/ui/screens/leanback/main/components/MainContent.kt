@@ -34,6 +34,7 @@ import com.vesaa.mytv.data.entities.IptvGroup
 import com.vesaa.mytv.data.entities.IptvGroupList
 import com.vesaa.mytv.data.entities.IptvGroupList.Companion.iptvIdx
 import com.vesaa.mytv.data.entities.IptvGroupList.Companion.iptvList
+import com.vesaa.mytv.data.entities.IptvList
 import com.vesaa.mytv.data.entities.withoutHiddenGroupNames
 import com.vesaa.mytv.ui.screens.leanback.classicpanel.LeanbackClassicPanelScreen
 import com.vesaa.mytv.ui.screens.leanback.components.LeanbackVisible
@@ -79,13 +80,47 @@ fun LeanbackMainContent(
     )
     val favoritesOnlyUi =
         settingsViewModel.iptvChannelFavoriteEnable && settingsViewModel.iptvChannelFavoritesOnlyMode
+    val expandedEntries = settingsViewModel.iptvExpandedChannelEntries
+    val expandedHeaderMap = remember(expandedEntries) {
+        expandedEntries.associateBy(
+            keySelector = { IptvFavoriteEntry.stableKeyFrom(it.urlList, it.channelName) },
+            valueTransform = { it.playbackRequestHeaders.trim().takeIf { h -> h.isNotEmpty() } },
+        )
+    }
+    val resolveExtraStreamHeaders: (Iptv) -> String? = remember(
+        settingsViewModel.iptvChannelFavoriteEntries,
+        expandedHeaderMap,
+    ) {
+        { iptv ->
+            settingsViewModel.iptvChannelFavoriteEntries
+                .find { e -> IptvFavoriteEntry.stableKeyFrom(iptv.urlList, iptv.channelName) == e.stableKey() }
+                ?.playbackRequestHeaders?.trim()?.takeIf { it.isNotEmpty() }
+                ?: expandedHeaderMap[IptvFavoriteEntry.stableKeyFrom(iptv.urlList, iptv.channelName)]
+        }
+    }
     val iptvGroupListFiltered = remember(iptvGroupList, settingsViewModel.iptvHiddenGroupFilterEpoch) {
         iptvGroupList.withoutHiddenGroupNames(SP.iptvHiddenGroupNames)
     }
-    val uiIptvGroupList = if (favoritesOnlyUi) IptvGroupList() else iptvGroupListFiltered
+    val mergedIptvGroupList = remember(
+        iptvGroupListFiltered,
+        settingsViewModel.iptvExpandedChannelEnable,
+        expandedEntries,
+    ) {
+        if (!settingsViewModel.iptvExpandedChannelEnable || expandedEntries.isEmpty()) {
+            iptvGroupListFiltered
+        } else {
+            IptvGroupList(
+                iptvGroupListFiltered + IptvGroup(
+                    name = IptvGroup.EXPANDED_GROUP_NAME,
+                    iptvList = IptvList(expandedEntries.map { it.toIptv() }),
+                )
+            )
+        }
+    }
+    val uiIptvGroupList = if (favoritesOnlyUi) IptvGroupList() else mergedIptvGroupList
     val channelOrderList =
         if (favoritesOnlyUi) settingsViewModel.iptvChannelFavoriteEntries.map { it.toIptv() }
-        else iptvGroupListFiltered.iptvList
+        else uiIptvGroupList.iptvList
 
     val onIptvGroupLongPressHide: (IptvGroup) -> Unit = { group ->
         if (group.name.isNotBlank() && group.name != IptvGroup.FAVORITE_GROUP_NAME) {
@@ -115,12 +150,12 @@ fun LeanbackMainContent(
     }
 
     LaunchedEffect(
-        iptvGroupListFiltered,
+        uiIptvGroupList,
         favoritesOnlyUi,
         settingsViewModel.iptvHiddenGroupFilterEpoch,
     ) {
         if (favoritesOnlyUi) return@LaunchedEffect
-        val visible = iptvGroupListFiltered.iptvList
+        val visible = uiIptvGroupList.iptvList
         if (visible.isEmpty()) {
             if (mainContentState.currentIptv.urlList.isNotEmpty()) {
                 mainContentState.changeCurrentIptv(Iptv())
@@ -138,19 +173,15 @@ fun LeanbackMainContent(
         favoritesOnlyUi,
         settingsViewModel.iptvChannelFavoriteEntries,
         settingsViewModel.iptvHiddenGroupFilterEpoch,
+        settingsViewModel.iptvExpandedChannelEnable,
+        settingsViewModel.iptvExpandedChannelEntries,
     ) {
         val order =
             if (favoritesOnlyUi) settingsViewModel.iptvChannelFavoriteEntries.map { it.toIptv() }
-            else iptvGroupList.withoutHiddenGroupNames(SP.iptvHiddenGroupNames).iptvList
+            else uiIptvGroupList.iptvList
         mainContentState.syncChannelNavigation(
             order = order,
-            streamHeadersForIptv = { iptv ->
-                settingsViewModel.iptvChannelFavoriteEntries
-                    .find { e ->
-                        IptvFavoriteEntry.stableKeyFrom(iptv.urlList, iptv.channelName) == e.stableKey()
-                    }
-                    ?.playbackRequestHeaders?.trim()?.takeIf { it.isNotEmpty() }
-            },
+            streamHeadersForIptv = resolveExtraStreamHeaders,
         )
     }
 
@@ -214,7 +245,10 @@ fun LeanbackMainContent(
                             ?.takeIf { it.isNotEmpty() },
                     )
                 } else {
-                    mainContentState.changeCurrentIptv(iptv)
+                    mainContentState.changeCurrentIptv(
+                        iptv,
+                        streamRequestHeaders = resolveExtraStreamHeaders(iptv),
+                    )
                 }
             }
         }
@@ -385,7 +419,7 @@ fun LeanbackMainContent(
                     onIptvSelected = { iptv, streamHeaders ->
                         mainContentState.changeCurrentIptv(
                             iptv,
-                            streamRequestHeaders = streamHeaders,
+                            streamRequestHeaders = streamHeaders ?: resolveExtraStreamHeaders(iptv),
                         )
                     },
                     onIptvFavoriteToggle = {
@@ -422,7 +456,7 @@ fun LeanbackMainContent(
                     onIptvSelected = { iptv, streamHeaders ->
                         mainContentState.changeCurrentIptv(
                             iptv,
-                            streamRequestHeaders = streamHeaders,
+                            streamRequestHeaders = streamHeaders ?: resolveExtraStreamHeaders(iptv),
                         )
                     },
                     onIptvFavoriteToggle = {

@@ -3,10 +3,12 @@ package com.vesaa.mytv.ui.utils
 import android.content.Context
 import android.content.SharedPreferences
 import java.io.File
+import java.security.MessageDigest
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.Serializable
 import com.vesaa.mytv.AppGlobal
 import com.vesaa.mytv.data.entities.IptvFavoriteEntry
 import com.vesaa.mytv.data.utils.Constants
@@ -125,6 +127,12 @@ object SP {
 
         /** 只看收藏：界面与换台顺序仅含收藏夹内频道（依赖收藏启用） */
         IPTV_CHANNEL_FAVORITES_ONLY_MODE,
+
+        /** 启用扩展频道（多源合并） */
+        IPTV_EXPANDED_CHANNEL_ENABLE,
+
+        /** 扩展频道（按直播源 hash 分桶）JSON 列表 */
+        IPTV_EXPANDED_CHANNEL_BUCKETS_JSON,
 
         /** 当前直播源下用户长按隐藏的分组名（StringSet） */
         IPTV_HIDDEN_GROUP_NAMES,
@@ -376,6 +384,60 @@ object SP {
         get() = sp.getBoolean(KEY.IPTV_CHANNEL_FAVORITES_ONLY_MODE.name, false)
         set(value) = sp.edit().putBoolean(KEY.IPTV_CHANNEL_FAVORITES_ONLY_MODE.name, value).apply()
 
+    /** 启用扩展频道：将不同直播源的精选合并到全局「扩展频道」分组。 */
+    var iptvExpandedChannelEnable: Boolean
+        get() = sp.getBoolean(KEY.IPTV_EXPANDED_CHANNEL_ENABLE.name, false)
+        set(value) = sp.edit().putBoolean(KEY.IPTV_EXPANDED_CHANNEL_ENABLE.name, value).apply()
+
+    private var iptvExpandedChannelBucketsJsonRaw: String
+        get() = sp.getString(KEY.IPTV_EXPANDED_CHANNEL_BUCKETS_JSON.name, "[]") ?: "[]"
+        set(value) = sp.edit().putString(KEY.IPTV_EXPANDED_CHANNEL_BUCKETS_JSON.name, value).apply()
+
+    private fun loadExpandedChannelBuckets(): List<IptvExpandedChannelBucket> {
+        val raw = iptvExpandedChannelBucketsJsonRaw
+        if (raw.isBlank()) return emptyList()
+        return runCatching {
+            spJson.decodeFromString(ListSerializer(IptvExpandedChannelBucket.serializer()), raw)
+        }.getOrElse { emptyList() }
+    }
+
+    private fun saveExpandedChannelBuckets(list: List<IptvExpandedChannelBucket>) {
+        iptvExpandedChannelBucketsJsonRaw =
+            spJson.encodeToString(ListSerializer(IptvExpandedChannelBucket.serializer()), list)
+    }
+
+    /** 当前直播源用于多源合并分桶的稳定 key（基于 sourceUrl 的 SHA-256）。 */
+    fun currentIptvSourceMergeKey(): String = mergeKeyForSourceUrl(iptvSourceUrl)
+
+    fun mergeKeyForSourceUrl(url: String): String {
+        val input = url.trim().ifBlank { "<blank-source>" }
+        val bytes = MessageDigest.getInstance("SHA-256").digest(input.toByteArray())
+        return bytes.joinToString("") { "%02x".format(it) }
+    }
+
+    /** 将当前精选快照覆盖到「当前直播源」对应扩展频道桶，不影响其他源。 */
+    fun updateExpandedChannelsForCurrentSource(entries: List<IptvFavoriteEntry>) {
+        val key = currentIptvSourceMergeKey()
+        val next = loadExpandedChannelBuckets()
+            .filterNot { it.sourceKey == key }
+            .toMutableList()
+        if (entries.isNotEmpty()) {
+            next += IptvExpandedChannelBucket(sourceKey = key, channels = entries)
+        }
+        saveExpandedChannelBuckets(next)
+    }
+
+    fun clearExpandedChannels() {
+        saveExpandedChannelBuckets(emptyList())
+    }
+
+    /** 扁平化后的扩展频道条目（所有直播源桶合并）。 */
+    fun loadExpandedChannelEntries(): List<IptvFavoriteEntry> =
+        loadExpandedChannelBuckets().flatMap { it.channels }
+
+    /** 当前扩展频道包含的直播源桶数量。 */
+    fun expandedChannelSourceCount(): Int = loadExpandedChannelBuckets().size
+
     /**
      * 当前直播源下被用户长按隐藏的分组名（与 M3U `group-title` 一致）。
      * 切换 [iptvSourceUrl] 或网页推送变更 URL 时会 [clearIptvHiddenGroupNames]。
@@ -614,3 +676,9 @@ object SP {
         }
     }
 }
+
+@Serializable
+private data class IptvExpandedChannelBucket(
+    val sourceKey: String = "",
+    val channels: List<IptvFavoriteEntry> = emptyList(),
+)

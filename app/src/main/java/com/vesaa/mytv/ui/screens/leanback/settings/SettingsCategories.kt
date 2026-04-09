@@ -22,6 +22,7 @@ enum class LeanbackSettingsCategories(
     EPG(Icons.Default.Menu, "节目单"),
     UI(Icons.Default.DisplaySettings, "界面"),
     FAVORITE(Icons.Default.Star, "精选设置"),
+    MERGE(Icons.Default.Menu, "多源合并"),
     VIDEO_PLAYER(Icons.Default.SmartDisplay, "播放器"),
     NETWORK(Icons.Default.Wifi, "网络"),
     LOG(Icons.Default.FormatListNumbered, "日志"),

@@ -163,6 +163,22 @@ class LeanbackSettingsViewModel : ViewModel() {
             SP.iptvChannelFavoritesOnlyMode = value
         }
 
+    private var _iptvExpandedChannelEnable by mutableStateOf(SP.iptvExpandedChannelEnable)
+    var iptvExpandedChannelEnable: Boolean
+        get() = _iptvExpandedChannelEnable
+        set(value) {
+            _iptvExpandedChannelEnable = value
+            SP.iptvExpandedChannelEnable = value
+        }
+
+    private var _iptvExpandedChannelEntries by mutableStateOf(SP.loadExpandedChannelEntries())
+    val iptvExpandedChannelEntries: List<IptvFavoriteEntry>
+        get() = _iptvExpandedChannelEntries
+
+    private var _iptvExpandedChannelSourceCount by mutableIntStateOf(SP.expandedChannelSourceCount())
+    val iptvExpandedChannelSourceCount: Int
+        get() = _iptvExpandedChannelSourceCount
+
     private var _iptvChannelFavoriteEntries by mutableStateOf(SP.loadFavoriteEntries())
     var iptvChannelFavoriteEntries: List<IptvFavoriteEntry>
         get() = _iptvChannelFavoriteEntries
@@ -201,6 +217,22 @@ class LeanbackSettingsViewModel : ViewModel() {
     /** 从 SP 重新加载（例如 [com.vesaa.mytv.data.IptvFavoriteMigration] 写入后） */
     fun reloadFavoriteEntriesFromDisk() {
         _iptvChannelFavoriteEntries = SP.loadFavoriteEntries()
+    }
+
+    fun reloadExpandedChannelsFromDisk() {
+        _iptvExpandedChannelEntries = SP.loadExpandedChannelEntries()
+        _iptvExpandedChannelSourceCount = SP.expandedChannelSourceCount()
+    }
+
+    /** 用「当前精选」覆盖写入当前直播源对应的扩展频道桶（不影响其他源）。 */
+    fun updateExpandedChannelsFromFavoritesOfCurrentSource() {
+        SP.updateExpandedChannelsForCurrentSource(iptvChannelFavoriteEntries)
+        reloadExpandedChannelsFromDisk()
+    }
+
+    fun clearExpandedChannels() {
+        SP.clearExpandedChannels()
+        reloadExpandedChannelsFromDisk()
     }
 
     /** 网页推送等直接写入 SP 后，刷新内存中的直播源/节目单配置（设置页与 SP 一致）。 */

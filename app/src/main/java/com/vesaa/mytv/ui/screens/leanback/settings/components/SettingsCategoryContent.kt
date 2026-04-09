@@ -23,6 +23,7 @@ fun LeanbackSettingsCategoryDetail(
             LeanbackSettingsCategories.EPG -> LeanbackSettingsCategoryEpg(Modifier.fillMaxSize())
             LeanbackSettingsCategories.UI -> LeanbackSettingsCategoryUI(Modifier.fillMaxSize())
             LeanbackSettingsCategories.FAVORITE -> LeanbackSettingsCategoryFavorite(Modifier.fillMaxSize())
+            LeanbackSettingsCategories.MERGE -> LeanbackSettingsCategoryMerge(Modifier.fillMaxSize())
             LeanbackSettingsCategories.VIDEO_PLAYER -> LeanbackSettingsCategoryVideoPlayer(Modifier.fillMaxSize())
             LeanbackSettingsCategories.NETWORK -> LeanbackSettingsCategoryNetwork(Modifier.fillMaxSize())
             LeanbackSettingsCategories.LOG -> LeanbackSettingsCategoryLog(
