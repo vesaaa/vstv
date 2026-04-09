@@ -172,6 +172,7 @@ fun LeanbackQuickPanelScreen(
             delay(48)
             when (previous) {
                 LeanbackQuickPanelSubPanel.Epg -> focusMenuEpg.requestFocus()
+                LeanbackQuickPanelSubPanel.ReplayDetail -> focusMenuEpg.requestFocus()
                 LeanbackQuickPanelSubPanel.VideoDetail -> focusMenuVideo.requestFocus()
                 LeanbackQuickPanelSubPanel.AudioDetail -> focusMenuAudio.requestFocus()
                 LeanbackQuickPanelSubPanel.StreamDetail -> focusMenuStream.requestFocus()
