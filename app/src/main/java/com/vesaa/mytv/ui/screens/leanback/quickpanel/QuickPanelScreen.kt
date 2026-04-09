@@ -28,7 +28,6 @@ import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Memory
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Videocam
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -134,6 +133,7 @@ fun LeanbackQuickPanelScreen(
     onIptvUrlIdxChange: (Int) -> Unit = {},
     playbackStatusProvider: () -> String = { "" },
     replayCapabilityProvider: () -> String = { "" },
+    replayCapabilityDetailProvider: () -> String = { "" },
     isReplayActiveProvider: () -> Boolean = { false },
     onBackToLive: () -> Unit = {},
     catchupSupportedProvider: () -> Boolean = { false },
@@ -158,7 +158,6 @@ fun LeanbackQuickPanelScreen(
     val focusMenuStream = remember { FocusRequester() }
     var lastSubPanel by remember { mutableStateOf(LeanbackQuickPanelSubPanel.None) }
     val showBottomChrome = subPanel != LeanbackQuickPanelSubPanel.Epg
-    var showReplayDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         autoCloseState.active()
@@ -236,13 +235,39 @@ fun LeanbackQuickPanelScreen(
                             .fillMaxWidth(0.40f),
                         iptvProvider = currentIptvProvider,
                         epgProvider = currentEpgProvider,
+                        replaySupportedProvider = catchupSupportedProvider,
                         autoCloseState = autoCloseState,
                         onSelectProgramme = { programme ->
-                            if (programme.endAt in 1 until System.currentTimeMillis()) {
+                            if (
+                                catchupSupportedProvider() &&
+                                programme.endAt in 1 until System.currentTimeMillis()
+                            ) {
                                 onReplayByProgramme(programme.startAt, programme.endAt)
                                 onSubPanelChange(LeanbackQuickPanelSubPanel.None)
                             }
                         },
+                    )
+
+                LeanbackQuickPanelSubPanel.ReplayDetail ->
+                    LeanbackQuickPanelReplayRightSheet(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(
+                                end = sideStartPad,
+                                top = sideTopPad,
+                                bottom = bottomInsetRight,
+                            )
+                            .fillMaxHeight()
+                            .fillMaxWidth(0.336f),
+                        capabilityLabelProvider = replayCapabilityProvider,
+                        capabilityDetailProvider = replayCapabilityDetailProvider,
+                        maxHoursProvider = catchupMaxHoursProvider,
+                        replaySupportedProvider = catchupSupportedProvider,
+                        onReplayByBackMinutes = {
+                            onReplayByBackMinutes(it)
+                            onSubPanelChange(LeanbackQuickPanelSubPanel.None)
+                        },
+                        autoCloseState = autoCloseState,
                     )
 
                 LeanbackQuickPanelSubPanel.VideoDetail ->
@@ -329,7 +354,7 @@ fun LeanbackQuickPanelScreen(
 
                     val menuListState = rememberTvLazyListState()
                     val showMultiLineMenuItem = currentIptvProvider().urlList.size > 1
-                    val menuSlots = remember(showMultiLineMenuItem, isReplayActiveProvider()) {
+                    val menuSlots = remember(showMultiLineMenuItem, isReplayActiveProvider(), catchupSupportedProvider()) {
                         buildList {
                             add(QuickPanelBottomMenuSlot.Epg)
                             add(QuickPanelBottomMenuSlot.Replay)
@@ -387,14 +412,18 @@ fun LeanbackQuickPanelScreen(
                                         leadingIcon = Icons.Filled.Schedule,
                                         titleProvider = { "回看" },
                                         subtitleProvider = {
-                                            if (catchupSupportedProvider()) {
-                                                "最长${catchupMaxHoursProvider()}小时"
-                                            } else {
-                                                "当前频道未提供回看"
-                                            }
+                                            if (catchupSupportedProvider()) "支持回看" else "不支持回看"
                                         },
                                         onSelect = {
-                                            if (catchupSupportedProvider()) showReplayDialog = true
+                                            if (catchupSupportedProvider()) {
+                                                onSubPanelChange(
+                                                    if (subPanel == LeanbackQuickPanelSubPanel.ReplayDetail) {
+                                                        LeanbackQuickPanelSubPanel.None
+                                                    } else {
+                                                        LeanbackQuickPanelSubPanel.ReplayDetail
+                                                    },
+                                                )
+                                            }
                                             else onReplayUnsupported()
                                         },
                                     )
@@ -485,43 +514,7 @@ fun LeanbackQuickPanelScreen(
                 }
             }
         }
-        LeanbackQuickPanelReplayDialog(
-            show = showReplayDialog,
-            maxHours = catchupMaxHoursProvider(),
-            onDismissRequest = { showReplayDialog = false },
-            onSelectBackMinutes = {
-                onReplayByBackMinutes(it)
-                showReplayDialog = false
-            },
-        )
     }
-}
-
-@Composable
-private fun LeanbackQuickPanelReplayDialog(
-    show: Boolean,
-    maxHours: Int,
-    onDismissRequest: () -> Unit,
-    onSelectBackMinutes: (Int) -> Unit,
-) {
-    if (!show) return
-    val options = listOf(15, 30, 60, 120, 1440).filter { it <= maxHours * 60 }
-    AlertDialog(
-        onDismissRequest = onDismissRequest,
-        title = { Text("按时间回看") },
-        text = {
-            TvLazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                items(options, key = { it }) { minutes ->
-                    LeanbackQuickPanelButton(
-                        leadingIcon = Icons.Filled.Schedule,
-                        titleProvider = { "${minutes}分钟" },
-                        onSelect = { onSelectBackMinutes(minutes) },
-                    )
-                }
-            }
-        },
-        confirmButton = { Text("选择时长后开始回看") },
-    )
 }
 
 @Composable

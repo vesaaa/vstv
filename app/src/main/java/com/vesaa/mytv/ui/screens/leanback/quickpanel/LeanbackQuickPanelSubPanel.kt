@@ -4,6 +4,7 @@ package com.vesaa.mytv.ui.screens.leanback.quickpanel
 enum class LeanbackQuickPanelSubPanel {
     None,
     Epg,
+    ReplayDetail,
     VideoDetail,
     AudioDetail,
     StreamDetail,

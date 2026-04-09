@@ -15,6 +15,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
@@ -97,6 +98,7 @@ fun LeanbackQuickPanelEpgLeftSheet(
     modifier: Modifier = Modifier,
     iptvProvider: () -> Iptv,
     epgProvider: () -> Epg,
+    replaySupportedProvider: () -> Boolean = { false },
     autoCloseState: PanelAutoCloseState,
     onSelectProgramme: (EpgProgramme) -> Unit = {},
 ) {
@@ -155,6 +157,7 @@ fun LeanbackQuickPanelEpgLeftSheet(
                             QuickPanelEpgProgrammeRow(
                                 programme = programme,
                                 timeFormat = timeFormat,
+                                replaySupported = replaySupportedProvider(),
                                 hasFocusedFlag = hasFocused,
                                 onFocusedLive = { hasFocused = true },
                                 autoCloseState = autoCloseState,
@@ -181,6 +184,7 @@ fun LeanbackQuickPanelEpgLeftSheet(
 private fun QuickPanelEpgProgrammeRow(
     programme: EpgProgramme,
     timeFormat: SimpleDateFormat,
+    replaySupported: Boolean,
     hasFocusedFlag: Boolean,
     onFocusedLive: () -> Unit,
     autoCloseState: PanelAutoCloseState,
@@ -241,9 +245,84 @@ private fun QuickPanelEpgProgrammeRow(
                         Icons.Default.PlayArrow,
                         contentDescription = "正在播出",
                     )
+                } else if (replaySupported && programme.endAt in 1 until System.currentTimeMillis()) {
+                    Icon(
+                        Icons.Default.Schedule,
+                        contentDescription = "可回看",
+                    )
                 }
             },
         )
+    }
+}
+
+@Composable
+fun LeanbackQuickPanelReplayRightSheet(
+    modifier: Modifier = Modifier,
+    capabilityLabelProvider: () -> String = { "回看不可用" },
+    capabilityDetailProvider: () -> String = { "当前频道未提供回看模板或DVR入口" },
+    maxHoursProvider: () -> Int = { 24 },
+    replaySupportedProvider: () -> Boolean = { false },
+    onReplayByBackMinutes: (Int) -> Unit = {},
+    autoCloseState: PanelAutoCloseState,
+) {
+    val focusRequester = remember { FocusRequester() }
+    val onSurface = MaterialTheme.colorScheme.onSurface
+    val options = listOf(15, 30, 60, 120, 1440).filter { it <= maxHoursProvider() * 60 }
+
+    LaunchedEffect(capabilityLabelProvider(), capabilityDetailProvider()) {
+        focusRequester.requestFocus()
+    }
+
+    QuickPanelGlassPanelRight(modifier = modifier) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .focusRequester(focusRequester)
+                .focusable()
+                .onFocusChanged { if (it.isFocused || it.hasFocus) autoCloseState.active() },
+            contentAlignment = Alignment.TopStart,
+        ) {
+            Column(
+                Modifier.padding(horizontal = 20.dp, vertical = 16.dp),
+                verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(10.dp),
+            ) {
+                Text(
+                    text = "回看",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = onSurface,
+                )
+                Text(
+                    text = "能力：${capabilityLabelProvider()}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = onSurface.copy(alpha = 0.92f),
+                )
+                Text(
+                    text = capabilityDetailProvider(),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = onSurface.copy(alpha = 0.8f),
+                )
+                if (replaySupportedProvider()) {
+                    Text(
+                        text = "最大回看：${maxHoursProvider()}小时",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = onSurface.copy(alpha = 0.85f),
+                    )
+                    TvLazyColumn(
+                        contentPadding = PaddingValues(vertical = 4.dp),
+                        verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp),
+                    ) {
+                        items(options, key = { it }) { minutes ->
+                            androidx.tv.material3.ListItem(
+                                selected = false,
+                                onClick = { onReplayByBackMinutes(minutes) },
+                                headlineContent = { Text("回看 $minutes 分钟") },
+                            )
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 

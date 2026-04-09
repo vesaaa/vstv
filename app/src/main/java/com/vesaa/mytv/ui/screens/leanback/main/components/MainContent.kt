@@ -164,6 +164,14 @@ fun LeanbackMainContent(
             ""
         }
     val replayCapabilityText = IptvCatchup.capabilityText(mainContentState.currentIptv)
+    val replayCapabilityDetailText = when (IptvCatchup.capabilityOf(mainContentState.currentIptv)) {
+        IptvCatchup.Capability.SUPPORTED_BY_TEMPLATE ->
+            "模板命中：catchup/catchup-source"
+        IptvCatchup.Capability.SUPPORTED_BY_DVR_URL ->
+            "DVR命中：URL包含 /dvr/ 或时移参数"
+        IptvCatchup.Capability.UNSUPPORTED ->
+            "未命中模板或DVR规则"
+    }
     var lastReplayError by remember { mutableStateOf("") }
     LaunchedEffect(mainContentState.playbackMode, videoPlayerState.error) {
         if (mainContentState.playbackMode != LeanbackMainContentState.PlaybackMode.REPLAY) {
@@ -563,6 +571,7 @@ fun LeanbackMainContent(
                 currentProgrammesProvider = { epgList.currentProgrammes(mainContentState.currentIptv) },
                     playbackStatusProvider = { playbackStatusText },
                     replayCapabilityProvider = { replayCapabilityText },
+                    replayCapabilityDetailProvider = { replayCapabilityDetailText },
                 currentEpgProvider = {
                     epgList.firstOrNull { it.matchesIptv(mainContentState.currentIptv) } ?: Epg()
                 },
@@ -583,7 +592,7 @@ fun LeanbackMainContent(
                     IptvCatchup.supportCatchup(mainContentState.currentIptv)
                 },
                 onReplayUnsupported = {
-                    LeanbackToastState.I.showToast("当前频道未提供回看模板或DVR入口")
+                    LeanbackToastState.I.showToast("当前频道暂不支持回看")
                 },
                 isReplayActiveProvider = {
                     mainContentState.playbackMode == LeanbackMainContentState.PlaybackMode.REPLAY
