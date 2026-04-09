@@ -124,10 +124,24 @@ fun LeanbackMainContent(
         else uiIptvGroupList.iptvList
 
     val onIptvGroupLongPressHide: (IptvGroup) -> Unit = { group ->
-        if (group.name.isNotBlank() && group.name != IptvGroup.FAVORITE_GROUP_NAME) {
+        val isSpecial = group.name == IptvGroup.FAVORITE_GROUP_NAME ||
+            group.name == IptvGroup.EXPANDED_GROUP_NAME
+        if (group.name.isNotBlank() && !isSpecial) {
             SP.iptvHiddenGroupNames = SP.iptvHiddenGroupNames + group.name
             settingsViewModel.bumpIptvHiddenGroupFilterEpoch()
             LeanbackToastState.I.showToast("已隐藏分组：${group.name}")
+        }
+    }
+    val onIptvGroupLongPressAddToFavorites: (IptvGroup) -> Unit = addToFav@{ group ->
+        if (!settingsViewModel.iptvChannelFavoriteEnable) {
+            LeanbackToastState.I.showToast("请先在设置 → 精选设置 中启用精选")
+            return@addToFav
+        }
+        val added = settingsViewModel.addIptvGroupToFavorites(group.iptvList)
+        if (added > 0) {
+            LeanbackToastState.I.showToast("已添加到精选频道：$added 个")
+        } else {
+            LeanbackToastState.I.showToast("该分组频道已全部在精选中")
         }
     }
 
@@ -444,6 +458,7 @@ fun LeanbackMainContent(
                     },
                     iptvFavoritesOnlyModeProvider = { favoritesOnlyUi },
                     onIptvGroupLongPressHide = onIptvGroupLongPressHide,
+                    onIptvGroupLongPressAddToFavorites = onIptvGroupLongPressAddToFavorites,
                     onClose = { mainContentState.isPanelVisible = false },
                 )
             }
@@ -480,6 +495,7 @@ fun LeanbackMainContent(
                         settingsViewModel.iptvChannelFavoriteListVisible = it
                     },
                     onIptvGroupLongPressHide = onIptvGroupLongPressHide,
+                    onIptvGroupLongPressAddToFavorites = onIptvGroupLongPressAddToFavorites,
                     onClose = { mainContentState.isPanelVisible = false },
                     iptvFavoriteEnableProvider = { settingsViewModel.iptvChannelFavoriteEnable }
                 )

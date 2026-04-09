@@ -64,6 +64,7 @@ fun LeanbackClassicPanelScreen(
     onIptvSelected: (Iptv, String?) -> Unit = { _, _ -> },
     onIptvFavoriteToggle: (Iptv) -> Unit = {},
     onIptvGroupLongPressHide: (IptvGroup) -> Unit = {},
+    onIptvGroupLongPressAddToFavorites: (IptvGroup) -> Unit = {},
     onClose: () -> Unit = {},
     autoCloseState: PanelAutoCloseState = rememberPanelAutoCloseState(
         timeout = Constants.UI_SCREEN_AUTO_CLOSE_DELAY,
@@ -90,6 +91,7 @@ fun LeanbackClassicPanelScreen(
             onIptvFavoriteListVisibleChange = onIptvFavoriteListVisibleChange,
             onIptvFavoriteToggle = onIptvFavoriteToggle,
             onIptvGroupLongPressHide = onIptvGroupLongPressHide,
+            onIptvGroupLongPressAddToFavorites = onIptvGroupLongPressAddToFavorites,
             onUserAction = { autoCloseState.active() },
         )
     }
@@ -139,6 +141,7 @@ private fun LeanbackClassicPanelScreenContent(
     onIptvFavoriteListVisibleChange: (Boolean) -> Unit = {},
     onIptvFavoriteToggle: (Iptv) -> Unit = {},
     onIptvGroupLongPressHide: (IptvGroup) -> Unit = {},
+    onIptvGroupLongPressAddToFavorites: (IptvGroup) -> Unit = {},
     onUserAction: () -> Unit = {},
 ) {
     val iptvGroupList = iptvGroupListProvider()
@@ -189,6 +192,7 @@ private fun LeanbackClassicPanelScreenContent(
                 onIptvFavoriteListVisibleChange(it == LeanbackClassicPanelScreenFavoriteIptvGroup)
             },
             onIptvGroupLongPressHide = onIptvGroupLongPressHide,
+            onIptvGroupLongPressAddToFavorites = onIptvGroupLongPressAddToFavorites,
             exitFocusRequesterProvider = { focusedIptvFocusRequester },
             onUserAction = onUserAction,
         )

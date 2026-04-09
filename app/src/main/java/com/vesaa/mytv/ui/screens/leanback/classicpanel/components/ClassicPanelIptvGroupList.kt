@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -50,6 +52,7 @@ fun LeanbackClassicPanelIptvGroupList(
     onIptvGroupFocused: (IptvGroup) -> Unit = {},
     /** 长按隐藏该分组（「精选频道」无效） */
     onIptvGroupLongPressHide: (IptvGroup) -> Unit = {},
+    onIptvGroupLongPressAddToFavorites: (IptvGroup) -> Unit = {},
     onUserAction: () -> Unit = {},
 ) {
     val iptvGroupList = iptvGroupListProvider()
@@ -98,6 +101,7 @@ fun LeanbackClassicPanelIptvGroupList(
                     onIptvGroupFocused(it)
                 },
                 onLongPressHide = onIptvGroupLongPressHide,
+                onLongPressAddToFavorites = onIptvGroupLongPressAddToFavorites,
             )
         }
     }
@@ -111,12 +115,14 @@ private fun LeanbackClassicPanelIptvGroupItem(
     initialFocusedProvider: () -> Boolean = { false },
     onFocused: (IptvGroup) -> Unit = {},
     onLongPressHide: (IptvGroup) -> Unit = {},
+    onLongPressAddToFavorites: (IptvGroup) -> Unit = {},
 ) {
     val iptvGroup = iptvGroupProvider()
 
     val focusRequester = remember { FocusRequester() }
     var hasFocused by rememberSaveable { mutableStateOf(false) }
     var isFocused by remember { mutableStateOf(false) }
+    var showLongPressMenu by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         if (!hasFocused && initialFocusedProvider()) {
@@ -144,7 +150,9 @@ private fun LeanbackClassicPanelIptvGroupItem(
                         focusRequester.requestFocus()
                     },
                     onLongSelect = {
-                        if (isFocused) onLongPressHide(iptvGroup)
+                        val isSpecial = iptvGroup.name == IptvGroup.FAVORITE_GROUP_NAME ||
+                            iptvGroup.name == IptvGroup.EXPANDED_GROUP_NAME
+                        if (isFocused && !isSpecial) showLongPressMenu = true
                     },
                 ),
             colors = ListItemDefaults.colors(
@@ -162,6 +170,26 @@ private fun LeanbackClassicPanelIptvGroupItem(
                     maxLines = 1,
                     modifier = Modifier.fillMaxWidth(),
                 )
+            },
+        )
+    }
+
+    if (showLongPressMenu) {
+        AlertDialog(
+            onDismissRequest = { showLongPressMenu = false },
+            title = { Text("分组操作：${iptvGroup.name}") },
+            text = { Text("请选择要执行的操作") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showLongPressMenu = false
+                    onLongPressHide(iptvGroup)
+                }) { Text("隐藏分组") }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showLongPressMenu = false
+                    onLongPressAddToFavorites(iptvGroup)
+                }) { Text("添加到精选频道") }
             },
         )
     }

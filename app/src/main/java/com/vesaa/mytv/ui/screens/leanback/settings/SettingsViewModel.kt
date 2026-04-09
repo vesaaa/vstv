@@ -10,6 +10,7 @@ import androidx.lifecycle.ViewModel
 import android.os.SystemClock
 import com.vesaa.mytv.AppGlobal
 import com.vesaa.mytv.data.entities.Iptv
+import com.vesaa.mytv.data.entities.Iptv
 import com.vesaa.mytv.data.work.EpgRefreshWorkScheduler
 import com.vesaa.mytv.data.entities.IptvFavoriteEntry
 import com.vesaa.mytv.ui.utils.SP
@@ -224,6 +225,29 @@ class LeanbackSettingsViewModel : ViewModel() {
                     sourceKey = SP.currentIptvSourceMergeKey(),
                 )
         }
+    }
+
+    /**
+     * 批量添加分组频道到精选：已存在的不重复添加。
+     * @return 本次新增数量
+     */
+    fun addIptvGroupToFavorites(iptvList: List<Iptv>): Int {
+        if (iptvList.isEmpty()) return 0
+        val cur = iptvChannelFavoriteEntries
+        val existed = cur.map { it.stableKey() }.toHashSet()
+        val sourceKey = SP.currentIptvSourceMergeKey()
+        val toAdd = iptvList.filter {
+            IptvFavoriteEntry.stableKeyFrom(it.urlList, it.channelName) !in existed
+        }.map {
+            IptvFavoriteEntry.fromIptv(
+                iptv = it,
+                playbackRequestHeaders = SP.currentIptvSourceRequestHeadersSnapshot(),
+                sourceKey = sourceKey,
+            )
+        }
+        if (toAdd.isEmpty()) return 0
+        iptvChannelFavoriteEntries = cur + toAdd
+        return toAdd.size
     }
 
     /** 从 SP 重新加载（例如 [com.vesaa.mytv.data.IptvFavoriteMigration] 写入后） */

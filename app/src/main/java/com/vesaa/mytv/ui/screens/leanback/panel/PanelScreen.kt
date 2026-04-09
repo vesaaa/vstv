@@ -64,6 +64,7 @@ fun LeanbackPanelScreen(
     onIptvSelected: (Iptv, String?) -> Unit = { _, _ -> },
     onIptvFavoriteToggle: (Iptv) -> Unit = {},
     onIptvGroupLongPressHide: (IptvGroup) -> Unit = {},
+    onIptvGroupLongPressAddToFavorites: (IptvGroup) -> Unit = {},
     onClose: () -> Unit = {},
     autoCloseState: PanelAutoCloseState = rememberPanelAutoCloseState(
         timeout = Constants.UI_SCREEN_AUTO_CLOSE_DELAY,
@@ -104,6 +105,7 @@ fun LeanbackPanelScreen(
             onIptvSelected = onIptvSelected,
             onIptvFavoriteToggle = onIptvFavoriteToggle,
             onIptvGroupLongPressHide = onIptvGroupLongPressHide,
+            onIptvGroupLongPressAddToFavorites = onIptvGroupLongPressAddToFavorites,
             onUserAction = { autoCloseState.active() },
         )
     }
@@ -158,6 +160,7 @@ private fun LeanbackPanelScreenBottom(
     onIptvSelected: (Iptv, String?) -> Unit = { _, _ -> },
     onIptvFavoriteToggle: (Iptv) -> Unit = {},
     onIptvGroupLongPressHide: (IptvGroup) -> Unit = {},
+    onIptvGroupLongPressAddToFavorites: (IptvGroup) -> Unit = {},
     onUserAction: () -> Unit = {},
 ) {
     val childPadding = rememberLeanbackChildPadding()
@@ -195,6 +198,7 @@ private fun LeanbackPanelScreenBottom(
                 onIptvSelected = onIptvSelected,
                 onIptvFavoriteToggle = onIptvFavoriteToggle,
                 onIptvGroupLongPressHide = onIptvGroupLongPressHide,
+                onIptvGroupLongPressAddToFavorites = onIptvGroupLongPressAddToFavorites,
                 onUserAction = onUserAction,
             )
         }
@@ -216,6 +220,7 @@ fun LeanbackPanelScreenBottomIptvList(
     onIptvSelected: (Iptv, String?) -> Unit = { _, _ -> },
     onIptvFavoriteToggle: (Iptv) -> Unit = {},
     onIptvGroupLongPressHide: (IptvGroup) -> Unit = {},
+    onIptvGroupLongPressAddToFavorites: (IptvGroup) -> Unit = {},
     onUserAction: () -> Unit = {},
 ) {
     val iptvFavoriteEnable = iptvFavoriteEnableProvider()
@@ -263,6 +268,7 @@ fun LeanbackPanelScreenBottomIptvList(
                 onIptvSelected = { iptv -> onIptvSelected(iptv, null) },
                 onIptvFavoriteToggle = onIptvFavoriteToggle,
                 onIptvGroupLongPressHide = onIptvGroupLongPressHide,
+                onIptvGroupLongPressAddToFavorites = onIptvGroupLongPressAddToFavorites,
                 onToFavorite = {
                     if (!iptvFavoriteEnable) return@LeanbackPanelIptvGroupList
 
