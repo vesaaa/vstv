@@ -2,10 +2,12 @@ package com.vesaa.mytv.ui.utils
 
 import android.content.Context
 import android.content.SharedPreferences
+import java.io.File
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import com.vesaa.mytv.AppGlobal
 import com.vesaa.mytv.data.entities.IptvFavoriteEntry
 import com.vesaa.mytv.data.utils.Constants
 import com.vesaa.mytv.utils.Logger
@@ -21,6 +23,33 @@ object SP {
     private const val SP_NAME = "mytv"
     private const val SP_MODE = Context.MODE_PRIVATE
     private lateinit var sp: SharedPreferences
+
+    /** 网页本地上传订阅后的占位地址；正文存于 [iptvLocalUploadFile]。 */
+    const val IPTV_LOCAL_SOURCE_URL = "local://uploaded"
+
+    private const val IPTV_LOCAL_UPLOAD_FILENAME = "iptv_local_upload.txt"
+
+    /** 本地上传单文件最大字符数（约 6MB UTF-8），避免低端设备 OOM。 */
+    const val IPTV_LOCAL_UPLOAD_MAX_CHARS = 6 * 1024 * 1024
+
+    private fun iptvLocalUploadFile(): File = File(AppGlobal.cacheDir, IPTV_LOCAL_UPLOAD_FILENAME)
+
+    fun writeIptvLocalUpload(text: String) {
+        require(text.length <= IPTV_LOCAL_UPLOAD_MAX_CHARS) { "本地订阅文件过大" }
+        iptvLocalUploadFile().writeText(text)
+    }
+
+    fun readIptvLocalUploadOrNull(): String? {
+        val f = iptvLocalUploadFile()
+        if (!f.isFile) return null
+        return runCatching { f.readText() }.getOrNull()
+    }
+
+    fun clearIptvLocalUpload() {
+        runCatching { iptvLocalUploadFile().delete() }
+    }
+
+    fun hasIptvLocalUploadFile(): Boolean = iptvLocalUploadFile().isFile
 
     fun getInstance(context: Context): SharedPreferences =
         context.getSharedPreferences(SP_NAME, SP_MODE)
@@ -201,9 +230,13 @@ object SP {
     var iptvSourceUrl: String
         get() = sp.getString(KEY.IPTV_SOURCE_URL.name, "") ?: ""
         set(value) {
+            val trimmed = value.trim()
+            if (trimmed.isBlank() || !trimmed.startsWith(IPTV_LOCAL_SOURCE_URL)) {
+                clearIptvLocalUpload()
+            }
             val old = (sp.getString(KEY.IPTV_SOURCE_URL.name, "") ?: "").trim()
             sp.edit().putString(KEY.IPTV_SOURCE_URL.name, value).apply()
-            if (old != value.trim()) {
+            if (old != trimmed) {
                 clearIptvHiddenGroupNames()
             }
         }
@@ -260,6 +293,10 @@ object SP {
      * 网页/扫码推送直播源后同步落盘（[apply] 异步可能导致用户立刻杀进程时配置未写入）。
      */
     fun commitIptvWebSettings(url: String, requestHeaders: String) {
+        val u = url.trim()
+        if (!u.startsWith(IPTV_LOCAL_SOURCE_URL)) {
+            clearIptvLocalUpload()
+        }
         val prevUrl = (sp.getString(KEY.IPTV_SOURCE_URL.name, "") ?: "").trim()
         val rawJson = sp.getString(KEY.IPTV_SOURCE_HEADERS_BY_URL_JSON.name, "{}") ?: "{}"
         val map = runCatching {

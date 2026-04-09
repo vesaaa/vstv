@@ -78,6 +78,10 @@ object HttpServer : Loggable() {
                     handleSetSettings(request, response)
                 }
 
+                server.options("/api/settings") { _, response ->
+                    wrapResponse(response).end()
+                }
+
                 HttpServer.showToast = showToast
                 log.i("服务已启动: 0.0.0.0:${SERVER_PORT}")
             } catch (ex: Exception) {
@@ -122,6 +126,8 @@ object HttpServer : Loggable() {
                         appRepo = Constants.APP_REPO,
                         serverPort = SERVER_PORT,
                         iptvSourceUrl = SP.iptvSourceUrl,
+                        iptvSourceIsLocal = SP.iptvSourceUrl.trim()
+                            .startsWith(SP.IPTV_LOCAL_SOURCE_URL),
                         iptvSourceRequestHeaders = SP.iptvSourceRequestHeaders,
                         epgXmlUrl = SP.epgXmlUrl,
                         epgXmlRequestHeaders = SP.epgXmlRequestHeaders,
@@ -157,6 +163,31 @@ object HttpServer : Loggable() {
         response: AsyncHttpServerResponse,
     ) {
         val body = request.getBody<JSONObjectBody>().get()
+
+        if (body.has("iptvSourceLocalText")) {
+            val raw = body.optString("iptvSourceLocalText", "")
+            val trimmed = raw.trim()
+            if (trimmed.isEmpty()) {
+                wrapResponse(response).responseCode(400).send("empty iptvSourceLocalText")
+                return
+            }
+            if (trimmed.length > SP.IPTV_LOCAL_UPLOAD_MAX_CHARS) {
+                wrapResponse(response).responseCode(413).send("iptv file too large")
+                return
+            }
+            val iptvSourceRequestHeaders =
+                if (body.has("iptvSourceRequestHeaders")) {
+                    normalizeIptvRequestHeadersInput(body.optString("iptvSourceRequestHeaders", ""))
+                } else {
+                    SP.iptvSourceRequestHeaders
+                }
+            SP.writeIptvLocalUpload(trimmed)
+            SP.commitIptvWebSettings(SP.IPTV_LOCAL_SOURCE_URL, iptvSourceRequestHeaders)
+            IptvRepository().clearCache()
+            WebPushConfigNotifier.notifyConfigMayHaveChanged()
+            wrapResponse(response).send("success")
+            return
+        }
 
         if (body.has("iptvSourceUrl") || body.has("iptvSourceRequestHeaders")) {
             val iptvSourceUrl =
@@ -228,6 +259,7 @@ private data class AllSettings(
     val appRepo: String,
     val serverPort: Int = HttpServer.SERVER_PORT,
     val iptvSourceUrl: String,
+    val iptvSourceIsLocal: Boolean = false,
     val iptvSourceRequestHeaders: String = "",
     val epgXmlUrl: String = "",
     val epgXmlRequestHeaders: String = "",

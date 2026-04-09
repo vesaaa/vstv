@@ -62,6 +62,16 @@
                                 <span>与 APP 一致：<strong>直播源地址</strong>与请求头中的 <strong>User-Agent</strong> 绑定保存；<strong>拉取订阅与播放频道流</strong>均使用该 UA（未配置 UA 时播放端为内置默认）。下方两项只需点<strong>一次</strong>「推送」。</span>
                                 <span class="text-gray text-12px"><strong>User-Agent 只需填取值</strong>（不要写 <code>User-Agent:</code>）；服务端会自动补成 <code>User-Agent: 取值</code>。</span>
                                 <span class="text-gray text-12px">示例取值：<code>okHttp/Mod-1.5.0.0</code></span>
+                                <span class="text-gray text-12px">本地上传 <strong>M3U / TXT</strong>：手机扫码、浏览器输入 IP 均可使用；<strong>微信内置浏览器常无法调起文件选择</strong>，请用右上角菜单「在浏览器打开」或复制链接到 Safari/Chrome，也可将文件全文粘贴到下方文本框后推送。</span>
+                                <van-space size="small" wrap class="mt-4px">
+                                    <van-button size="small" type="success" plain @click="pickIptvLocalFile">选择本地文件</van-button>
+                                    <van-button size="small" type="success" plain @click="pushIptvLocalPaste">推送粘贴内容</van-button>
+                                </van-space>
+                                <input id="iptvFileInput" type="file" accept=".m3u,.m3u8,.txt,text/plain" style="display:none" @change="onIptvLocalFileChange" />
+                                <div style="border: 1px solid #d4d4d8; border-radius: 6px; overflow: hidden;">
+                                    <van-field class="!p-0" placeholder="或在此粘贴 M3U / tvbox 风格 TXT 全文（UTF-8）"
+                                        v-model="iptvLocalPasteText" type="textarea" rows="3"></van-field>
+                                </div>
                                 <span class="text-gray text-13px font-bold">直播源地址</span>
                                 <div style="border: 1px solid #d4d4d8; border-radius: 6px; overflow: hidden;">
                                     <van-field class="!p-0" placeholder="粘贴订阅 URL"
@@ -131,8 +141,13 @@
 
         const baseUrl = ""
 
+        const IPTV_LOCAL_MAX_CHARS = 6 * 1024 * 1024
+
         async function requestApi(url, config) {
             const resp = await fetch(`${baseUrl}${url}`, config)
+            if (resp.status === 413) {
+                throw new Error('文件过大')
+            }
             if (resp.status !== 200) {
                 throw new Error(`请求失败：${resp.status}`)
             }
@@ -177,6 +192,7 @@
             setup() {
                 const isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
                 const settings = ref()
+                const iptvLocalPasteText = ref('')
 
                 async function postPartial(partial) {
                     vant.showLoadingToast({ message: '加载中...', forbidClick: true, duration: 0 })
@@ -191,9 +207,11 @@
                         vant.showSuccessToast('已保存')
                     } catch (e) {
                         vant.closeToast()
-                        vant.showFailToast('无法修改设置')
+                        const msg = (e && String(e.message || e).includes('文件过大')) ? '内容过大（上限约 6MB）' : '无法修改设置'
+                        vant.showFailToast(msg)
                         console.error(e)
                         await refreshSettings(true)
+                        throw e
                     }
                 }
 
@@ -236,7 +254,54 @@
                         iptvSourceRequestHeaders: iptvFormDisplayToHeaders(
                             settings.value.iptvSourceRequestHeaders
                         ),
+                    }).catch(() => {})
+                }
+
+                function pickIptvLocalFile() {
+                    const el = document.getElementById('iptvFileInput')
+                    if (el) el.click()
+                }
+
+                function onIptvLocalFileChange(ev) {
+                    const f = ev.target && ev.target.files && ev.target.files[0]
+                    if (ev.target) ev.target.value = ''
+                    if (!f) return
+                    const reader = new FileReader()
+                    reader.onload = async () => {
+                        const text = String(reader.result || '')
+                        try {
+                            await pushIptvLocalText(text, true)
+                        } catch (_) { /* postPartial 已提示 */ }
+                    }
+                    reader.onerror = () => vant.showFailToast('读取文件失败')
+                    reader.readAsText(f, 'UTF-8')
+                }
+
+                async function pushIptvLocalPaste() {
+                    const text = iptvLocalPasteText.value == null ? '' : String(iptvLocalPasteText.value)
+                    try {
+                        await pushIptvLocalText(text, false)
+                    } catch (_) { /* postPartial 已提示 */ }
+                }
+
+                async function pushIptvLocalText(raw, fromFile) {
+                    if (!settings.value) return
+                    const text = String(raw || '').trim()
+                    if (!text) {
+                        vant.showToast(fromFile ? '文件为空' : '请先粘贴内容')
+                        return
+                    }
+                    if (text.length > IPTV_LOCAL_MAX_CHARS) {
+                        vant.showFailToast('内容过大（上限约 6MB）')
+                        return
+                    }
+                    await postPartial({
+                        iptvSourceLocalText: text,
+                        iptvSourceRequestHeaders: iptvFormDisplayToHeaders(
+                            settings.value.iptvSourceRequestHeaders
+                        ),
                     })
+                    iptvLocalPasteText.value = ''
                 }
 
                 function pushEpg() {
@@ -251,7 +316,7 @@
                         epgXmlRequestHeaders: iptvFormDisplayToHeaders(
                             settings.value.epgXmlRequestHeaders
                         ),
-                    })
+                    }).catch(() => {})
                 }
 
                 function setIptvUaPreset(key) {
@@ -268,9 +333,13 @@
                 return {
                     isDark,
                     settings,
+                    iptvLocalPasteText,
                     pushIptv,
                     pushEpg,
                     setIptvUaPreset,
+                    pickIptvLocalFile,
+                    onIptvLocalFileChange,
+                    pushIptvLocalPaste,
                 }
             }
         })

@@ -29,6 +29,14 @@ class IptvRepository : FileCacheRepository("iptv.txt") {
         withContext(Dispatchers.IO) {
         log.d("获取远程直播源: $sourceUrl")
 
+        if (sourceUrl.trim().startsWith(SP.IPTV_LOCAL_SOURCE_URL)) {
+            val text = SP.readIptvLocalUploadOrNull()
+            if (text.isNullOrBlank()) {
+                throw Exception("本地订阅文件不存在或为空，请在网页管理端重新上传")
+            }
+            return@withContext text
+        }
+
         val client = AppOkHttp.client()
         val norm = normalizeIptvRequestHeadersInput(requestHeadersText)
         val blended =

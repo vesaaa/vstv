@@ -124,7 +124,13 @@ fun LeanbackSettingsCategoryIptv(
                 headlineContent = "直播源与默认",
                 supportingContent = if (settingsViewModel.iptvSourceUrl.isNotBlank()) {
                     buildString {
-                        append(settingsViewModel.iptvSourceUrl)
+                        append(
+                            if (settingsViewModel.iptvSourceUrl.trim() == SP.IPTV_LOCAL_SOURCE_URL) {
+                                "本地上传（网页推送的 M3U/TXT）"
+                            } else {
+                                settingsViewModel.iptvSourceUrl
+                            },
+                        )
                         append("\n")
                         append("User-Agent：")
                         val raw = settingsViewModel.iptvSourceRequestHeaders.ifBlank {
