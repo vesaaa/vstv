@@ -78,8 +78,12 @@ object HttpServer : Loggable() {
                     handleSetSettings(request, response)
                 }
 
-                server.options("/api/settings") { _, response ->
-                    wrapResponse(response).end()
+                // AndroidAsync 无 server.options()，需用 addAction 注册 OPTIONS（部分浏览器跨域预检会用到）。
+                server.addAction("OPTIONS", "/api/settings") { _, response ->
+                    wrapResponse(response).apply {
+                        code(204)
+                        end()
+                    }
                 }
 
                 HttpServer.showToast = showToast
@@ -168,11 +172,17 @@ object HttpServer : Loggable() {
             val raw = body.optString("iptvSourceLocalText", "")
             val trimmed = raw.trim()
             if (trimmed.isEmpty()) {
-                wrapResponse(response).responseCode(400).send("empty iptvSourceLocalText")
+                wrapResponse(response).apply {
+                    code(400)
+                    send("empty iptvSourceLocalText")
+                }
                 return
             }
             if (trimmed.length > SP.IPTV_LOCAL_UPLOAD_MAX_CHARS) {
-                wrapResponse(response).responseCode(413).send("iptv file too large")
+                wrapResponse(response).apply {
+                    code(413)
+                    send("iptv file too large")
+                }
                 return
             }
             val iptvSourceRequestHeaders =
