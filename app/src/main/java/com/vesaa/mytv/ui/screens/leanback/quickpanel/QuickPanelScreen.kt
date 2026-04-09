@@ -410,10 +410,12 @@ fun LeanbackQuickPanelScreen(
                                 QuickPanelBottomMenuSlot.Replay ->
                                     LeanbackQuickPanelButton(
                                         leadingIcon = Icons.Filled.Schedule,
-                                        titleProvider = { "回看" },
-                                        subtitleProvider = {
-                                            if (catchupSupportedProvider()) "支持回看" else "不支持回看"
+                                        titleProvider = {
+                                            if (catchupSupportedProvider()) "支持回看" else "不支持"
                                         },
+                                        titleMaxLines = 1,
+                                        titleOverflow = TextOverflow.Ellipsis,
+                                        modifier = Modifier.widthIn(max = (190f * QuickPanelMenuLayoutFactor).dp),
                                         onSelect = {
                                             if (catchupSupportedProvider()) {
                                                 onSubPanelChange(

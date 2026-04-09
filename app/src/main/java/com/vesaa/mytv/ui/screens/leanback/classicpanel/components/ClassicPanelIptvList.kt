@@ -254,11 +254,13 @@ private fun LeanbackClassicPanelIptvItem(
             )
 
             if (replaySupported) {
+                val iconTint =
+                    if (isFocused || isSelectedProvider()) MaterialTheme.colorScheme.background
+                    else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.9f)
                 Icon(
                     imageVector = Icons.Default.Schedule,
                     contentDescription = "支持回看",
-                    tint = if (isFocused) MaterialTheme.colorScheme.background
-                    else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.9f),
+                    tint = iconTint,
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
                         .padding(end = 8.dp, bottom = 6.dp),
