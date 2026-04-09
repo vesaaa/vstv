@@ -212,6 +212,7 @@ private fun GroupActionDialog(
             TvLazyColumn(
                 modifier = Modifier
                     .padding(horizontal = 16.dp, vertical = 12.dp)
+                    .width(240.dp)
                     .handleLeanbackKeyEvents(
                         onKeyTap = mapOf(
                             KeyEvent.KEYCODE_BACK to { onDismissRequest() },
@@ -229,14 +230,26 @@ private fun GroupActionDialog(
                         modifier = Modifier.focusRequester(focusHide),
                         selected = selectedIdx == 0,
                         onClick = { onHide() },
-                        headlineContent = { Text("隐藏分组") },
+                        headlineContent = {
+                            Text(
+                                "隐藏分组",
+                                color = if (selectedIdx == 0) MaterialTheme.colorScheme.background
+                                else MaterialTheme.colorScheme.onBackground,
+                            )
+                        },
                     )
                 }
                 item {
                     androidx.tv.material3.ListItem(
                         selected = selectedIdx == 1,
                         onClick = { onAddToFavorite() },
-                        headlineContent = { Text("添加到精选频道") },
+                        headlineContent = {
+                            Text(
+                                "添加到精选频道",
+                                color = if (selectedIdx == 1) MaterialTheme.colorScheme.background
+                                else MaterialTheme.colorScheme.onBackground,
+                            )
+                        },
                     )
                 }
                 item {

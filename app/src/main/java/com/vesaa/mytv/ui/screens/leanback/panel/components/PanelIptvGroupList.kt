@@ -13,6 +13,7 @@ import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.ui.graphics.Color
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -174,6 +175,7 @@ private fun GroupActionDialog(
             ) {
                 TvLazyColumn(
                     modifier = Modifier
+                        .width(240.dp)
                         .handleLeanbackKeyEvents(
                             onKeyTap = mapOf(
                                 KeyEvent.KEYCODE_BACK to { onDismissRequest() },
@@ -191,14 +193,26 @@ private fun GroupActionDialog(
                             modifier = Modifier.focusRequester(focusHide),
                             selected = selectedIdx == 0,
                             onClick = { onHide() },
-                            headlineContent = { Text("隐藏分组") },
+                            headlineContent = {
+                                Text(
+                                    "隐藏分组",
+                                    color = if (selectedIdx == 0) MaterialTheme.colorScheme.background
+                                    else MaterialTheme.colorScheme.onBackground,
+                                )
+                            },
                         )
                     }
                     item {
                         ListItem(
                             selected = selectedIdx == 1,
                             onClick = { onAddToFavorite() },
-                            headlineContent = { Text("添加到精选频道") },
+                            headlineContent = {
+                                Text(
+                                    "添加到精选频道",
+                                    color = if (selectedIdx == 1) MaterialTheme.colorScheme.background
+                                    else MaterialTheme.colorScheme.onBackground,
+                                )
+                            },
                         )
                     }
                     item {
