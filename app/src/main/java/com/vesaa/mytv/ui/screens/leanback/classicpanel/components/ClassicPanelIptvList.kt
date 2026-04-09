@@ -11,7 +11,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -50,6 +53,7 @@ import com.vesaa.mytv.BuildConfig
 import com.vesaa.mytv.ui.components.IptvLogoImage
 import com.vesaa.mytv.ui.theme.LeanbackTheme
 import com.vesaa.mytv.ui.utils.handleLeanbackKeyEvents
+import com.vesaa.mytv.utils.IptvCatchup
 import kotlin.math.max
 
 @Composable
@@ -60,7 +64,6 @@ fun LeanbackClassicPanelIptvList(
     epgListProvider: () -> EpgList = { EpgList() },
     initialIptvProvider: () -> Iptv = { Iptv() },
     playbackStatusProvider: () -> String = { "" },
-    replayCapabilityProvider: () -> String = { "" },
     onIptvSelected: (Iptv) -> Unit = {},
     onIptvFavoriteToggle: (Iptv) -> Unit = {},
     onIptvFocused: (Iptv, FocusRequester) -> Unit = { _, _ -> },
@@ -124,7 +127,6 @@ fun LeanbackClassicPanelIptvList(
                 iptvProvider = { iptv },
                 epgProgrammeCurrentProvider = { epgListProvider().currentProgrammes(iptv) },
                 playbackStatusProvider = playbackStatusProvider,
-                replayCapabilityProvider = replayCapabilityProvider,
                 focusRequesterProvider = { itemFocusRequesterList[index] },
                 isSelectedProvider = { isSelected },
                 initialFocusedProvider = { initialFocused },
@@ -161,7 +163,6 @@ private fun LeanbackClassicPanelIptvItem(
     iptvProvider: () -> Iptv = { Iptv() },
     epgProgrammeCurrentProvider: () -> EpgProgrammeCurrent? = { null },
     playbackStatusProvider: () -> String = { "" },
-    replayCapabilityProvider: () -> String = { "" },
     focusRequesterProvider: () -> FocusRequester = { FocusRequester() },
     isSelectedProvider: () -> Boolean = { false },
     initialFocusedProvider: () -> Boolean = { false },
@@ -176,7 +177,7 @@ private fun LeanbackClassicPanelIptvItem(
     val focusRequester = focusRequesterProvider()
     val currentProgramme = epgProgrammeCurrentProvider()?.primaryProgramme()
     val playbackStatus = playbackStatusProvider().trim()
-    val replayCapability = replayCapabilityProvider().trim()
+    val replaySupported = IptvCatchup.supportCatchup(iptv)
 
     var isFocused by remember { mutableStateOf(false) }
 
@@ -238,13 +239,8 @@ private fun LeanbackClassicPanelIptvItem(
                     Text(text = iptv.name, maxLines = 2)
                 },
                 supportingContent = {
-                    val prefix = if (isSelectedProvider()) {
-                        listOf(playbackStatus, replayCapability)
-                            .filter { it.isNotEmpty() }
-                            .joinToString(" | ")
-                            .takeIf { it.isNotEmpty() }
-                            ?.let { "$it | " }
-                            .orEmpty()
+                    val prefix = if (isSelectedProvider() && playbackStatus.isNotEmpty()) {
+                        "$playbackStatus | "
                     } else {
                         ""
                     }
@@ -256,6 +252,18 @@ private fun LeanbackClassicPanelIptvItem(
                     )
                 },
             )
+
+            if (replaySupported) {
+                Icon(
+                    imageVector = Icons.Default.Schedule,
+                    contentDescription = "支持回看",
+                    tint = if (isFocused) MaterialTheme.colorScheme.background
+                    else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.9f),
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(end = 8.dp, bottom = 6.dp),
+                )
+            }
 
             if (showProgrammeProgressProvider() && currentProgramme != null && currentProgramme.isLive()) {
                 Box(

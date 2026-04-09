@@ -45,9 +45,9 @@ object IptvCatchup {
 
     fun capabilityText(iptv: Iptv): String {
         return when (capabilityOf(iptv)) {
-            Capability.SUPPORTED_BY_TEMPLATE -> "回看可用"
-            Capability.SUPPORTED_BY_DVR_URL -> "回看可用(DVR)"
-            Capability.UNSUPPORTED -> "回看不可用"
+            Capability.SUPPORTED_BY_TEMPLATE -> "模板命中"
+            Capability.SUPPORTED_BY_DVR_URL -> "DVR命中"
+            Capability.UNSUPPORTED -> "不支持"
         }
     }
 

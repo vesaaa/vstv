@@ -46,23 +46,6 @@ fun LeanbackSettingsCategoryUI(
         }
 
         item {
-            LeanbackSettingsCategoryListItem(
-                headlineContent = "经典选台界面",
-                supportingContent = "将选台界面替换为经典三段式结构",
-                trailingContent = {
-                    Switch(
-                        checked = settingsViewModel.uiUseClassicPanelScreen,
-                        onCheckedChange = null
-                    )
-                },
-                onSelected = {
-                    settingsViewModel.uiUseClassicPanelScreen =
-                        !settingsViewModel.uiUseClassicPanelScreen
-                },
-            )
-        }
-
-        item {
             val timeShowRangeSeconds = Constants.UI_TIME_SHOW_RANGE / 1000
 
             LeanbackSettingsCategoryListItem(

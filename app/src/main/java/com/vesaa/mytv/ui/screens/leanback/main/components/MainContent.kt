@@ -41,7 +41,6 @@ import com.vesaa.mytv.ui.screens.leanback.components.LeanbackVisible
 import com.vesaa.mytv.ui.screens.leanback.monitor.LeanbackMonitorScreen
 import com.vesaa.mytv.ui.screens.leanback.panel.LeanbackPanelChannelNoSelectScreen
 import com.vesaa.mytv.ui.screens.leanback.panel.LeanbackPanelDateTimeScreen
-import com.vesaa.mytv.ui.screens.leanback.panel.LeanbackPanelScreen
 import com.vesaa.mytv.ui.screens.leanback.panel.LeanbackPanelTempScreen
 import com.vesaa.mytv.ui.screens.leanback.panel.rememberLeanbackPanelChannelNoSelectState
 import com.vesaa.mytv.ui.screens.leanback.quickpanel.LeanbackQuickPanelScreen
@@ -163,7 +162,6 @@ fun LeanbackMainContent(
         } else {
             ""
         }
-    val replayCapabilityText = IptvCatchup.capabilityText(mainContentState.currentIptv)
     val replayCapabilityDetailText = when (IptvCatchup.capabilityOf(mainContentState.currentIptv)) {
         IptvCatchup.Capability.SUPPORTED_BY_TEMPLATE ->
             "模板命中：catchup/catchup-source"
@@ -475,61 +473,16 @@ fun LeanbackMainContent(
                     currentIptvUrlIdxProvider = { mainContentState.currentIptvUrlIdx },
                     currentProgrammesProvider = { epgList.currentProgrammes(mainContentState.currentIptv) },
                     playbackStatusProvider = { playbackStatusText },
-                    replayCapabilityProvider = { replayCapabilityText },
                     showProgrammeProgressProvider = { settingsViewModel.uiShowEpgProgrammeProgress },
                 )
             }
 
-            LeanbackVisible({ !settingsViewModel.uiUseClassicPanelScreen && mainContentState.isPanelVisible }) {
-                LeanbackPanelScreen(
-                    iptvGroupListProvider = { uiIptvGroupList },
-                    channelOrderListProvider = { channelOrderList },
-                    epgListProvider = { epgList },
-                    currentIptvProvider = { mainContentState.currentIptv },
-                    currentIptvUrlIdxProvider = { mainContentState.currentIptvUrlIdx },
-                    playbackStatusProvider = { playbackStatusText },
-                    replayCapabilityProvider = { replayCapabilityText },
-                    videoPlayerMetadataProvider = { videoPlayerState.metadata },
-                    showProgrammeProgressProvider = { settingsViewModel.uiShowEpgProgrammeProgress },
-                    onIptvSelected = { iptv, streamHeaders ->
-                        mainContentState.changeCurrentIptv(
-                            iptv,
-                            streamRequestHeaders = streamHeaders ?: resolveExtraStreamHeaders(iptv),
-                        )
-                    },
-                    onIptvFavoriteToggle = {
-                        if (!settingsViewModel.iptvChannelFavoriteEnable) {
-                            LeanbackToastState.I.showToast("请先在设置 → 精选设置 中启用精选")
-                            return@LeanbackPanelScreen
-                        }
-
-                        val was = settingsViewModel.isIptvFavorite(it)
-                        settingsViewModel.toggleIptvFavorite(it)
-                        if (was) {
-                            LeanbackToastState.I.showToast("已移出精选: ${it.channelName}")
-                        } else {
-                            LeanbackToastState.I.showToast("已加入精选: ${it.channelName}")
-                        }
-                    },
-                    iptvFavoriteEntriesProvider = { currentFavorites },
-                    iptvFavoriteListVisibleProvider = { settingsViewModel.iptvChannelFavoriteListVisible },
-                    onIptvFavoriteListVisibleChange = {
-                        settingsViewModel.iptvChannelFavoriteListVisible = it
-                    },
-                    iptvFavoritesOnlyModeProvider = { favoritesOnlyUi },
-                    onIptvGroupLongPressHide = onIptvGroupLongPressHide,
-                    onIptvGroupLongPressAddToFavorites = onIptvGroupLongPressAddToFavorites,
-                    onClose = { mainContentState.isPanelVisible = false },
-                )
-            }
-
-            LeanbackVisible({ settingsViewModel.uiUseClassicPanelScreen && mainContentState.isPanelVisible }) {
+            LeanbackVisible({ mainContentState.isPanelVisible }) {
                 LeanbackClassicPanelScreen(
                     iptvGroupListProvider = { uiIptvGroupList },
                     epgListProvider = { epgList },
                     currentIptvProvider = { mainContentState.currentIptv },
                     playbackStatusProvider = { playbackStatusText },
-                    replayCapabilityProvider = { replayCapabilityText },
                     showProgrammeProgressProvider = { settingsViewModel.uiShowEpgProgrammeProgress },
                     onIptvSelected = { iptv, streamHeaders ->
                         mainContentState.changeCurrentIptv(
@@ -570,7 +523,13 @@ fun LeanbackMainContent(
                 currentIptvUrlIdxProvider = { mainContentState.currentIptvUrlIdx },
                 currentProgrammesProvider = { epgList.currentProgrammes(mainContentState.currentIptv) },
                     playbackStatusProvider = { playbackStatusText },
-                    replayCapabilityProvider = { replayCapabilityText },
+                    replayCapabilityProvider = {
+                        when (IptvCatchup.capabilityOf(mainContentState.currentIptv)) {
+                            IptvCatchup.Capability.SUPPORTED_BY_TEMPLATE -> "模板命中"
+                            IptvCatchup.Capability.SUPPORTED_BY_DVR_URL -> "DVR命中"
+                            IptvCatchup.Capability.UNSUPPORTED -> "不支持"
+                        }
+                    },
                     replayCapabilityDetailProvider = { replayCapabilityDetailText },
                 currentEpgProvider = {
                     epgList.firstOrNull { it.matchesIptv(mainContentState.currentIptv) } ?: Epg()

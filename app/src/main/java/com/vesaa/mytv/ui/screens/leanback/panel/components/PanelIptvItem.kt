@@ -13,7 +13,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -39,6 +42,7 @@ import com.vesaa.mytv.BuildConfig
 import com.vesaa.mytv.ui.components.IptvLogoImage
 import com.vesaa.mytv.ui.theme.LeanbackTheme
 import com.vesaa.mytv.ui.utils.handleLeanbackKeyEvents
+import com.vesaa.mytv.utils.IptvCatchup
 
 @Composable
 fun LeanbackPanelIptvItem(
@@ -59,6 +63,7 @@ fun LeanbackPanelIptvItem(
     val iptv = iptvProvider()
     val currentProgramme = currentProgrammeProvider()
     val showProgrammeProgress = showProgrammeProgressProvider()
+    val replaySupported = IptvCatchup.supportCatchup(iptv)
 
     LaunchedEffect(Unit) {
         if (initialFocusedProvider()) {
@@ -154,6 +159,18 @@ fun LeanbackPanelIptvItem(
                             if (isFocused) MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)
                             else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f)
                         ),
+                )
+            }
+
+            if (replaySupported) {
+                Icon(
+                    imageVector = Icons.Default.Schedule,
+                    contentDescription = "支持回看",
+                    tint = if (isFocused) MaterialTheme.colorScheme.background
+                    else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.9f),
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(end = 6.dp, bottom = 5.dp),
                 )
             }
         }

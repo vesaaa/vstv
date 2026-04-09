@@ -259,7 +259,7 @@ private fun QuickPanelEpgProgrammeRow(
 @Composable
 fun LeanbackQuickPanelReplayRightSheet(
     modifier: Modifier = Modifier,
-    capabilityLabelProvider: () -> String = { "回看不可用" },
+    capabilityLabelProvider: () -> String = { "不支持" },
     capabilityDetailProvider: () -> String = { "当前频道未提供回看模板或DVR入口" },
     maxHoursProvider: () -> Int = { 24 },
     replaySupportedProvider: () -> Boolean = { false },

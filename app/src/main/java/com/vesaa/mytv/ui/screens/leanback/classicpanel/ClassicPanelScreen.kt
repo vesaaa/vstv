@@ -57,7 +57,6 @@ fun LeanbackClassicPanelScreen(
     epgListProvider: () -> EpgList = { EpgList() },
     currentIptvProvider: () -> Iptv = { Iptv() },
     playbackStatusProvider: () -> String = { "" },
-    replayCapabilityProvider: () -> String = { "" },
     showProgrammeProgressProvider: () -> Boolean = { false },
     iptvFavoriteEnableProvider: () -> Boolean = { true },
     iptvFavoriteEntriesProvider: () -> List<IptvFavoriteEntry> = { emptyList() },
@@ -86,7 +85,6 @@ fun LeanbackClassicPanelScreen(
             epgListProvider = epgListProvider,
             currentIptvProvider = currentIptvProvider,
             playbackStatusProvider = playbackStatusProvider,
-            replayCapabilityProvider = replayCapabilityProvider,
             showProgrammeProgressProvider = showProgrammeProgressProvider,
             onIptvSelected = onIptvSelected,
             iptvFavoriteEnableProvider = iptvFavoriteEnableProvider,
@@ -138,7 +136,6 @@ private fun LeanbackClassicPanelScreenContent(
     epgListProvider: () -> EpgList = { EpgList() },
     currentIptvProvider: () -> Iptv = { Iptv() },
     playbackStatusProvider: () -> String = { "" },
-    replayCapabilityProvider: () -> String = { "" },
     showProgrammeProgressProvider: () -> Boolean = { false },
     onIptvSelected: (Iptv, String?) -> Unit = { _, _ -> },
     iptvFavoriteEnableProvider: () -> Boolean = { true },
@@ -230,7 +227,6 @@ private fun LeanbackClassicPanelScreenContent(
             epgListProvider = epgListProvider,
             initialIptvProvider = currentIptvProvider,
             playbackStatusProvider = playbackStatusProvider,
-            replayCapabilityProvider = replayCapabilityProvider,
             onIptvSelected = { iptv ->
                 val streamHeaders =
                     if (focusedIptvGroup == LeanbackClassicPanelScreenFavoriteIptvGroup) {

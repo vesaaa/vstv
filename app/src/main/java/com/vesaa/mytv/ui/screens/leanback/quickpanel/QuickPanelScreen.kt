@@ -346,7 +346,6 @@ fun LeanbackQuickPanelScreen(
                         iptvUrlIdxProvider = currentIptvUrlIdxProvider,
                         currentProgrammesProvider = currentProgrammesProvider,
                         playbackStatusProvider = playbackStatusProvider,
-                        replayCapabilityProvider = replayCapabilityProvider,
                     )
 
                     LeanbackPanelPlayerInfo(

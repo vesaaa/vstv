@@ -34,7 +34,6 @@ fun LeanbackPanelTempScreen(
     currentIptvUrlIdxProvider: () -> Int = { 0 },
     currentProgrammesProvider: () -> EpgProgrammeCurrent? = { null },
     playbackStatusProvider: () -> String = { "" },
-    replayCapabilityProvider: () -> String = { "" },
     showProgrammeProgressProvider: () -> Boolean = { false },
 ) {
     val childPadding = rememberLeanbackChildPadding()
@@ -58,7 +57,6 @@ fun LeanbackPanelTempScreen(
                     iptvUrlIdxProvider = currentIptvUrlIdxProvider,
                     currentProgrammesProvider = currentProgrammesProvider,
                     playbackStatusProvider = playbackStatusProvider,
-                    replayCapabilityProvider = replayCapabilityProvider,
                 )
 
                 val currentProgrammes = currentProgrammesProvider()
