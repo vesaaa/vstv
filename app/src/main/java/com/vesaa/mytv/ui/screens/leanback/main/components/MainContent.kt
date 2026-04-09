@@ -163,6 +163,7 @@ fun LeanbackMainContent(
         } else {
             ""
         }
+    val replayCapabilityText = IptvCatchup.capabilityText(mainContentState.currentIptv)
     var lastReplayError by remember { mutableStateOf("") }
     LaunchedEffect(mainContentState.playbackMode, videoPlayerState.error) {
         if (mainContentState.playbackMode != LeanbackMainContentState.PlaybackMode.REPLAY) {
@@ -466,6 +467,7 @@ fun LeanbackMainContent(
                     currentIptvUrlIdxProvider = { mainContentState.currentIptvUrlIdx },
                     currentProgrammesProvider = { epgList.currentProgrammes(mainContentState.currentIptv) },
                     playbackStatusProvider = { playbackStatusText },
+                    replayCapabilityProvider = { replayCapabilityText },
                     showProgrammeProgressProvider = { settingsViewModel.uiShowEpgProgrammeProgress },
                 )
             }
@@ -478,6 +480,7 @@ fun LeanbackMainContent(
                     currentIptvProvider = { mainContentState.currentIptv },
                     currentIptvUrlIdxProvider = { mainContentState.currentIptvUrlIdx },
                     playbackStatusProvider = { playbackStatusText },
+                    replayCapabilityProvider = { replayCapabilityText },
                     videoPlayerMetadataProvider = { videoPlayerState.metadata },
                     showProgrammeProgressProvider = { settingsViewModel.uiShowEpgProgrammeProgress },
                     onIptvSelected = { iptv, streamHeaders ->
@@ -518,6 +521,7 @@ fun LeanbackMainContent(
                     epgListProvider = { epgList },
                     currentIptvProvider = { mainContentState.currentIptv },
                     playbackStatusProvider = { playbackStatusText },
+                    replayCapabilityProvider = { replayCapabilityText },
                     showProgrammeProgressProvider = { settingsViewModel.uiShowEpgProgrammeProgress },
                     onIptvSelected = { iptv, streamHeaders ->
                         mainContentState.changeCurrentIptv(
@@ -558,6 +562,7 @@ fun LeanbackMainContent(
                 currentIptvUrlIdxProvider = { mainContentState.currentIptvUrlIdx },
                 currentProgrammesProvider = { epgList.currentProgrammes(mainContentState.currentIptv) },
                     playbackStatusProvider = { playbackStatusText },
+                    replayCapabilityProvider = { replayCapabilityText },
                 currentEpgProvider = {
                     epgList.firstOrNull { it.matchesIptv(mainContentState.currentIptv) } ?: Epg()
                 },
@@ -576,6 +581,9 @@ fun LeanbackMainContent(
                 },
                 catchupSupportedProvider = {
                     IptvCatchup.supportCatchup(mainContentState.currentIptv)
+                },
+                onReplayUnsupported = {
+                    LeanbackToastState.I.showToast("当前频道未提供回看模板或DVR入口")
                 },
                 isReplayActiveProvider = {
                     mainContentState.playbackMode == LeanbackMainContentState.PlaybackMode.REPLAY

@@ -60,6 +60,7 @@ fun LeanbackClassicPanelIptvList(
     epgListProvider: () -> EpgList = { EpgList() },
     initialIptvProvider: () -> Iptv = { Iptv() },
     playbackStatusProvider: () -> String = { "" },
+    replayCapabilityProvider: () -> String = { "" },
     onIptvSelected: (Iptv) -> Unit = {},
     onIptvFavoriteToggle: (Iptv) -> Unit = {},
     onIptvFocused: (Iptv, FocusRequester) -> Unit = { _, _ -> },
@@ -123,6 +124,7 @@ fun LeanbackClassicPanelIptvList(
                 iptvProvider = { iptv },
                 epgProgrammeCurrentProvider = { epgListProvider().currentProgrammes(iptv) },
                 playbackStatusProvider = playbackStatusProvider,
+                replayCapabilityProvider = replayCapabilityProvider,
                 focusRequesterProvider = { itemFocusRequesterList[index] },
                 isSelectedProvider = { isSelected },
                 initialFocusedProvider = { initialFocused },
@@ -159,6 +161,7 @@ private fun LeanbackClassicPanelIptvItem(
     iptvProvider: () -> Iptv = { Iptv() },
     epgProgrammeCurrentProvider: () -> EpgProgrammeCurrent? = { null },
     playbackStatusProvider: () -> String = { "" },
+    replayCapabilityProvider: () -> String = { "" },
     focusRequesterProvider: () -> FocusRequester = { FocusRequester() },
     isSelectedProvider: () -> Boolean = { false },
     initialFocusedProvider: () -> Boolean = { false },
@@ -173,6 +176,7 @@ private fun LeanbackClassicPanelIptvItem(
     val focusRequester = focusRequesterProvider()
     val currentProgramme = epgProgrammeCurrentProvider()?.primaryProgramme()
     val playbackStatus = playbackStatusProvider().trim()
+    val replayCapability = replayCapabilityProvider().trim()
 
     var isFocused by remember { mutableStateOf(false) }
 
@@ -234,8 +238,13 @@ private fun LeanbackClassicPanelIptvItem(
                     Text(text = iptv.name, maxLines = 2)
                 },
                 supportingContent = {
-                    val prefix = if (isSelectedProvider() && playbackStatus.isNotEmpty()) {
-                        "$playbackStatus | "
+                    val prefix = if (isSelectedProvider()) {
+                        listOf(playbackStatus, replayCapability)
+                            .filter { it.isNotEmpty() }
+                            .joinToString(" | ")
+                            .takeIf { it.isNotEmpty() }
+                            ?.let { "$it | " }
+                            .orEmpty()
                     } else {
                         ""
                     }

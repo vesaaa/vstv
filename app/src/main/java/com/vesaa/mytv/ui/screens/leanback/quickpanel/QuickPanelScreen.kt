@@ -133,9 +133,11 @@ fun LeanbackQuickPanelScreen(
     onChangeVideoPlayerAspectRatio: (Float) -> Unit = {},
     onIptvUrlIdxChange: (Int) -> Unit = {},
     playbackStatusProvider: () -> String = { "" },
+    replayCapabilityProvider: () -> String = { "" },
     isReplayActiveProvider: () -> Boolean = { false },
     onBackToLive: () -> Unit = {},
     catchupSupportedProvider: () -> Boolean = { false },
+    onReplayUnsupported: () -> Unit = {},
     catchupMaxHoursProvider: () -> Int = { 24 },
     onReplayByBackMinutes: (Int) -> Unit = {},
     onReplayByProgramme: (Long, Long) -> Unit = { _, _ -> },
@@ -318,6 +320,7 @@ fun LeanbackQuickPanelScreen(
                         iptvUrlIdxProvider = currentIptvUrlIdxProvider,
                         currentProgrammesProvider = currentProgrammesProvider,
                         playbackStatusProvider = playbackStatusProvider,
+                        replayCapabilityProvider = replayCapabilityProvider,
                     )
 
                     LeanbackPanelPlayerInfo(
@@ -326,10 +329,10 @@ fun LeanbackQuickPanelScreen(
 
                     val menuListState = rememberTvLazyListState()
                     val showMultiLineMenuItem = currentIptvProvider().urlList.size > 1
-                    val menuSlots = remember(showMultiLineMenuItem, catchupSupportedProvider()) {
+                    val menuSlots = remember(showMultiLineMenuItem, isReplayActiveProvider()) {
                         buildList {
                             add(QuickPanelBottomMenuSlot.Epg)
-                            if (catchupSupportedProvider()) add(QuickPanelBottomMenuSlot.Replay)
+                            add(QuickPanelBottomMenuSlot.Replay)
                             if (isReplayActiveProvider()) add(QuickPanelBottomMenuSlot.BackLive)
                             if (showMultiLineMenuItem) add(QuickPanelBottomMenuSlot.MultiLine)
                             add(QuickPanelBottomMenuSlot.AspectRatio)
@@ -383,8 +386,17 @@ fun LeanbackQuickPanelScreen(
                                     LeanbackQuickPanelButton(
                                         leadingIcon = Icons.Filled.Schedule,
                                         titleProvider = { "回看" },
-                                        subtitleProvider = { "最长${catchupMaxHoursProvider()}小时" },
-                                        onSelect = { showReplayDialog = true },
+                                        subtitleProvider = {
+                                            if (catchupSupportedProvider()) {
+                                                "最长${catchupMaxHoursProvider()}小时"
+                                            } else {
+                                                "当前频道未提供回看"
+                                            }
+                                        },
+                                        onSelect = {
+                                            if (catchupSupportedProvider()) showReplayDialog = true
+                                            else onReplayUnsupported()
+                                        },
                                     )
 
                                 QuickPanelBottomMenuSlot.BackLive ->

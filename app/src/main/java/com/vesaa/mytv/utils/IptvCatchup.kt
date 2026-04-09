@@ -16,14 +16,39 @@ data class CatchupWindow(
 
 object IptvCatchup {
     private const val MaxCatchupHours = 24
+    private const val DefaultAppendTemplate = "?playseek=\${(b)yyyyMMddHHmmss}-\${(e)yyyyMMddHHmmss}"
+
+    enum class Capability {
+        SUPPORTED_BY_TEMPLATE,
+        SUPPORTED_BY_DVR_URL,
+        UNSUPPORTED,
+    }
 
     fun maxCatchupHours(iptv: Iptv): Int {
         val bySource = if (iptv.catchupDays > 0) iptv.catchupDays * 24 else MaxCatchupHours
         return max(1, minOf(MaxCatchupHours, bySource))
     }
 
+    fun capabilityOf(iptv: Iptv): Capability {
+        if (iptv.catchupSource.trim().isNotEmpty()) return Capability.SUPPORTED_BY_TEMPLATE
+        val hasDvrUrl = iptv.urlList.any { isLikelyDvrUrl(it) }
+        if (hasDvrUrl) return Capability.SUPPORTED_BY_DVR_URL
+        if (iptv.catchup.trim().equals("append", ignoreCase = true)) {
+            return Capability.SUPPORTED_BY_TEMPLATE
+        }
+        return Capability.UNSUPPORTED
+    }
+
     fun supportCatchup(iptv: Iptv): Boolean {
-        return iptv.catchupSource.isNotBlank() || iptv.catchup.isNotBlank()
+        return capabilityOf(iptv) != Capability.UNSUPPORTED
+    }
+
+    fun capabilityText(iptv: Iptv): String {
+        return when (capabilityOf(iptv)) {
+            Capability.SUPPORTED_BY_TEMPLATE -> "回看可用"
+            Capability.SUPPORTED_BY_DVR_URL -> "回看可用(DVR)"
+            Capability.UNSUPPORTED -> "回看不可用"
+        }
     }
 
     fun buildCatchupUrl(
@@ -31,7 +56,7 @@ object IptvCatchup {
         baseUrl: String,
         window: CatchupWindow,
     ): String? {
-        val source = iptv.catchupSource.trim()
+        val source = pickTemplate(iptv)
         if (source.isBlank()) return null
         return renderCatchupTemplate(source, window.startMs, window.endMs, baseUrl)
     }
@@ -60,9 +85,25 @@ object IptvCatchup {
 
         return if (replaced.startsWith("http://", true) || replaced.startsWith("https://", true)) {
             replaced
+        } else if (replaced.startsWith("?") && "?" in baseUrl) {
+            baseUrl + "&" + replaced.removePrefix("?")
         } else {
             baseUrl + replaced
         }
+    }
+
+    private fun pickTemplate(iptv: Iptv): String {
+        val explicit = iptv.catchupSource.trim()
+        if (explicit.isNotEmpty()) return explicit
+        if (iptv.catchup.trim().equals("append", ignoreCase = true)) return DefaultAppendTemplate
+        if (iptv.urlList.any { isLikelyDvrUrl(it) }) return DefaultAppendTemplate
+        return ""
+    }
+
+    private fun isLikelyDvrUrl(url: String): Boolean {
+        val u = url.trim().lowercase()
+        if (u.isBlank()) return false
+        return "/dvr/" in u || "playseek=" in u || "timeshift" in u
     }
 
     private fun formatTs(ts: Long, raw: String): String {
