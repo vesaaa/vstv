@@ -1,5 +1,6 @@
 package com.vesaa.mytv.ui.screens.leanback.panel.components
 
+import android.view.KeyEvent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
@@ -174,10 +175,14 @@ private fun GroupActionDialog(
                 TvLazyColumn(
                     modifier = Modifier
                         .handleLeanbackKeyEvents(
+                            onKeyTap = mapOf(
+                                KeyEvent.KEYCODE_BACK to { onDismissRequest() },
+                            ),
+                        )
+                        .handleLeanbackKeyEvents(
                             onUp = { selectedIdx = 0 },
                             onDown = { selectedIdx = 1 },
                             onSelect = { if (selectedIdx == 0) onHide() else onAddToFavorite() },
-                            onBack = { onDismissRequest() },
                         ),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {

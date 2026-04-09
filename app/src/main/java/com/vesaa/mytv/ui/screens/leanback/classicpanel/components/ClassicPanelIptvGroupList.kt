@@ -1,5 +1,6 @@
 package com.vesaa.mytv.ui.screens.leanback.classicpanel.components
 
+import android.view.KeyEvent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
@@ -212,10 +213,14 @@ private fun GroupActionDialog(
                 modifier = Modifier
                     .padding(horizontal = 16.dp, vertical = 12.dp)
                     .handleLeanbackKeyEvents(
+                        onKeyTap = mapOf(
+                            KeyEvent.KEYCODE_BACK to { onDismissRequest() },
+                        ),
+                    )
+                    .handleLeanbackKeyEvents(
                         onUp = { selectedIdx = 0 },
                         onDown = { selectedIdx = 1 },
                         onSelect = { if (selectedIdx == 0) onHide() else onAddToFavorite() },
-                        onBack = { onDismissRequest() },
                     ),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
