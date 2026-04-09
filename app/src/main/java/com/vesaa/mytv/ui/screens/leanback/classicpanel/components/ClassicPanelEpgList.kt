@@ -3,13 +3,16 @@ package com.vesaa.mytv.ui.screens.leanback.classicpanel.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.foundation.BorderStroke
@@ -27,6 +30,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.focus.FocusDirection
@@ -201,17 +205,24 @@ private fun LeanbackClassicPanelEpgItem(
                     Icon(Icons.Default.PlayArrow, contentDescription = "playing")
                 } else if (canReplay) {
                     val tagColor = if (isFocused) Color.Black else Color.White
-                    Text(
-                        text = "回看",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = tagColor,
+                    Box(
                         modifier = Modifier
                             .border(
                                 border = BorderStroke(1.dp, tagColor),
                                 shape = MaterialTheme.shapes.extraSmall,
                             )
-                            .padding(horizontal = 6.dp, vertical = 2.dp),
-                    )
+                            .widthIn(min = 34.dp)
+                            .height(20.dp)
+                            .padding(horizontal = 6.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = "回看",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = tagColor,
+                            maxLines = 1,
+                        )
+                    }
                 }
             },
         )

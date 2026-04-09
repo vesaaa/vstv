@@ -127,49 +127,53 @@ fun LeanbackMainContent(
         if (favoritesOnlyUi) currentFavorites.map { it.toIptv() }
         else uiIptvGroupList.iptvList
     val playReplayWindow: (Iptv, Long, Long, String) -> Unit = replay@{ targetIptv, rawStartMs, rawEndMs, replayHint ->
-        val iptv = targetIptv
-        if (!IptvCatchup.supportCatchup(iptv)) {
-            LeanbackToastState.I.showToast("当前频道不支持回看")
-            return@replay
-        }
-        if (iptv.urlList.isEmpty()) {
-            LeanbackToastState.I.showToast("当前频道无可用播放地址")
-            return@replay
-        }
-        val maxHours = IptvCatchup.maxCatchupHours(iptv)
-        val window = IptvCatchup.clampWindow(
-            rawStartMs = rawStartMs,
-            rawEndMs = rawEndMs,
-            maxHours = maxHours,
-        )
-        if (window == null) {
-            LeanbackToastState.I.showToast("回看时间无效或超出范围")
-            return@replay
-        }
-        val idx = mainContentState.currentIptvUrlIdx
-            .coerceIn(0, (iptv.urlList.size - 1).coerceAtLeast(0))
-        val baseUrl = iptv.urlList.getOrNull(idx).orEmpty()
-        if (baseUrl.isBlank()) {
-            LeanbackToastState.I.showToast("当前频道播放地址为空")
-            return@replay
-        }
-        val replayUrl = IptvCatchup.buildCatchupUrl(iptv, baseUrl, window)
-        if (replayUrl.isNullOrBlank()) {
-            LeanbackToastState.I.showToast("该源未提供回看地址模板")
-            return@replay
-        }
-        if (mainContentState.currentIptv != iptv) {
-            mainContentState.changeCurrentIptv(
-                iptv = iptv,
-                streamRequestHeaders = resolveExtraStreamHeaders(iptv),
+        runCatching {
+            val iptv = targetIptv
+            if (!IptvCatchup.supportCatchup(iptv)) {
+                LeanbackToastState.I.showToast("当前频道不支持回看")
+                return@runCatching
+            }
+            if (iptv.urlList.isEmpty()) {
+                LeanbackToastState.I.showToast("当前频道无可用播放地址")
+                return@runCatching
+            }
+            val maxHours = IptvCatchup.maxCatchupHours(iptv)
+            val window = IptvCatchup.clampWindow(
+                rawStartMs = rawStartMs,
+                rawEndMs = rawEndMs,
+                maxHours = maxHours,
             )
+            if (window == null) {
+                LeanbackToastState.I.showToast("回看时间无效或超出范围")
+                return@runCatching
+            }
+            val idx = mainContentState.currentIptvUrlIdx
+                .coerceIn(0, (iptv.urlList.size - 1).coerceAtLeast(0))
+            val baseUrl = iptv.urlList.getOrNull(idx).orEmpty()
+            if (baseUrl.isBlank()) {
+                LeanbackToastState.I.showToast("当前频道播放地址为空")
+                return@runCatching
+            }
+            val replayUrl = IptvCatchup.buildCatchupUrl(iptv, baseUrl, window)
+            if (replayUrl.isNullOrBlank()) {
+                LeanbackToastState.I.showToast("该源未提供回看地址模板")
+                return@runCatching
+            }
+            if (mainContentState.currentIptv != iptv) {
+                mainContentState.changeCurrentIptv(
+                    iptv = iptv,
+                    streamRequestHeaders = resolveExtraStreamHeaders(iptv),
+                )
+            }
+            mainContentState.playCurrentIptvWithOverrideUrl(
+                overrideUrl = replayUrl,
+                streamRequestHeaders = resolveExtraStreamHeaders(iptv),
+                replayHint = replayHint,
+            )
+            LeanbackToastState.I.showToast("已开始回看")
+        }.onFailure {
+            LeanbackToastState.I.showToast("回看请求失败，请重试")
         }
-        mainContentState.playCurrentIptvWithOverrideUrl(
-            overrideUrl = replayUrl,
-            streamRequestHeaders = resolveExtraStreamHeaders(iptv),
-            replayHint = replayHint,
-        )
-        LeanbackToastState.I.showToast("已开始回看")
     }
     val playbackStatusText =
         if (mainContentState.playbackMode == LeanbackMainContentState.PlaybackMode.REPLAY) {
