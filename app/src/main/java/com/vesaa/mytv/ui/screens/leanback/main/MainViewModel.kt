@@ -95,13 +95,14 @@ class LeanbackMainViewModel : ViewModel() {
                 if (src.startsWith(SP.IPTV_LOCAL_SOURCE_URL) &&
                     msg.contains("本地订阅文件不存在", ignoreCase = false)
                 ) {
-                    SP.iptvSourceUrlHistoryList -= SP.iptvSourceUrl
                     SP.iptvSourceUrl = ""
                     _uiState.value = LeanbackMainUiState.Ready(iptvGroupList = IptvGroupList())
                     return@catch
                 }
                 _uiState.value = LeanbackMainUiState.Error(it.message)
-                if (SP.iptvSourceUrl.isNotBlank()) {
+                if (SP.iptvSourceUrl.isNotBlank() &&
+                    !SP.iptvSourceUrl.trim().startsWith(SP.IPTV_LOCAL_SOURCE_URL)
+                ) {
                     SP.iptvSourceUrlHistoryList -= SP.iptvSourceUrl
                 }
             }

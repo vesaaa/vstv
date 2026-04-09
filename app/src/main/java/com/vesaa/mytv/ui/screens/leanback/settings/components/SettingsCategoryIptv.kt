@@ -163,6 +163,10 @@ fun LeanbackSettingsCategoryIptv(
                 currentIptvChannelRequestHeadersProvider = { settingsViewModel.iptvChannelRequestHeaders },
                 onSelected = {
                     showDialog = false
+                    if (it.trim().startsWith(SP.IPTV_LOCAL_SOURCE_URL) && !SP.hasIptvLocalUploadFile()) {
+                        LeanbackToastState.I.showToast("本地上传文件不存在，请先在网页管理端重新上传")
+                        return@LeanbackSettingsIptvSourceHistoryDialog
+                    }
                     if (settingsViewModel.iptvSourceUrl != it) {
                         settingsViewModel.iptvSourceUrl = it
                         settingsViewModel.iptvSourceRequestHeaders =

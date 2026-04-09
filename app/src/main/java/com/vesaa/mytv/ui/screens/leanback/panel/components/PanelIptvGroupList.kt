@@ -10,8 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -21,10 +20,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.tv.foundation.lazy.list.TvLazyColumn
@@ -115,21 +116,15 @@ fun LeanbackPanelIptvGroupList(
             )
 
             if (showLongPressMenu) {
-                AlertDialog(
+                GroupActionDialog(
                     onDismissRequest = { showLongPressMenu = false },
-                    title = { Text("分组操作：${iptvGroup.name}") },
-                    text = { Text("请选择要执行的操作") },
-                    confirmButton = {
-                        TextButton(onClick = {
-                            showLongPressMenu = false
-                            onIptvGroupLongPressHide(iptvGroup)
-                        }) { Text("隐藏分组") }
+                    onHide = {
+                        showLongPressMenu = false
+                        onIptvGroupLongPressHide(iptvGroup)
                     },
-                    dismissButton = {
-                        TextButton(onClick = {
-                            showLongPressMenu = false
-                            onIptvGroupLongPressAddToFavorites(iptvGroup)
-                        }) { Text("添加到精选频道") }
+                    onAddToFavorite = {
+                        showLongPressMenu = false
+                        onIptvGroupLongPressAddToFavorites(iptvGroup)
                     },
                 )
             }
@@ -148,6 +143,69 @@ fun LeanbackPanelIptvGroupList(
                 onIptvFavoriteToggle = onIptvFavoriteToggle,
                 onUserAction = onUserAction,
             )
+        }
+    }
+}
+
+@Composable
+private fun GroupActionDialog(
+    onDismissRequest: () -> Unit,
+    onHide: () -> Unit,
+    onAddToFavorite: () -> Unit,
+) {
+    val focusHide = remember { FocusRequester() }
+    var selectedIdx by remember { mutableStateOf(0) } // 0: 隐藏分组, 1: 添加到精选
+
+    LaunchedEffect(Unit) {
+        focusHide.requestFocus()
+    }
+
+    Dialog(onDismissRequest = onDismissRequest) {
+        Surface(
+            shape = MaterialTheme.shapes.medium,
+            tonalElevation = 6.dp,
+            color = MaterialTheme.colorScheme.surface,
+        ) {
+            Box(
+                modifier = Modifier
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                TvLazyColumn(
+                    modifier = Modifier
+                        .handleLeanbackKeyEvents(
+                            onUp = { selectedIdx = 0 },
+                            onDown = { selectedIdx = 1 },
+                            onSelect = { if (selectedIdx == 0) onHide() else onAddToFavorite() },
+                            onBack = { onDismissRequest() },
+                        ),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    item {
+                        ListItem(
+                            modifier = Modifier.focusRequester(focusHide),
+                            selected = selectedIdx == 0,
+                            onClick = { onHide() },
+                            headlineContent = { Text("隐藏分组") },
+                        )
+                    }
+                    item {
+                        ListItem(
+                            selected = selectedIdx == 1,
+                            onClick = { onAddToFavorite() },
+                            headlineContent = { Text("添加到精选频道") },
+                        )
+                    }
+                    item {
+                        Text(
+                            text = "上下选择，确定执行",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(start = 8.dp, top = 2.dp),
+                        )
+                    }
+                }
+            }
         }
     }
 }

@@ -9,8 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -31,6 +30,7 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import androidx.tv.foundation.lazy.list.TvLazyColumn
 import androidx.tv.foundation.lazy.list.items
 import androidx.tv.foundation.lazy.list.rememberTvLazyListState
@@ -175,23 +175,75 @@ private fun LeanbackClassicPanelIptvGroupItem(
     }
 
     if (showLongPressMenu) {
-        AlertDialog(
+        GroupActionDialog(
             onDismissRequest = { showLongPressMenu = false },
-            title = { Text("分组操作：${iptvGroup.name}") },
-            text = { Text("请选择要执行的操作") },
-            confirmButton = {
-                TextButton(onClick = {
-                    showLongPressMenu = false
-                    onLongPressHide(iptvGroup)
-                }) { Text("隐藏分组") }
+            onHide = {
+                showLongPressMenu = false
+                onLongPressHide(iptvGroup)
             },
-            dismissButton = {
-                TextButton(onClick = {
-                    showLongPressMenu = false
-                    onLongPressAddToFavorites(iptvGroup)
-                }) { Text("添加到精选频道") }
+            onAddToFavorite = {
+                showLongPressMenu = false
+                onLongPressAddToFavorites(iptvGroup)
             },
         )
+    }
+}
+
+@Composable
+private fun GroupActionDialog(
+    onDismissRequest: () -> Unit,
+    onHide: () -> Unit,
+    onAddToFavorite: () -> Unit,
+) {
+    val focusHide = remember { FocusRequester() }
+    var selectedIdx by remember { mutableStateOf(0) }
+
+    LaunchedEffect(Unit) {
+        focusHide.requestFocus()
+    }
+
+    Dialog(onDismissRequest = onDismissRequest) {
+        Surface(
+            shape = MaterialTheme.shapes.medium,
+            tonalElevation = 6.dp,
+            color = MaterialTheme.colorScheme.surface,
+        ) {
+            TvLazyColumn(
+                modifier = Modifier
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
+                    .handleLeanbackKeyEvents(
+                        onUp = { selectedIdx = 0 },
+                        onDown = { selectedIdx = 1 },
+                        onSelect = { if (selectedIdx == 0) onHide() else onAddToFavorite() },
+                        onBack = { onDismissRequest() },
+                    ),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                item {
+                    androidx.tv.material3.ListItem(
+                        modifier = Modifier.focusRequester(focusHide),
+                        selected = selectedIdx == 0,
+                        onClick = { onHide() },
+                        headlineContent = { Text("隐藏分组") },
+                    )
+                }
+                item {
+                    androidx.tv.material3.ListItem(
+                        selected = selectedIdx == 1,
+                        onClick = { onAddToFavorite() },
+                        headlineContent = { Text("添加到精选频道") },
+                    )
+                }
+                item {
+                    Text(
+                        text = "上下选择，确定执行",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(start = 8.dp, top = 2.dp),
+                    )
+                }
+            }
+        }
     }
 }
 
