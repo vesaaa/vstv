@@ -68,7 +68,7 @@ fun LeanbackSettingsCategoryFavorite(
             LeanbackSettingsCategoryListItem(
                 headlineContent = "当前精选",
                 supportingContent = "已保存播放地址与请求头，删除订阅后仍可播放",
-                trailingContent = "${settingsViewModel.iptvChannelFavoriteEntries.size}个频道",
+                trailingContent = "${settingsViewModel.currentSourceFavoriteEntries.size}个频道",
             )
         }
 

@@ -14,6 +14,8 @@ data class IptvFavoriteEntry(
     /** 与 [Iptv.logoUrl] 一致，收藏时快照 */
     val logoUrl: String = "",
     val urlList: List<String> = emptyList(),
+    /** 来源直播源 key（用于按源区分精选/多源合并）；历史数据可能为空。 */
+    val sourceKey: String = "",
     /** 多行 `Name: Value`，与 [com.vesaa.mytv.ui.utils.SP.iptvSourceRequestHeaders] 格式一致 */
     val playbackRequestHeaders: String = "",
 ) {
@@ -32,13 +34,18 @@ data class IptvFavoriteEntry(
         fun stableKeyFrom(urlList: List<String>, channelName: String): String =
             "${urlList.firstOrNull().orEmpty()}\u0001$channelName"
 
-        fun fromIptv(iptv: Iptv, playbackRequestHeaders: String): IptvFavoriteEntry =
+        fun fromIptv(
+            iptv: Iptv,
+            playbackRequestHeaders: String,
+            sourceKey: String = "",
+        ): IptvFavoriteEntry =
             IptvFavoriteEntry(
                 name = iptv.name,
                 channelName = iptv.channelName,
                 tvgId = iptv.tvgId,
                 logoUrl = iptv.logoUrl.trim(),
                 urlList = iptv.urlList,
+                sourceKey = sourceKey.trim(),
                 playbackRequestHeaders = playbackRequestHeaders.trim(),
             )
     }

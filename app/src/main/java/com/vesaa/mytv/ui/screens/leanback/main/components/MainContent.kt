@@ -80,6 +80,7 @@ fun LeanbackMainContent(
     )
     val favoritesOnlyUi =
         settingsViewModel.iptvChannelFavoriteEnable && settingsViewModel.iptvChannelFavoritesOnlyMode
+    val currentFavorites = settingsViewModel.currentSourceFavoriteEntries
     val expandedEntries = settingsViewModel.iptvExpandedChannelEntries
     val expandedHeaderMap = remember(expandedEntries) {
         expandedEntries.associateBy(
@@ -88,11 +89,11 @@ fun LeanbackMainContent(
         )
     }
     val resolveExtraStreamHeaders: (Iptv) -> String? = remember(
-        settingsViewModel.iptvChannelFavoriteEntries,
+        currentFavorites,
         expandedHeaderMap,
     ) {
         { iptv ->
-            settingsViewModel.iptvChannelFavoriteEntries
+            currentFavorites
                 .find { e -> IptvFavoriteEntry.stableKeyFrom(iptv.urlList, iptv.channelName) == e.stableKey() }
                 ?.playbackRequestHeaders?.trim()?.takeIf { it.isNotEmpty() }
                 ?: expandedHeaderMap[IptvFavoriteEntry.stableKeyFrom(iptv.urlList, iptv.channelName)]
@@ -119,7 +120,7 @@ fun LeanbackMainContent(
     }
     val uiIptvGroupList = if (favoritesOnlyUi) IptvGroupList() else mergedIptvGroupList
     val channelOrderList =
-        if (favoritesOnlyUi) settingsViewModel.iptvChannelFavoriteEntries.map { it.toIptv() }
+        if (favoritesOnlyUi) currentFavorites.map { it.toIptv() }
         else uiIptvGroupList.iptvList
 
     val onIptvGroupLongPressHide: (IptvGroup) -> Unit = { group ->
@@ -171,13 +172,13 @@ fun LeanbackMainContent(
     LaunchedEffect(
         iptvGroupList,
         favoritesOnlyUi,
-        settingsViewModel.iptvChannelFavoriteEntries,
+        currentFavorites,
         settingsViewModel.iptvHiddenGroupFilterEpoch,
         settingsViewModel.iptvExpandedChannelEnable,
         settingsViewModel.iptvExpandedChannelEntries,
     ) {
         val order =
-            if (favoritesOnlyUi) settingsViewModel.iptvChannelFavoriteEntries.map { it.toIptv() }
+            if (favoritesOnlyUi) currentFavorites.map { it.toIptv() }
             else uiIptvGroupList.iptvList
         mainContentState.syncChannelNavigation(
             order = order,
@@ -188,14 +189,14 @@ fun LeanbackMainContent(
     LaunchedEffect(
         settingsViewModel.iptvChannelFavoriteEnable,
         settingsViewModel.iptvChannelFavoritesOnlyMode,
-        settingsViewModel.iptvChannelFavoriteEntries,
+        currentFavorites,
     ) {
         if (!settingsViewModel.iptvChannelFavoriteEnable ||
             !settingsViewModel.iptvChannelFavoritesOnlyMode
         ) {
             return@LaunchedEffect
         }
-        val entries = settingsViewModel.iptvChannelFavoriteEntries
+        val entries = currentFavorites
         if (entries.isEmpty()) return@LaunchedEffect
         val cur = mainContentState.currentIptv
         val curKey = IptvFavoriteEntry.stableKeyFrom(cur.urlList, cur.channelName)
@@ -236,7 +237,7 @@ fun LeanbackMainContent(
             if (channelNo in order.indices) {
                 val iptv = order[channelNo]
                 if (favoritesOnlyUi) {
-                    val entry = settingsViewModel.iptvChannelFavoriteEntries.find { e ->
+                    val entry = currentFavorites.find { e ->
                         IptvFavoriteEntry.stableKeyFrom(iptv.urlList, iptv.channelName) == e.stableKey()
                     }
                     mainContentState.changeCurrentIptv(
@@ -436,7 +437,7 @@ fun LeanbackMainContent(
                             LeanbackToastState.I.showToast("已加入精选: ${it.channelName}")
                         }
                     },
-                    iptvFavoriteEntriesProvider = { settingsViewModel.iptvChannelFavoriteEntries },
+                    iptvFavoriteEntriesProvider = { currentFavorites },
                     iptvFavoriteListVisibleProvider = { settingsViewModel.iptvChannelFavoriteListVisible },
                     onIptvFavoriteListVisibleChange = {
                         settingsViewModel.iptvChannelFavoriteListVisible = it
@@ -473,7 +474,7 @@ fun LeanbackMainContent(
                             LeanbackToastState.I.showToast("已加入精选: ${it.channelName}")
                         }
                     },
-                    iptvFavoriteEntriesProvider = { settingsViewModel.iptvChannelFavoriteEntries },
+                    iptvFavoriteEntriesProvider = { currentFavorites },
                     iptvFavoriteListVisibleProvider = { settingsViewModel.iptvChannelFavoriteListVisible },
                     onIptvFavoriteListVisibleChange = {
                         settingsViewModel.iptvChannelFavoriteListVisible = it

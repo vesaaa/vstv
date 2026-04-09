@@ -89,6 +89,17 @@ class LeanbackMainViewModel : ViewModel() {
                 true
             }
             .catch {
+                val src = SP.iptvSourceUrl.trim()
+                val msg = it.message.orEmpty()
+                // 本地上传源丢失时，自动回退为「未设置默认订阅」，避免持续失败循环干扰设置操作。
+                if (src.startsWith(SP.IPTV_LOCAL_SOURCE_URL) &&
+                    msg.contains("本地订阅文件不存在", ignoreCase = false)
+                ) {
+                    SP.iptvSourceUrlHistoryList -= SP.iptvSourceUrl
+                    SP.iptvSourceUrl = ""
+                    _uiState.value = LeanbackMainUiState.Ready(iptvGroupList = IptvGroupList())
+                    return@catch
+                }
                 _uiState.value = LeanbackMainUiState.Error(it.message)
                 if (SP.iptvSourceUrl.isNotBlank()) {
                     SP.iptvSourceUrlHistoryList -= SP.iptvSourceUrl

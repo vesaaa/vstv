@@ -188,6 +188,14 @@ class LeanbackSettingsViewModel : ViewModel() {
             if (value.isEmpty()) iptvChannelFavoritesOnlyMode = false
         }
 
+    /** 当前源下的精选（用于「当前精选」统计与多源合并更新）。 */
+    val currentSourceFavoriteEntries: List<IptvFavoriteEntry>
+        get() {
+            val key = SP.currentIptvSourceMergeKey()
+            if (key.isBlank()) return emptyList()
+            return _iptvChannelFavoriteEntries.filter { it.sourceKey == key }
+        }
+
     fun isIptvFavorite(iptv: Iptv): Boolean {
         val key = IptvFavoriteEntry.stableKeyFrom(iptv.urlList, iptv.channelName)
         return iptvChannelFavoriteEntries.any { it.stableKey() == key }
@@ -210,7 +218,11 @@ class LeanbackSettingsViewModel : ViewModel() {
             iptvChannelFavoriteEntries = cur.filter { it.stableKey() != key }
         } else {
             iptvChannelFavoriteEntries =
-                cur + IptvFavoriteEntry.fromIptv(iptv, SP.currentIptvSourceRequestHeadersSnapshot())
+                cur + IptvFavoriteEntry.fromIptv(
+                    iptv = iptv,
+                    playbackRequestHeaders = SP.currentIptvSourceRequestHeadersSnapshot(),
+                    sourceKey = SP.currentIptvSourceMergeKey(),
+                )
         }
     }
 
@@ -226,7 +238,7 @@ class LeanbackSettingsViewModel : ViewModel() {
 
     /** 用「当前精选」覆盖写入当前直播源对应的扩展频道桶（不影响其他源）。 */
     fun updateExpandedChannelsFromFavoritesOfCurrentSource() {
-        SP.updateExpandedChannelsForCurrentSource(iptvChannelFavoriteEntries)
+        SP.updateExpandedChannelsForCurrentSource(currentSourceFavoriteEntries)
         reloadExpandedChannelsFromDisk()
     }
 
