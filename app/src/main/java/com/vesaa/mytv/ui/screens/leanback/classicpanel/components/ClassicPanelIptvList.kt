@@ -111,7 +111,8 @@ fun LeanbackClassicPanelIptvList(
             .width(220.dp)
             .background(MaterialTheme.colorScheme.background.copy(0.8f)),
     ) {
-        itemsIndexed(iptvList, key = { _, iptv -> iptv.hashCode() }) { index, iptv ->
+        // 允许同名同地址频道并存（多源合并场景），因此这里用 index 作为稳定 key，避免 hash 冲突导致崩溃。
+        itemsIndexed(iptvList, key = { index, _ -> index }) { index, iptv ->
             val isSelected by remember { derivedStateOf { iptv == focusedIptv } }
             val initialFocused by remember {
                 derivedStateOf { !hasFocused && iptv == initialIptv }
@@ -144,6 +145,7 @@ fun LeanbackClassicPanelIptvList(
                     onIptvFavoriteToggle(iptv)
                 },
                 showProgrammeProgressProvider = showProgrammeProgressProvider,
+                itemKeyTokenProvider = { index },
             )
         }
     }
@@ -162,6 +164,7 @@ private fun LeanbackClassicPanelIptvItem(
     onSelected: () -> Unit = {},
     onFavoriteToggle: () -> Unit = {},
     showProgrammeProgressProvider: () -> Boolean = { false },
+    itemKeyTokenProvider: () -> Int = { 0 },
 ) {
     val iptv = iptvProvider()
     val focusRequester = focusRequesterProvider()
@@ -194,7 +197,7 @@ private fun LeanbackClassicPanelIptvItem(
                         }
                     }
                     .handleLeanbackKeyEvents(
-                        key = iptv.hashCode(),
+                        key = itemKeyTokenProvider(),
                         onSelect = {
                             if (isFocused) onSelected()
                             else focusRequester.requestFocus()
