@@ -36,6 +36,7 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.Color
 import androidx.tv.foundation.lazy.list.TvLazyColumn
 import androidx.tv.foundation.lazy.list.TvLazyListState
 import androidx.tv.foundation.lazy.list.itemsIndexed
@@ -255,8 +256,8 @@ private fun LeanbackClassicPanelIptvItem(
 
             if (replaySupported) {
                 val iconTint =
-                    if (isFocused || isSelectedProvider()) MaterialTheme.colorScheme.background
-                    else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.9f)
+                    if (isFocused || isSelectedProvider()) Color.Black
+                    else Color.White
                 Icon(
                     imageVector = Icons.Default.Schedule,
                     contentDescription = "支持回看",

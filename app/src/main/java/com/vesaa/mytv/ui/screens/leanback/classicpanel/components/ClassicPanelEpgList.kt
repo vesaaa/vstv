@@ -1,6 +1,7 @@
 package com.vesaa.mytv.ui.screens.leanback.classicpanel.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -11,6 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
@@ -197,11 +199,16 @@ private fun LeanbackClassicPanelEpgItem(
                 if (programme.isLive()) {
                     Icon(Icons.Default.PlayArrow, contentDescription = "playing")
                 } else if (canReplay) {
+                    val tagColor = if (isFocused) Color.Black else Color.White
                     Text(
                         text = "回看",
                         style = MaterialTheme.typography.labelSmall,
+                        color = tagColor,
                         modifier = Modifier
-                            .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.78f), MaterialTheme.shapes.extraSmall)
+                            .border(
+                                border = BorderStroke(1.dp, tagColor),
+                                shape = MaterialTheme.shapes.extraSmall,
+                            )
                             .padding(horizontal = 6.dp, vertical = 2.dp),
                     )
                 }

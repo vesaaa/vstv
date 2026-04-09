@@ -126,10 +126,14 @@ fun LeanbackMainContent(
     val channelOrderList =
         if (favoritesOnlyUi) currentFavorites.map { it.toIptv() }
         else uiIptvGroupList.iptvList
-    val playReplayWindow: (Long, Long, String) -> Unit = replay@{ rawStartMs, rawEndMs, replayHint ->
-        val iptv = mainContentState.currentIptv
+    val playReplayWindow: (Iptv, Long, Long, String) -> Unit = replay@{ targetIptv, rawStartMs, rawEndMs, replayHint ->
+        val iptv = targetIptv
         if (!IptvCatchup.supportCatchup(iptv)) {
             LeanbackToastState.I.showToast("当前频道不支持回看")
+            return@replay
+        }
+        if (iptv.urlList.isEmpty()) {
+            LeanbackToastState.I.showToast("当前频道无可用播放地址")
             return@replay
         }
         val maxHours = IptvCatchup.maxCatchupHours(iptv)
@@ -142,12 +146,23 @@ fun LeanbackMainContent(
             LeanbackToastState.I.showToast("回看时间无效或超出范围")
             return@replay
         }
-        val idx = mainContentState.currentIptvUrlIdx.coerceIn(iptv.urlList.indices)
+        val idx = mainContentState.currentIptvUrlIdx
+            .coerceIn(0, (iptv.urlList.size - 1).coerceAtLeast(0))
         val baseUrl = iptv.urlList.getOrNull(idx).orEmpty()
+        if (baseUrl.isBlank()) {
+            LeanbackToastState.I.showToast("当前频道播放地址为空")
+            return@replay
+        }
         val replayUrl = IptvCatchup.buildCatchupUrl(iptv, baseUrl, window)
         if (replayUrl.isNullOrBlank()) {
             LeanbackToastState.I.showToast("该源未提供回看地址模板")
             return@replay
+        }
+        if (mainContentState.currentIptv != iptv) {
+            mainContentState.changeCurrentIptv(
+                iptv = iptv,
+                streamRequestHeaders = resolveExtraStreamHeaders(iptv),
+            )
         }
         mainContentState.playCurrentIptvWithOverrideUrl(
             overrideUrl = replayUrl,
@@ -512,8 +527,8 @@ fun LeanbackMainContent(
                     onIptvGroupLongPressHide = onIptvGroupLongPressHide,
                     onIptvGroupLongPressAddToFavorites = onIptvGroupLongPressAddToFavorites,
                     replaySupportedForIptv = { iptv -> IptvCatchup.supportCatchup(iptv) },
-                    onReplayByProgramme = { startMs, endMs ->
-                        playReplayWindow(startMs, endMs, "回看中 - 节目回看")
+                    onReplayByProgramme = { iptv, startMs, endMs ->
+                        playReplayWindow(iptv, startMs, endMs, "回看中 - 节目回看")
                     },
                     onClose = { mainContentState.isPanelVisible = false },
                     iptvFavoriteEnableProvider = { settingsViewModel.iptvChannelFavoriteEnable }
@@ -570,10 +585,10 @@ fun LeanbackMainContent(
                 onReplayByBackMinutes = { backMinutes ->
                     val end = System.currentTimeMillis()
                     val start = end - backMinutes * 60L * 1000L
-                    playReplayWindow(start, end, "回看中 -${backMinutes}分钟")
+                    playReplayWindow(mainContentState.currentIptv, start, end, "回看中 -${backMinutes}分钟")
                 },
                 onReplayByProgramme = { startMs, endMs ->
-                    playReplayWindow(startMs, endMs, "回看中 - 节目回看")
+                    playReplayWindow(mainContentState.currentIptv, startMs, endMs, "回看中 - 节目回看")
                 },
                 subPanel = mainContentState.quickPanelSubPanel,
                 onSubPanelChange = { mainContentState.quickPanelSubPanel = it },

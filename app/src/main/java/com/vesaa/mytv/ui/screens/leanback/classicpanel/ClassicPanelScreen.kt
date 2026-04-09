@@ -67,7 +67,7 @@ fun LeanbackClassicPanelScreen(
     onIptvGroupLongPressHide: (IptvGroup) -> Unit = {},
     onIptvGroupLongPressAddToFavorites: (IptvGroup) -> Unit = {},
     replaySupportedForIptv: (Iptv) -> Boolean = { false },
-    onReplayByProgramme: (Long, Long) -> Unit = { _, _ -> },
+    onReplayByProgramme: (Iptv, Long, Long) -> Unit = { _, _, _ -> },
     onClose: () -> Unit = {},
     autoCloseState: PanelAutoCloseState = rememberPanelAutoCloseState(
         timeout = Constants.UI_SCREEN_AUTO_CLOSE_DELAY,
@@ -150,7 +150,7 @@ private fun LeanbackClassicPanelScreenContent(
     onIptvGroupLongPressHide: (IptvGroup) -> Unit = {},
     onIptvGroupLongPressAddToFavorites: (IptvGroup) -> Unit = {},
     replaySupportedForIptv: (Iptv) -> Boolean = { false },
-    onReplayByProgramme: (Long, Long) -> Unit = { _, _ -> },
+    onReplayByProgramme: (Iptv, Long, Long) -> Unit = { _, _, _ -> },
     onUserAction: () -> Unit = {},
 ) {
     val iptvGroupList = iptvGroupListProvider()
@@ -262,7 +262,7 @@ private fun LeanbackClassicPanelScreenContent(
                 epgProvider = { epgListProvider().firstOrNull { it.matchesIptv(focusedIptv) } },
                 replaySupportedProvider = { replaySupportedForIptv(focusedIptv) },
                 onSelectProgramme = { programme ->
-                    onReplayByProgramme(programme.startAt, programme.endAt)
+                    onReplayByProgramme(focusedIptv, programme.startAt, programme.endAt)
                 },
                 exitFocusRequesterProvider = { focusedIptvFocusRequester },
                 onUserAction = onUserAction,
