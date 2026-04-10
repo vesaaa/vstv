@@ -1,6 +1,7 @@
 package com.vesaa.mytv.ui.screens.leanback.classicpanel.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
@@ -33,6 +34,7 @@ import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -217,7 +219,13 @@ private fun LeanbackClassicPanelIptvItem(
                             if (isFocused) onFavoriteToggle()
                             else focusRequester.requestFocus()
                         },
-                    ),
+                    )
+                    // TV ListItem 的 onClick 在部分触摸机型上不会触发；显式消费点击以换台并避免穿透到外层关闭手势
+                    .pointerInput(iptv, itemKeyTokenProvider()) {
+                        detectTapGestures(
+                            onTap = { onSelected() },
+                        )
+                    },
                 colors = ListItemDefaults.colors(
                     focusedContainerColor = MaterialTheme.colorScheme.onBackground,
                     selectedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(

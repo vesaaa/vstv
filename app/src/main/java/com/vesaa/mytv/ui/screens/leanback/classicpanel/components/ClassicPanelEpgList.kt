@@ -59,7 +59,6 @@ import kotlin.math.max
 fun LeanbackClassicPanelEpgList(
     modifier: Modifier = Modifier,
     epgProvider: () -> Epg? = { Epg() },
-    replaySupportedProvider: () -> Boolean = { false },
     onSelectProgramme: (EpgProgramme) -> Unit = {},
     exitFocusRequesterProvider: () -> FocusRequester = { FocusRequester.Default },
     onUserAction: () -> Unit = {},
@@ -113,7 +112,6 @@ fun LeanbackClassicPanelEpgList(
                 items(programmes) { programme ->
                     LeanbackClassicPanelEpgItem(
                         epgProgrammeProvider = { programme },
-                        replaySupportedProvider = replaySupportedProvider,
                         onSelectProgramme = onSelectProgramme,
                     )
                 }
@@ -147,12 +145,12 @@ fun LeanbackClassicPanelEpgList(
 private fun LeanbackClassicPanelEpgItem(
     modifier: Modifier = Modifier,
     epgProgrammeProvider: () -> EpgProgramme = { EpgProgramme() },
-    replaySupportedProvider: () -> Boolean = { false },
     onSelectProgramme: (EpgProgramme) -> Unit = {},
 ) {
     val programme = epgProgrammeProvider()
     val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
-    val canReplay = replaySupportedProvider() && programme.endAt in 1 until System.currentTimeMillis()
+    /** 已结束的历史节目：展示「回看」；无 M3U catchup 时由播放层按 playseek 兜底拼接 */
+    val canReplay = programme.endAt in 1 until System.currentTimeMillis()
 
     val focusRequester = remember { FocusRequester() }
     var isFocused by remember { mutableStateOf(false) }

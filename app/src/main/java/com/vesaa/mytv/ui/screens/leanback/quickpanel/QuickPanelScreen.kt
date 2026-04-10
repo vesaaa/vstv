@@ -236,13 +236,9 @@ fun LeanbackQuickPanelScreen(
                             .fillMaxWidth(0.40f),
                         iptvProvider = currentIptvProvider,
                         epgProvider = currentEpgProvider,
-                        replaySupportedProvider = catchupSupportedProvider,
                         autoCloseState = autoCloseState,
                         onSelectProgramme = { programme ->
-                            if (
-                                catchupSupportedProvider() &&
-                                programme.endAt in 1 until System.currentTimeMillis()
-                            ) {
+                            if (programme.endAt in 1 until System.currentTimeMillis()) {
                                 onReplayByProgramme(programme.startAt, programme.endAt)
                                 onSubPanelChange(LeanbackQuickPanelSubPanel.None)
                             }

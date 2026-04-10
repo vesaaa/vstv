@@ -61,6 +61,19 @@ object IptvCatchup {
         return renderCatchupTemplate(source, window.startMs, window.endMs, baseUrl)
     }
 
+    /**
+     * 优先使用 M3U 声明的 catchup 模板或 DVR 推断；若无模板则按常见运营商习惯追加
+     * `?playseek=yyyyMMddHHmmss-yyyyMMddHHmmss` 作为兜底，供节目单点击尝试回看。
+     */
+    fun buildCatchupUrlWithFallback(
+        iptv: Iptv,
+        baseUrl: String,
+        window: CatchupWindow,
+    ): String {
+        buildCatchupUrl(iptv, baseUrl, window)?.let { return it }
+        return renderCatchupTemplate(DefaultAppendTemplate, window.startMs, window.endMs, baseUrl)
+    }
+
     fun clampWindow(
         nowMs: Long = System.currentTimeMillis(),
         rawStartMs: Long,

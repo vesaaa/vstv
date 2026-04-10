@@ -129,10 +129,6 @@ fun LeanbackMainContent(
     val playReplayWindow: (Iptv, Long, Long, String) -> Unit = replay@{ targetIptv, rawStartMs, rawEndMs, replayHint ->
         runCatching {
             val iptv = targetIptv
-            if (!IptvCatchup.supportCatchup(iptv)) {
-                LeanbackToastState.I.showToast("当前频道不支持回看")
-                return@runCatching
-            }
             if (iptv.urlList.isEmpty()) {
                 LeanbackToastState.I.showToast("当前频道无可用播放地址")
                 return@runCatching
@@ -154,8 +150,8 @@ fun LeanbackMainContent(
                 LeanbackToastState.I.showToast("当前频道播放地址为空")
                 return@runCatching
             }
-            val replayUrl = IptvCatchup.buildCatchupUrl(iptv, baseUrl, window)
-            if (replayUrl.isNullOrBlank()) {
+            val replayUrl = IptvCatchup.buildCatchupUrlWithFallback(iptv, baseUrl, window)
+            if (replayUrl.isBlank()) {
                 LeanbackToastState.I.showToast("该源未提供回看地址模板")
                 return@runCatching
             }
@@ -530,7 +526,6 @@ fun LeanbackMainContent(
                     },
                     onIptvGroupLongPressHide = onIptvGroupLongPressHide,
                     onIptvGroupLongPressAddToFavorites = onIptvGroupLongPressAddToFavorites,
-                    replaySupportedForIptv = { iptv -> IptvCatchup.supportCatchup(iptv) },
                     onReplayByProgramme = { iptv, startMs, endMs ->
                         playReplayWindow(iptv, startMs, endMs, "回看中 - 节目回看")
                     },

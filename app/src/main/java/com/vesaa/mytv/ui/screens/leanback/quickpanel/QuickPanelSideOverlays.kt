@@ -99,7 +99,6 @@ fun LeanbackQuickPanelEpgLeftSheet(
     modifier: Modifier = Modifier,
     iptvProvider: () -> Iptv,
     epgProvider: () -> Epg,
-    replaySupportedProvider: () -> Boolean = { false },
     autoCloseState: PanelAutoCloseState,
     onSelectProgramme: (EpgProgramme) -> Unit = {},
 ) {
@@ -158,7 +157,6 @@ fun LeanbackQuickPanelEpgLeftSheet(
                             QuickPanelEpgProgrammeRow(
                                 programme = programme,
                                 timeFormat = timeFormat,
-                                replaySupported = replaySupportedProvider(),
                                 hasFocusedFlag = hasFocused,
                                 onFocusedLive = { hasFocused = true },
                                 autoCloseState = autoCloseState,
@@ -185,7 +183,6 @@ fun LeanbackQuickPanelEpgLeftSheet(
 private fun QuickPanelEpgProgrammeRow(
     programme: EpgProgramme,
     timeFormat: SimpleDateFormat,
-    replaySupported: Boolean,
     hasFocusedFlag: Boolean,
     onFocusedLive: () -> Unit,
     autoCloseState: PanelAutoCloseState,
@@ -201,7 +198,7 @@ private fun QuickPanelEpgProgrammeRow(
         }
     }
 
-    val canReplay = replaySupported && programme.endAt in 1 until System.currentTimeMillis()
+    val canReplay = programme.endAt in 1 until System.currentTimeMillis()
 
     CompositionLocalProvider(
         LocalContentColor provides if (isFocused) MaterialTheme.colorScheme.background
