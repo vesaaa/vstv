@@ -25,6 +25,20 @@ class LeanbackVideoPlayerState(
     private val instance: LeanbackVideoPlayer,
     private val defaultAspectRatioProvider: () -> Float? = { null },
 ) {
+    private fun friendlyErrorText(ex: LeanbackVideoPlayer.PlaybackException): String {
+        val code = ex.errorCode
+        val raw = ex.errorCodeName.trim()
+        val upper = raw.uppercase()
+        return when {
+            code == 3001 -> "源端分片/容器数据异常，请稍后重试或切换线路($code)"
+            code == 3002 -> "源端清单异常或分片错误，请稍后重试或切换线路($code)"
+            code in 3000..3999 && (upper.contains("AUTH") || upper.contains("401") || upper.contains("403")) ->
+                "源鉴权可能过期或被拒绝，请检查订阅/请求头($code)"
+            code in 3000..3999 -> "源端抖动或解析异常，请稍后重试或切换线路($code)"
+            else -> "$raw($code)"
+        }
+    }
+
     /** 视频宽高比 */
     var aspectRatio by mutableFloatStateOf(16f / 9f)
 
@@ -81,7 +95,7 @@ class LeanbackVideoPlayerState(
             }
         }
         instance.onError { ex ->
-            error = if (ex != null) "${ex.errorCodeName}(${ex.errorCode})"
+            error = if (ex != null) friendlyErrorText(ex)
             else null
 
             if (error != null) onErrorListeners.forEach { it.invoke() }

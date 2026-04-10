@@ -50,6 +50,7 @@ class LeanbackMedia3VideoPlayer(
 
     private val contentTypeAttempts = mutableMapOf<Int, Boolean>()
     private var updatePositionJob: Job? = null
+    private var parseRetryJob: Job? = null
     private var latestZapStartElapsedMs: Long = 0L
     private var awaitingFirstReadyAfterPrepare: Boolean = false
     private var lastRenderedFpsElapsedMs: Long = 0L
@@ -58,6 +59,7 @@ class LeanbackMedia3VideoPlayer(
 
     /** 同一次播放会话内重试容器类型时沿用（收藏夹 per-entry 头等） */
     private var activeStreamRequestHeaders: String? = null
+    private var parseErrorRetryUsed = false
 
     @OptIn(UnstableApi::class)
     private fun httpDataSourceFactory(uri: Uri, streamRequestHeaders: String?): DefaultHttpDataSource.Factory =
@@ -147,6 +149,19 @@ class LeanbackMedia3VideoPlayer(
         }
 
         override fun onPlayerError(ex: Media3PlaybackException) {
+            // 某些源会短时返回损坏分片/清单，先做一次短延迟原线路重连，避免立刻误切线路。
+            if ((ex.errorCode == 3001 || ex.errorCode == 3002) && !parseErrorRetryUsed) {
+                parseErrorRetryUsed = true
+                val uri = videoPlayer.currentMediaItem?.localConfiguration?.uri
+                if (uri != null) {
+                    parseRetryJob?.cancel()
+                    parseRetryJob = coroutineScope.launch {
+                        delay(800)
+                        prepare(uri, streamRequestHeaders = null)
+                    }
+                    return
+                }
+            }
             // 如果是直播加载位置错误，尝试重新播放
             if (ex.errorCode == Media3PlaybackException.ERROR_CODE_BEHIND_LIVE_WINDOW) {
                 videoPlayer.seekToDefaultPosition()
@@ -304,6 +319,7 @@ class LeanbackMedia3VideoPlayer(
     }
 
     override fun release() {
+        parseRetryJob?.cancel()
         videoPlayer.removeListener(playerListener)
         videoPlayer.removeAnalyticsListener(metadataListener)
         videoPlayer.removeAnalyticsListener(eventLogger)
@@ -314,6 +330,9 @@ class LeanbackMedia3VideoPlayer(
 
     @UnstableApi
     override fun prepare(url: String, streamRequestHeaders: String?) {
+        parseRetryJob?.cancel()
+        parseRetryJob = null
+        parseErrorRetryUsed = false
         activeStreamRequestHeaders = streamRequestHeaders
         contentTypeAttempts.clear()
         prepare(Uri.parse(url), null, streamRequestHeaders)
@@ -328,6 +347,8 @@ class LeanbackMedia3VideoPlayer(
     }
 
     override fun onDeactivate() {
+        parseRetryJob?.cancel()
+        parseRetryJob = null
         updatePositionJob?.cancel()
         updatePositionJob = null
         videoPlayer.stop()
