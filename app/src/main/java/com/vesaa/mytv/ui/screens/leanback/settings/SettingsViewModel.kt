@@ -93,6 +93,10 @@ class LeanbackSettingsViewModel : ViewModel() {
         set(value) {
             _iptvSourceRequestHeaders = value
             SP.iptvSourceRequestHeaders = value
+            val u = _iptvSourceUrl.trim()
+            if (u.isNotBlank()) {
+                SP.putIptvSourceHeadersForUrl(u, value)
+            }
         }
 
     private var _iptvChannelRequestHeaders by mutableStateOf(SP.iptvChannelRequestHeaders)
@@ -101,6 +105,10 @@ class LeanbackSettingsViewModel : ViewModel() {
         set(value) {
             _iptvChannelRequestHeaders = value
             SP.iptvChannelRequestHeaders = value
+            val u = _iptvSourceUrl.trim()
+            if (u.isNotBlank()) {
+                SP.putIptvChannelHeadersForUrl(u, value)
+            }
         }
 
     private var _httpServerAdvertiseIp by mutableStateOf(SP.httpServerAdvertiseIp)

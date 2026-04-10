@@ -107,6 +107,9 @@ object SP {
         /** 各订阅 URL 对应的请求头（JSON 对象） */
         IPTV_SOURCE_HEADERS_BY_URL_JSON,
 
+        /** 各订阅 URL 对应的频道播放请求头（JSON 对象） */
+        IPTV_CHANNEL_HEADERS_BY_URL_JSON,
+
         /** 设置页/二维码展示的 IP（空则自动） */
         HTTP_SERVER_ADVERTISE_IP,
 
@@ -283,6 +286,10 @@ object SP {
         get() = sp.getString(KEY.IPTV_SOURCE_HEADERS_BY_URL_JSON.name, "{}") ?: "{}"
         set(value) = sp.edit().putString(KEY.IPTV_SOURCE_HEADERS_BY_URL_JSON.name, value).apply()
 
+    private var iptvChannelHeadersByUrlJsonRaw: String
+        get() = sp.getString(KEY.IPTV_CHANNEL_HEADERS_BY_URL_JSON.name, "{}") ?: "{}"
+        set(value) = sp.edit().putString(KEY.IPTV_CHANNEL_HEADERS_BY_URL_JSON.name, value).apply()
+
     /** 读取某订阅 URL 已保存的请求头文本 */
     fun getIptvSourceHeadersForUrl(url: String): String {
         if (url.isBlank()) return ""
@@ -306,6 +313,29 @@ object SP {
         iptvSourceHeadersByUrlJsonRaw = spJson.encodeToString(map)
     }
 
+    /** 读取某订阅 URL 已保存的频道播放请求头文本 */
+    fun getIptvChannelHeadersForUrl(url: String): String {
+        if (url.isBlank()) return ""
+        val map = runCatching {
+            spJson.decodeFromString<Map<String, String>>(iptvChannelHeadersByUrlJsonRaw)
+        }.getOrElse { emptyMap() }
+        return map[url].orEmpty()
+    }
+
+    /** 将频道播放请求头文本与订阅 URL 绑定保存 */
+    fun putIptvChannelHeadersForUrl(url: String, headers: String) {
+        if (url.isBlank()) return
+        val map = runCatching {
+            spJson.decodeFromString<Map<String, String>>(iptvChannelHeadersByUrlJsonRaw).toMutableMap()
+        }.getOrElse { mutableMapOf() }
+        if (headers.isBlank()) {
+            map.remove(url)
+        } else {
+            map[url] = headers
+        }
+        iptvChannelHeadersByUrlJsonRaw = spJson.encodeToString(map)
+    }
+
     /**
      * 网页/扫码推送直播源后同步落盘（[apply] 异步可能导致用户立刻杀进程时配置未写入）。
      */
@@ -320,21 +350,31 @@ object SP {
         }
         val prevUrl = (sp.getString(KEY.IPTV_SOURCE_URL.name, "") ?: "").trim()
         val rawJson = sp.getString(KEY.IPTV_SOURCE_HEADERS_BY_URL_JSON.name, "{}") ?: "{}"
-        val map = runCatching {
+        val sourceMap = runCatching {
             spJson.decodeFromString<Map<String, String>>(rawJson).toMutableMap()
+        }.getOrElse { mutableMapOf() }
+        val rawChannelJson = sp.getString(KEY.IPTV_CHANNEL_HEADERS_BY_URL_JSON.name, "{}") ?: "{}"
+        val channelMap = runCatching {
+            spJson.decodeFromString<Map<String, String>>(rawChannelJson).toMutableMap()
         }.getOrElse { mutableMapOf() }
         if (url.isNotBlank()) {
             if (requestHeaders.isBlank()) {
-                map.remove(url)
+                sourceMap.remove(url)
             } else {
-                map[url] = requestHeaders
+                sourceMap[url] = requestHeaders
+            }
+            if (channelRequestHeaders.isBlank()) {
+                channelMap.remove(url)
+            } else {
+                channelMap[url] = channelRequestHeaders
             }
         }
         sp.edit()
             .putString(KEY.IPTV_SOURCE_URL.name, url)
             .putString(KEY.IPTV_SOURCE_REQUEST_HEADERS.name, requestHeaders)
             .putString(KEY.IPTV_CHANNEL_REQUEST_HEADERS.name, channelRequestHeaders)
-            .putString(KEY.IPTV_SOURCE_HEADERS_BY_URL_JSON.name, spJson.encodeToString(map))
+            .putString(KEY.IPTV_SOURCE_HEADERS_BY_URL_JSON.name, spJson.encodeToString(sourceMap))
+            .putString(KEY.IPTV_CHANNEL_HEADERS_BY_URL_JSON.name, spJson.encodeToString(channelMap))
             .commit()
         if (prevUrl != url.trim()) {
             clearIptvHiddenGroupNames()

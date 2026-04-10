@@ -217,6 +217,8 @@ object HttpServer : Loggable() {
             val iptvSourceRequestHeaders =
                 if (body.has("iptvSourceRequestHeaders")) {
                     normalizeIptvRequestHeadersInput(body.optString("iptvSourceRequestHeaders", ""))
+                } else if (body.has("iptvSourceUrl")) {
+                    SP.getIptvSourceHeadersForUrl(iptvSourceUrl)
                 } else {
                     SP.iptvSourceRequestHeaders
                 }
@@ -226,6 +228,8 @@ object HttpServer : Loggable() {
                 } else if (body.has("iptvSourceRequestHeaders")) {
                     // 仅提交订阅 UA 时，默认同步到频道 UA，减少重复填写。
                     iptvSourceRequestHeaders
+                } else if (body.has("iptvSourceUrl")) {
+                    SP.getIptvChannelHeadersForUrl(iptvSourceUrl).ifBlank { iptvSourceRequestHeaders }
                 } else {
                     SP.iptvChannelRequestHeaders
                 }

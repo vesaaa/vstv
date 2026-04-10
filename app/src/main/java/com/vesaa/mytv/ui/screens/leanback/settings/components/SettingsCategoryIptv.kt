@@ -141,7 +141,9 @@ fun LeanbackSettingsCategoryIptv(
                         append("拉取订阅 User-Agent：")
                         append(if (subUa.isBlank()) "（未配置）" else subUa)
                         append("\n")
-                        val chRaw = settingsViewModel.iptvChannelRequestHeaders.ifBlank { subRaw }
+                        val chRaw = settingsViewModel.iptvChannelRequestHeaders.ifBlank {
+                            SP.getIptvChannelHeadersForUrl(settingsViewModel.iptvSourceUrl).ifBlank { subRaw }
+                        }
                         val chUa = userAgentValueFromHeadersText(chRaw)
                         append("播放频道 User-Agent：")
                         append(if (chUa.isBlank()) "（未配置）" else chUa)
@@ -173,6 +175,9 @@ fun LeanbackSettingsCategoryIptv(
                         settingsViewModel.iptvSourceUrl = it
                         settingsViewModel.iptvSourceRequestHeaders =
                             if (it.isBlank()) "" else SP.getIptvSourceHeadersForUrl(it)
+                        settingsViewModel.iptvChannelRequestHeaders =
+                            if (it.isBlank()) "" else SP.getIptvChannelHeadersForUrl(it)
+                                .ifBlank { settingsViewModel.iptvSourceRequestHeaders }
                         coroutineScope.launch { IptvRepository().clearCache() }
                         WebPushConfigNotifier.notifyConfigMayHaveChanged()
                     }
@@ -213,11 +218,6 @@ private fun LeanbackSettingsIptvSourceHistoryDialog(
     val currentIptvSource = currentIptvSourceProvider()
     val currentIptvRequestHeaders = currentIptvRequestHeadersProvider()
     val currentIptvChannelRequestHeaders = currentIptvChannelRequestHeadersProvider()
-    val globalPlaybackUaDisplay = {
-        val chRaw = currentIptvChannelRequestHeaders.ifBlank { currentIptvRequestHeaders }
-        userAgentValueFromHeadersText(chRaw).let { v -> if (v.isBlank()) "（未配置）" else v }
-    }
-
     if (showDialogProvider()) {
         AlertDialog(
             properties = DialogProperties(usePlatformDefaultWidth = false),
@@ -246,7 +246,18 @@ private fun LeanbackSettingsIptvSourceHistoryDialog(
                             }
                             else -> SP.getIptvSourceHeadersForUrl(source)
                         }
+                        val channelHeadersText = when {
+                            source.isBlank() -> ""
+                            source == currentIptvSource -> {
+                                currentIptvChannelRequestHeaders.ifBlank {
+                                    SP.getIptvChannelHeadersForUrl(source).ifBlank { headersText }
+                                }
+                            }
+                            else -> SP.getIptvChannelHeadersForUrl(source).ifBlank { headersText }
+                        }
                         val subUaDisplay = userAgentValueFromHeadersText(headersText)
+                            .let { v -> if (v.isBlank()) "（未配置）" else v }
+                        val chUaDisplay = userAgentValueFromHeadersText(channelHeadersText)
                             .let { v -> if (v.isBlank()) "（未配置）" else v }
 
                         LaunchedEffect(Unit) {
@@ -298,11 +309,9 @@ private fun LeanbackSettingsIptvSourceHistoryDialog(
                             supportingContent = {
                                 androidx.tv.material3.Text(
                                     text = if (source.isBlank()) {
-                                        "拉取订阅 User-Agent：（无订阅，不适用）\n播放频道 User-Agent：${
-                                            globalPlaybackUaDisplay()
-                                        }"
+                                        "拉取订阅 User-Agent：（无订阅，不适用）\n播放频道 User-Agent：（无订阅，不适用）"
                                     } else {
-                                        "拉取订阅 User-Agent：$subUaDisplay\n播放频道 User-Agent：${globalPlaybackUaDisplay()}"
+                                        "拉取订阅 User-Agent：$subUaDisplay\n播放频道 User-Agent：$chUaDisplay"
                                     },
                                     modifier = Modifier.fillMaxWidth(),
                                     maxLines = if (isFocused) Int.MAX_VALUE else 4,

@@ -111,6 +111,9 @@ class LeanbackMainViewModel : ViewModel() {
                 if (SP.iptvSourceUrl.isNotBlank()) {
                     SP.iptvSourceUrlHistoryList += SP.iptvSourceUrl
                     val headersNorm = normalizeIptvRequestHeadersInput(headersForFetch)
+                    val channelHeadersNorm = normalizeIptvRequestHeadersInput(
+                        SP.iptvChannelRequestHeaders.ifBlank { headersNorm },
+                    )
                     if (SP.iptvSourceRequestHeaders.isNotBlank()) {
                         val gNorm = normalizeIptvRequestHeadersInput(SP.iptvSourceRequestHeaders)
                         if (gNorm != SP.iptvSourceRequestHeaders) {
@@ -118,6 +121,7 @@ class LeanbackMainViewModel : ViewModel() {
                         }
                     }
                     SP.putIptvSourceHeadersForUrl(SP.iptvSourceUrl, headersNorm)
+                    SP.putIptvChannelHeadersForUrl(SP.iptvSourceUrl, channelHeadersNorm)
                 }
                 it
             }
