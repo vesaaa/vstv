@@ -38,6 +38,7 @@ import androidx.tv.foundation.lazy.list.TvLazyColumn
 import androidx.tv.foundation.lazy.list.items
 import androidx.tv.foundation.lazy.list.rememberTvLazyListState
 import androidx.tv.material3.ListItemDefaults
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
 import com.vesaa.mytv.data.entities.IptvGroup
 import com.vesaa.mytv.data.entities.IptvGroupList
@@ -218,9 +219,13 @@ private fun GroupActionDialog(
 ) {
     val focusHide = remember { FocusRequester() }
     var selectedIdx by remember { mutableStateOf(0) }
+    var canActivate by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         focusHide.requestFocus()
+        // 避免“长按抬起”被弹窗默认项立即消费导致直接执行隐藏。
+        delay(260)
+        canActivate = true
     }
 
     Dialog(onDismissRequest = onDismissRequest) {
@@ -241,7 +246,10 @@ private fun GroupActionDialog(
                     .handleLeanbackKeyEvents(
                         onUp = { selectedIdx = 0 },
                         onDown = { selectedIdx = 1 },
-                        onSelect = { if (selectedIdx == 0) onHide() else onAddToFavorite() },
+                        onSelect = {
+                            if (!canActivate) return@handleLeanbackKeyEvents
+                            if (selectedIdx == 0) onHide() else onAddToFavorite()
+                        },
                     ),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
@@ -249,7 +257,9 @@ private fun GroupActionDialog(
                     androidx.tv.material3.ListItem(
                         modifier = Modifier.focusRequester(focusHide),
                         selected = selectedIdx == 0,
-                        onClick = { onHide() },
+                        onClick = {
+                            if (canActivate) onHide()
+                        },
                         headlineContent = {
                             Text(
                                 "隐藏分组",
@@ -262,7 +272,9 @@ private fun GroupActionDialog(
                 item {
                     androidx.tv.material3.ListItem(
                         selected = selectedIdx == 1,
-                        onClick = { onAddToFavorite() },
+                        onClick = {
+                            if (canActivate) onAddToFavorite()
+                        },
                         headlineContent = {
                             Text(
                                 "添加到精选频道",
