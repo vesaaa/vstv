@@ -105,62 +105,75 @@ fun Modifier.handleLeanbackKeyEvents(
     onLongSelect: () -> Unit = {},
     onSettings: () -> Unit = {},
     onNumber: (Int) -> Unit = {},
-) = this then handleLeanbackKeyEvents(
-    onKeyTap = buildMap {
-        put(KeyEvent.KEYCODE_DPAD_LEFT, onLeft)
-        put(KeyEvent.KEYCODE_DPAD_RIGHT, onRight)
-        put(KeyEvent.KEYCODE_DPAD_UP, onUp)
-        put(KeyEvent.KEYCODE_CHANNEL_UP, onUp)
-        put(KeyEvent.KEYCODE_DPAD_DOWN, onDown)
-        put(KeyEvent.KEYCODE_CHANNEL_DOWN, onDown)
+    /**
+     * 为 false 时不附加 [detectTapGestures]，用于已自带 [androidx.tv.material3.ListItem] `onClick`
+     * 等可点击实现的组件：否则触摸事件可能既未被子级可靠消费，又与外层全屏点按关闭等手势冲突，
+     * 在部分机型上会导致面板已销毁后仍触发回调（例如对已失效的 FocusRequester 操作）而闪退。
+     */
+    pointerTapEnabled: Boolean = true,
+): Modifier {
+    val keyOnly = handleLeanbackKeyEvents(
+        onKeyTap = buildMap {
+            put(KeyEvent.KEYCODE_DPAD_LEFT, onLeft)
+            put(KeyEvent.KEYCODE_DPAD_RIGHT, onRight)
+            put(KeyEvent.KEYCODE_DPAD_UP, onUp)
+            put(KeyEvent.KEYCODE_CHANNEL_UP, onUp)
+            put(KeyEvent.KEYCODE_DPAD_DOWN, onDown)
+            put(KeyEvent.KEYCODE_CHANNEL_DOWN, onDown)
 
-        put(KeyEvent.KEYCODE_DPAD_CENTER, onSelect)
-        put(KeyEvent.KEYCODE_ENTER, onSelect)
-        put(KeyEvent.KEYCODE_NUMPAD_ENTER, onSelect)
+            put(KeyEvent.KEYCODE_DPAD_CENTER, onSelect)
+            put(KeyEvent.KEYCODE_ENTER, onSelect)
+            put(KeyEvent.KEYCODE_NUMPAD_ENTER, onSelect)
 
-        put(KeyEvent.KEYCODE_MENU, onSettings)
-        put(KeyEvent.KEYCODE_SETTINGS, onSettings)
-        put(KeyEvent.KEYCODE_HELP, onSettings)
-        put(KeyEvent.KEYCODE_H, onSettings)
+            put(KeyEvent.KEYCODE_MENU, onSettings)
+            put(KeyEvent.KEYCODE_SETTINGS, onSettings)
+            put(KeyEvent.KEYCODE_HELP, onSettings)
+            put(KeyEvent.KEYCODE_H, onSettings)
 
-        put(KeyEvent.KEYCODE_L, onLongSelect)
+            put(KeyEvent.KEYCODE_L, onLongSelect)
 
-        put(KeyEvent.KEYCODE_0) { onNumber(0) }
-        put(KeyEvent.KEYCODE_1) { onNumber(1) }
-        put(KeyEvent.KEYCODE_2) { onNumber(2) }
-        put(KeyEvent.KEYCODE_3) { onNumber(3) }
-        put(KeyEvent.KEYCODE_4) { onNumber(4) }
-        put(KeyEvent.KEYCODE_5) { onNumber(5) }
-        put(KeyEvent.KEYCODE_6) { onNumber(6) }
-        put(KeyEvent.KEYCODE_7) { onNumber(7) }
-        put(KeyEvent.KEYCODE_8) { onNumber(8) }
-        put(KeyEvent.KEYCODE_9) { onNumber(9) }
+            put(KeyEvent.KEYCODE_0) { onNumber(0) }
+            put(KeyEvent.KEYCODE_1) { onNumber(1) }
+            put(KeyEvent.KEYCODE_2) { onNumber(2) }
+            put(KeyEvent.KEYCODE_3) { onNumber(3) }
+            put(KeyEvent.KEYCODE_4) { onNumber(4) }
+            put(KeyEvent.KEYCODE_5) { onNumber(5) }
+            put(KeyEvent.KEYCODE_6) { onNumber(6) }
+            put(KeyEvent.KEYCODE_7) { onNumber(7) }
+            put(KeyEvent.KEYCODE_8) { onNumber(8) }
+            put(KeyEvent.KEYCODE_9) { onNumber(9) }
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N_MR1) {
-            put(KeyEvent.KEYCODE_SYSTEM_NAVIGATION_LEFT, onLeft)
-            put(KeyEvent.KEYCODE_SYSTEM_NAVIGATION_RIGHT, onRight)
-            put(KeyEvent.KEYCODE_SYSTEM_NAVIGATION_UP, onUp)
-            put(KeyEvent.KEYCODE_SYSTEM_NAVIGATION_DOWN, onDown)
-        }
-    },
-    onKeyLongTap = mapOf(
-        KeyEvent.KEYCODE_DPAD_LEFT to onLongLeft,
-        KeyEvent.KEYCODE_DPAD_RIGHT to onLongRight,
-        KeyEvent.KEYCODE_DPAD_UP to onLongUp,
-        KeyEvent.KEYCODE_CHANNEL_UP to onLongUp,
-        KeyEvent.KEYCODE_DPAD_DOWN to onLongDown,
-        KeyEvent.KEYCODE_CHANNEL_DOWN to onLongDown,
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N_MR1) {
+                put(KeyEvent.KEYCODE_SYSTEM_NAVIGATION_LEFT, onLeft)
+                put(KeyEvent.KEYCODE_SYSTEM_NAVIGATION_RIGHT, onRight)
+                put(KeyEvent.KEYCODE_SYSTEM_NAVIGATION_UP, onUp)
+                put(KeyEvent.KEYCODE_SYSTEM_NAVIGATION_DOWN, onDown)
+            }
+        },
+        onKeyLongTap = mapOf(
+            KeyEvent.KEYCODE_DPAD_LEFT to onLongLeft,
+            KeyEvent.KEYCODE_DPAD_RIGHT to onLongRight,
+            KeyEvent.KEYCODE_DPAD_UP to onLongUp,
+            KeyEvent.KEYCODE_CHANNEL_UP to onLongUp,
+            KeyEvent.KEYCODE_DPAD_DOWN to onLongDown,
+            KeyEvent.KEYCODE_CHANNEL_DOWN to onLongDown,
 
-        KeyEvent.KEYCODE_ENTER to onLongSelect,
-        KeyEvent.KEYCODE_NUMPAD_ENTER to onLongSelect,
-        KeyEvent.KEYCODE_DPAD_CENTER to onLongSelect,
-    ),
-).pointerInput(key) {
-    detectTapGestures(
-        onTap = { onSelect() },
-        onLongPress = { onLongSelect() },
-        onDoubleTap = { onSettings() },
+            KeyEvent.KEYCODE_ENTER to onLongSelect,
+            KeyEvent.KEYCODE_NUMPAD_ENTER to onLongSelect,
+            KeyEvent.KEYCODE_DPAD_CENTER to onLongSelect,
+        ),
     )
+    return this then keyOnly then if (pointerTapEnabled) {
+        Modifier.pointerInput(key) {
+            detectTapGestures(
+                onTap = { onSelect() },
+                onLongPress = { onLongSelect() },
+                onDoubleTap = { onSettings() },
+            )
+        }
+    } else {
+        Modifier
+    }
 }
 
 fun Modifier.handleLeanbackUserAction(onHandle: () -> Unit) =

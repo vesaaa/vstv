@@ -208,6 +208,7 @@ private fun LeanbackClassicPanelIptvItem(
                     }
                     .handleLeanbackKeyEvents(
                         key = itemKeyTokenProvider(),
+                        pointerTapEnabled = false,
                         onSelect = {
                             if (isFocused) onSelected()
                             else focusRequester.requestFocus()
@@ -224,7 +225,8 @@ private fun LeanbackClassicPanelIptvItem(
                     ),
                 ),
                 selected = isSelectedProvider(),
-                onClick = { },
+                // 触摸由 ListItem 消费，避免与 ClassicPanel 外层「点空白关闭」手势冲突导致闪退
+                onClick = { onSelected() },
                 leadingContent = if (BuildConfig.CHANNEL_LOGOS_ENABLED && iptv.logoUrl.isNotBlank()) {
                     {
                         IptvLogoImage(

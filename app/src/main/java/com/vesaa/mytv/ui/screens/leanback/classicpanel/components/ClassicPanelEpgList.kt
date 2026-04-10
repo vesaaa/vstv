@@ -168,6 +168,7 @@ private fun LeanbackClassicPanelEpgItem(
                     isFocused = it.isFocused || it.hasFocus
                 }
                 .handleLeanbackKeyEvents(
+                    pointerTapEnabled = false,
                     onSelect = {
                         focusRequester.requestFocus()
                         if (canReplay) onSelectProgramme(programme)
@@ -180,7 +181,10 @@ private fun LeanbackClassicPanelEpgItem(
                 ),
             ),
             selected = programme.isLive(),
-            onClick = { if (canReplay) onSelectProgramme(programme) },
+            onClick = {
+                focusRequester.requestFocus()
+                if (canReplay) onSelectProgramme(programme)
+            },
             headlineContent = {
                 Text(
                     text = programme.title,
@@ -223,7 +227,7 @@ private fun LeanbackClassicPanelEpgDayItem(
     modifier: Modifier = Modifier,
     dayProvider: () -> String = { "" },
     currentDayProvider: () -> String = { "" },
-    onChangeCurrentDay: () -> Unit = {},
+    onChangeCurrentDay: (String) -> Unit = {},
 ) {
     val day = dayProvider()
 
@@ -248,8 +252,9 @@ private fun LeanbackClassicPanelEpgDayItem(
                     isFocused = it.isFocused || it.hasFocus
                 }
                 .handleLeanbackKeyEvents(
+                    pointerTapEnabled = false,
                     onSelect = {
-                        if (isFocused) onChangeCurrentDay()
+                        if (isFocused) onChangeCurrentDay(day)
                         else focusRequester.requestFocus()
                     }
                 ),
@@ -260,7 +265,10 @@ private fun LeanbackClassicPanelEpgDayItem(
                 ),
             ),
             selected = isSelected,
-            onClick = {},
+            onClick = {
+                if (isFocused) onChangeCurrentDay(day)
+                else focusRequester.requestFocus()
+            },
             headlineContent = {
                 Column {
                     val key = day.split(" ")

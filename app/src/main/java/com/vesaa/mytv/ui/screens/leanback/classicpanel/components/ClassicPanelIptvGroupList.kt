@@ -147,6 +147,7 @@ private fun LeanbackClassicPanelIptvGroupItem(
                     }
                 }
                 .handleLeanbackKeyEvents(
+                    pointerTapEnabled = false,
                     onSelect = {
                         focusRequester.requestFocus()
                     },
@@ -163,7 +164,7 @@ private fun LeanbackClassicPanelIptvGroupItem(
                 ),
             ),
             selected = isSelectedProvider(),
-            onClick = { },
+            onClick = { focusRequester.requestFocus() },
             headlineContent = {
                 Text(
                     text = iptvGroup.name,
