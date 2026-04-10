@@ -1,6 +1,7 @@
 package com.vesaa.mytv.ui.screens.leanback.classicpanel.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -35,6 +36,7 @@ import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -171,7 +173,15 @@ private fun LeanbackClassicPanelEpgItem(
                         focusRequester.requestFocus()
                         if (canReplay) onSelectProgramme(programme)
                     },
-                ),
+                )
+                .pointerInput(programme.startAt, programme.endAt, programme.title) {
+                    detectTapGestures(
+                        onTap = {
+                            focusRequester.requestFocus()
+                            if (canReplay) onSelectProgramme(programme)
+                        },
+                    )
+                },
             colors = ListItemDefaults.colors(
                 focusedContainerColor = MaterialTheme.colorScheme.onBackground,
                 selectedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(
@@ -255,7 +265,15 @@ private fun LeanbackClassicPanelEpgDayItem(
                         if (isFocused) onChangeCurrentDay(day)
                         else focusRequester.requestFocus()
                     }
-                ),
+                )
+                .pointerInput(day) {
+                    detectTapGestures(
+                        onTap = {
+                            focusRequester.requestFocus()
+                            onChangeCurrentDay(day)
+                        },
+                    )
+                },
             colors = ListItemDefaults.colors(
                 focusedContainerColor = MaterialTheme.colorScheme.onBackground,
                 selectedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(
@@ -264,8 +282,8 @@ private fun LeanbackClassicPanelEpgDayItem(
             ),
             selected = isSelected,
             onClick = {
-                if (isFocused) onChangeCurrentDay(day)
-                else focusRequester.requestFocus()
+                focusRequester.requestFocus()
+                onChangeCurrentDay(day)
             },
             headlineContent = {
                 Column {

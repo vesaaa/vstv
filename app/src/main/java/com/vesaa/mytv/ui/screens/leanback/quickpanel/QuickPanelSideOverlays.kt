@@ -1,6 +1,7 @@
 package com.vesaa.mytv.ui.screens.leanback.quickpanel
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.border
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Box
@@ -31,6 +32,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.focus.FocusRequester
@@ -212,11 +214,20 @@ private fun QuickPanelEpgProgrammeRow(
                     if (isFocused) autoCloseState.active()
                 }
                 .handleLeanbackKeyEvents(
+                    pointerTapEnabled = false,
                     onSelect = {
                         focusRequester.requestFocus()
                         if (canReplay) onSelect()
                     },
-                ),
+                )
+                .pointerInput(programme.startAt, programme.endAt, programme.title) {
+                    detectTapGestures(
+                        onTap = {
+                            focusRequester.requestFocus()
+                            if (canReplay) onSelect()
+                        },
+                    )
+                },
             colors = ListItemDefaults.colors(
                 containerColor = Color.Transparent,
                 focusedContainerColor = MaterialTheme.colorScheme.onBackground,
@@ -321,6 +332,11 @@ fun LeanbackQuickPanelReplayRightSheet(
                     ) {
                         items(options, key = { it }) { minutes ->
                             androidx.tv.material3.ListItem(
+                                modifier = Modifier.pointerInput(minutes) {
+                                    detectTapGestures(
+                                        onTap = { onReplayByBackMinutes(minutes) },
+                                    )
+                                },
                                 selected = false,
                                 onClick = { onReplayByBackMinutes(minutes) },
                                 headlineContent = { Text("回看 $minutes 分钟") },

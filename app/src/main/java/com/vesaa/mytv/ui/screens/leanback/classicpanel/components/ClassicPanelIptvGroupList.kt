@@ -2,6 +2,7 @@ package com.vesaa.mytv.ui.screens.leanback.classicpanel.components
 
 import android.view.KeyEvent
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -24,6 +25,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
@@ -156,7 +158,20 @@ private fun LeanbackClassicPanelIptvGroupItem(
                             iptvGroup.name == IptvGroup.EXPANDED_GROUP_NAME
                         if (isFocused && !isSpecial) showLongPressMenu = true
                     },
-                ),
+                )
+                .pointerInput(iptvGroup) {
+                    detectTapGestures(
+                        onTap = {
+                            focusRequester.requestFocus()
+                            onFocused(iptvGroup)
+                        },
+                        onLongPress = {
+                            val isSpecial = iptvGroup.name == IptvGroup.FAVORITE_GROUP_NAME ||
+                                iptvGroup.name == IptvGroup.EXPANDED_GROUP_NAME
+                            if (!isSpecial) showLongPressMenu = true
+                        },
+                    )
+                },
             colors = ListItemDefaults.colors(
                 focusedContainerColor = MaterialTheme.colorScheme.onBackground,
                 selectedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(
@@ -164,7 +179,11 @@ private fun LeanbackClassicPanelIptvGroupItem(
                 ),
             ),
             selected = isSelectedProvider(),
-            onClick = { focusRequester.requestFocus() },
+            // 触摸由 pointerInput 处理；保留语义占位
+            onClick = {
+                focusRequester.requestFocus()
+                onFocused(iptvGroup)
+            },
             headlineContent = {
                 Text(
                     text = iptvGroup.name,

@@ -1,5 +1,6 @@
 package com.vesaa.mytv.ui.screens.leanback.settings.components
 
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
@@ -14,6 +15,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
@@ -77,6 +79,7 @@ fun LeanbackSettingsCategoryListItem(
             .focusRequester(focusRequester)
             .onFocusChanged { isFocused = it.isFocused || it.hasFocus }
             .handleLeanbackKeyEvents(
+                pointerTapEnabled = false,
                 onSelect = {
                     if (isFocused) {
                         if (onSelected != null) onSelected()
@@ -87,7 +90,20 @@ fun LeanbackSettingsCategoryListItem(
                     if (isFocused) onLongSelected()
                     else focusRequester.requestFocus()
                 },
-            ),
+            )
+            .pointerInput(headlineContent, remoteConfig) {
+                detectTapGestures(
+                    onTap = {
+                        focusRequester.requestFocus()
+                        if (onSelected != null) {
+                            onSelected()
+                        } else if (remoteConfig) {
+                            showServerUrlDialog = true
+                        }
+                    },
+                    onLongPress = { onLongSelected() },
+                )
+            },
     )
 
     LeanbackQrcodeDialog(

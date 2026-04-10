@@ -1,5 +1,6 @@
 package com.vesaa.mytv.ui.screens.leanback.settings.components
 
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -17,6 +18,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
@@ -259,6 +261,7 @@ private fun LeanbackSettingsIptvSourceHistoryDialog(
                                 .focusRequester(focusRequester)
                                 .onFocusChanged { isFocused = it.isFocused || it.hasFocus }
                                 .handleLeanbackKeyEvents(
+                                    pointerTapEnabled = false,
                                     onSelect = {
                                         if (isFocused) onSelected(source)
                                         else focusRequester.requestFocus()
@@ -267,7 +270,18 @@ private fun LeanbackSettingsIptvSourceHistoryDialog(
                                         if (isFocused && source.isNotBlank()) onDeleted(source)
                                         else focusRequester.requestFocus()
                                     },
-                                ),
+                                )
+                                .pointerInput(source) {
+                                    detectTapGestures(
+                                        onTap = {
+                                            focusRequester.requestFocus()
+                                            onSelected(source)
+                                        },
+                                        onLongPress = {
+                                            if (source.isNotBlank()) onDeleted(source)
+                                        },
+                                    )
+                                },
                             selected = currentIptvSource == source,
                             onClick = { },
                             headlineContent = {
@@ -315,11 +329,20 @@ private fun LeanbackSettingsIptvSourceHistoryDialog(
                                 .focusRequester(focusRequester)
                                 .onFocusChanged { isFocused = it.isFocused || it.hasFocus }
                                 .handleLeanbackKeyEvents(
+                                    pointerTapEnabled = false,
                                     onSelect = {
                                         if (isFocused) showDialog = true
                                         else focusRequester.requestFocus()
                                     },
-                                ),
+                                )
+                                .pointerInput(Unit) {
+                                    detectTapGestures(
+                                        onTap = {
+                                            focusRequester.requestFocus()
+                                            showDialog = true
+                                        },
+                                    )
+                                },
                             selected = false,
                             onClick = {},
                             headlineContent = {

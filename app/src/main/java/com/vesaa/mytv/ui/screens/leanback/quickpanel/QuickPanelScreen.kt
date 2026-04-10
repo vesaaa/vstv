@@ -576,11 +576,20 @@ private fun LeanbackQuickPanelButton(
                 isFocused = it.isFocused || it.hasFocus
             }
             .handleLeanbackKeyEvents(
+                pointerTapEnabled = false,
                 onSelect = {
                     if (isFocused) onSelect()
                     else focusRequester.requestFocus()
                 },
-            ),
+            )
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onTap = {
+                        focusRequester.requestFocus()
+                        onSelect()
+                    },
+                )
+            },
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,

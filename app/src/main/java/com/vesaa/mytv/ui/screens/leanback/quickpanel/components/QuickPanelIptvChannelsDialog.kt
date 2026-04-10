@@ -1,6 +1,7 @@
 package com.vesaa.mytv.ui.screens.leanback.quickpanel.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -22,6 +23,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
@@ -122,11 +124,20 @@ private fun LeanbackQuickPanelIptvChannelItem(
             .focusRequester(focusRequester)
             .onFocusChanged { isFocused = it.isFocused || it.hasFocus }
             .handleLeanbackKeyEvents(
+                pointerTapEnabled = false,
                 onSelect = {
                     if (isFocused) onSelect()
                     else focusRequester.requestFocus()
                 },
-            ),
+            )
+            .pointerInput(urlIndex) {
+                detectTapGestures(
+                    onTap = {
+                        focusRequester.requestFocus()
+                        onSelect()
+                    },
+                )
+            },
         selected = isSelected,
         onClick = { },
         headlineContent = {
