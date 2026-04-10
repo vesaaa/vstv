@@ -53,8 +53,8 @@ fun LeanbackSettingsCategoryList(
     val focusRequesters = remember(menuItems.size) {
         List(menuItems.size) { FocusRequester() }
     }
-    LaunchedEffect(menuItems.size) {
-        delay(48)
+    LaunchedEffect(Unit) {
+        delay(24)
         focusRequesters.firstOrNull()?.requestFocus()
     }
 

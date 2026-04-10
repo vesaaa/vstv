@@ -25,6 +25,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -42,8 +43,14 @@ fun LeanbackSettingsScreen(
     onRequestClose: () -> Unit = {},
 ) {
     val childPadding = rememberLeanbackChildPadding()
+    val focusManager = LocalFocusManager.current
     var openCategory by remember { mutableStateOf<LeanbackSettingsCategories?>(null) }
     var appliedInitialCategory by remember { mutableStateOf(false) }
+
+    // 从全屏视频等节点进入设置时，焦点可能仍留在下层，左右键会触发换线路而非网格移动；先释放再交给分类列表 requestFocus
+    LaunchedEffect(Unit) {
+        focusManager.clearFocus(force = true)
+    }
 
     LaunchedEffect(initialOpenCategory) {
         if (!appliedInitialCategory && initialOpenCategory != null) {

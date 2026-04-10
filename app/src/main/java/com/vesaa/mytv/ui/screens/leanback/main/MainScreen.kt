@@ -215,15 +215,17 @@ private fun LeanbackMainSettingsHandle(
     val focusRequester = remember { FocusRequester() }
     var showSettings by remember { mutableStateOf(false) }
 
-    LaunchedEffect(Unit) {
-        focusRequester.requestFocus()
+    LaunchedEffect(showSettings) {
+        if (!showSettings) {
+            focusRequester.requestFocus()
+        }
     }
 
     LeanbackBackPressHandledArea(onBackPressed = onBackPressed) {
         Box(
             modifier = modifier
                 .focusRequester(focusRequester)
-                .focusable()
+                .focusable(!showSettings)
                 .handleLeanbackKeyEvents(
                     onSettings = {
                         showSettings = true
