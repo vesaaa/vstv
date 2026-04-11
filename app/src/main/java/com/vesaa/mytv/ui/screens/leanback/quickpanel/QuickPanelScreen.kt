@@ -156,6 +156,7 @@ fun LeanbackQuickPanelScreen(
     val focusMenuVideo = remember { FocusRequester() }
     val focusMenuAudio = remember { FocusRequester() }
     val focusMenuStream = remember { FocusRequester() }
+    val focusMenuHome = remember { FocusRequester() }
     var lastSubPanel by remember { mutableStateOf(LeanbackQuickPanelSubPanel.None) }
     val showBottomChrome = subPanel != LeanbackQuickPanelSubPanel.Epg
 
@@ -381,6 +382,7 @@ fun LeanbackQuickPanelScreen(
                                 QuickPanelBottomMenuSlot.Epg ->
                                     LeanbackQuickPanelButton(
                                         buttonFocusRequester = focusMenuEpg,
+                                        dPadLeftWrapTo = focusMenuHome,
                                         leadingIcon = Icons.Filled.List,
                                         titleProvider = { "节目单" },
                                         onSelect = {
@@ -502,6 +504,8 @@ fun LeanbackQuickPanelScreen(
 
                                 QuickPanelBottomMenuSlot.Home ->
                                     LeanbackQuickPanelButton(
+                                        buttonFocusRequester = focusMenuHome,
+                                        dPadRightWrapTo = focusMenuEpg,
                                         leadingIcon = Icons.Filled.Home,
                                         titleProvider = { "主菜单" },
                                         onSelect = onMoreSettings,
@@ -520,6 +524,10 @@ private fun LeanbackQuickPanelButton(
     modifier: Modifier = Modifier,
     /** 由父级持有时可从详情返回后 `requestFocus()`，保持该项为当前焦点 */
     buttonFocusRequester: FocusRequester? = null,
+    /** 底栏横向列表在首项按左键时跳到最后一项（如「主菜单」） */
+    dPadLeftWrapTo: FocusRequester? = null,
+    /** 底栏横向列表在末项按右键时跳到第一项（如「节目单」） */
+    dPadRightWrapTo: FocusRequester? = null,
     leadingIcon: ImageVector? = null,
     titleProvider: () -> String,
     subtitleProvider: (() -> String)? = null,
@@ -574,6 +582,25 @@ private fun LeanbackQuickPanelButton(
             .focusRequester(focusRequester)
             .onFocusChanged {
                 isFocused = it.isFocused || it.hasFocus
+            }
+            .onPreviewKeyEvent { e ->
+                if (e.type != KeyEventType.KeyUp) return@onPreviewKeyEvent false
+                if (!isFocused) return@onPreviewKeyEvent false
+                val left =
+                    e.key == Key.DirectionLeft ||
+                        e.nativeKeyEvent.keyCode == AndroidKeyEvent.KEYCODE_DPAD_LEFT
+                val right =
+                    e.key == Key.DirectionRight ||
+                        e.nativeKeyEvent.keyCode == AndroidKeyEvent.KEYCODE_DPAD_RIGHT
+                if (left && dPadLeftWrapTo != null) {
+                    dPadLeftWrapTo.requestFocus()
+                    return@onPreviewKeyEvent true
+                }
+                if (right && dPadRightWrapTo != null) {
+                    dPadRightWrapTo.requestFocus()
+                    return@onPreviewKeyEvent true
+                }
+                false
             }
             .handleLeanbackKeyEvents(
                 pointerTapEnabled = false,
