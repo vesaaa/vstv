@@ -584,7 +584,9 @@ private fun LeanbackQuickPanelButton(
                 isFocused = it.isFocused || it.hasFocus
             }
             .onPreviewKeyEvent { e ->
-                if (e.type != KeyEventType.KeyUp) return@onPreviewKeyEvent false
+                // 必须用 KeyDown：若用 KeyUp，从相邻项移入本项时系统会把同一次按键的 KeyUp 交给新焦点，
+                // 会误触发首尾环绕（例如刚到「主菜单」又跳到「节目单」）。
+                if (e.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
                 if (!isFocused) return@onPreviewKeyEvent false
                 val left =
                     e.key == Key.DirectionLeft ||
