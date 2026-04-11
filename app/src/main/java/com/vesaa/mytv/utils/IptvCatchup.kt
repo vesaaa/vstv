@@ -58,12 +58,15 @@ object IptvCatchup {
     ): String? {
         val source = pickTemplate(iptv)
         if (source.isBlank()) return null
-        return renderCatchupTemplate(source, window.startMs, window.endMs, baseUrl)
+        return normalizeCatchupStreamUrl(
+            renderCatchupTemplate(source, window.startMs, window.endMs, baseUrl),
+        )
     }
 
     /**
      * 优先使用 M3U 声明的 catchup 模板或 DVR 推断；若无模板则按常见运营商习惯追加
      * `?playseek=yyyyMMddHHmmss-yyyyMMddHHmmss` 作为兜底，供节目单点击尝试回看。
+     * 最终会对完整 URL 做 pltv→tvod 规范化（与参考 fork 回放路径一致）。
      */
     fun buildCatchupUrlWithFallback(
         iptv: Iptv,
@@ -71,7 +74,9 @@ object IptvCatchup {
         window: CatchupWindow,
     ): String {
         buildCatchupUrl(iptv, baseUrl, window)?.let { return it }
-        return renderCatchupTemplate(DefaultAppendTemplate, window.startMs, window.endMs, baseUrl)
+        return normalizeCatchupStreamUrl(
+            renderCatchupTemplate(DefaultAppendTemplate, window.startMs, window.endMs, baseUrl),
+        )
     }
 
     fun clampWindow(
@@ -116,8 +121,16 @@ object IptvCatchup {
     private fun isLikelyDvrUrl(url: String): Boolean {
         val u = url.trim().lowercase()
         if (u.isBlank()) return false
-        return "/dvr/" in u || "playseek=" in u || "timeshift" in u
+        return "/dvr/" in u || "playseek=" in u || "timeshift" in u ||
+            "pltv" in u || "tvod" in u
     }
+
+    /**
+     * 参考 mytv-android `ChannelUtil.urlToCanPlayback`：多数 IPTV 直播流 URL 含 `pltv`，
+     * 回看需在拼接时间参数后将流类型改为 `tvod`，否则服务端仍按直播处理导致回看失败。
+     */
+    private fun normalizeCatchupStreamUrl(url: String): String =
+        url.replace("pltv", "tvod", ignoreCase = true)
 
     private fun formatTs(ts: Long, raw: String): String {
         val tzRegex = Regex("""\{(utc|local)}""", RegexOption.IGNORE_CASE)
