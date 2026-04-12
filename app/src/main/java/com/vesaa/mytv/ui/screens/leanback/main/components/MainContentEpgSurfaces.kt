@@ -143,9 +143,6 @@ internal fun LeanbackMainEpgSurfaces(
             catchupSupportedProvider = {
                 IptvCatchup.supportCatchup(mainContentState.currentIptv)
             },
-            onReplayUnsupported = {
-                LeanbackToastState.I.showToast("当前频道暂不支持回看")
-            },
             isReplayActiveProvider = {
                 mainContentState.playbackMode == LeanbackMainContentState.PlaybackMode.REPLAY
             },

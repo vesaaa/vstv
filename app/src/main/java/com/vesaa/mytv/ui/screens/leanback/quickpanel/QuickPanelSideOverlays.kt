@@ -279,9 +279,14 @@ private fun QuickPanelEpgProgrammeRow(
     }
 }
 
+/**
+ * 与 [LeanbackQuickPanelEpgLeftSheet] 相同的左侧玻璃面板样式；回看时长用 [TvLazyColumn] 列出，
+ * 默认焦点在第一项（如 15 分钟），支持方向键与触摸滑动、点选（交互方式与节目单行一致）。
+ */
 @Composable
-fun LeanbackQuickPanelReplayRightSheet(
+fun LeanbackQuickPanelReplayLeftSheet(
     modifier: Modifier = Modifier,
+    iptvProvider: () -> Iptv,
     capabilityLabelProvider: () -> String = { "不支持" },
     capabilityDetailProvider: () -> String = { "当前频道未提供回看模板或DVR入口" },
     maxHoursProvider: () -> Int = { 24 },
@@ -289,70 +294,138 @@ fun LeanbackQuickPanelReplayRightSheet(
     onReplayByBackMinutes: (Int) -> Unit = {},
     autoCloseState: PanelAutoCloseState,
 ) {
-    val focusRequester = remember { FocusRequester() }
-    val scroll = rememberScrollState()
-    val onSurface = MaterialTheme.colorScheme.onSurface
-    val options = listOf(15, 30, 60, 120, 1440).filter { it <= maxHoursProvider() * 60 }
-
-    LaunchedEffect(capabilityLabelProvider(), capabilityDetailProvider()) {
-        focusRequester.requestFocus()
+    val iptv = iptvProvider()
+    val maxH = maxHoursProvider()
+    val options = remember(maxH) {
+        listOf(15, 30, 60, 120, 1440).filter { it <= maxH * 60 }
+    }
+    val listState = remember(maxH) {
+        TvLazyListState()
     }
 
-    QuickPanelGlassPanelRight(modifier = modifier) {
+    LaunchedEffect(listState) {
+        snapshotFlow { listState.isScrollInProgress }
+            .distinctUntilChanged()
+            .collect { _ -> autoCloseState.active() }
+    }
+
+    val onBg = MaterialTheme.colorScheme.onBackground
+
+    QuickPanelEpgSurfacePanel(modifier = modifier) {
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .focusRequester(focusRequester)
-                .focusable()
-                .handleLeanbackKeyEvents(
-                    onSelect = { autoCloseState.active() },
-                )
-                .onFocusChanged { if (it.isFocused || it.hasFocus) autoCloseState.active() },
+            modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.TopStart,
         ) {
-            Column(
-                Modifier
-                    .fillMaxSize()
-                    .verticalScroll(scroll)
-                    .padding(horizontal = 20.dp, vertical = 16.dp),
-                verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(10.dp),
-            ) {
+            Column(Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
                 Text(
-                    text = "回看",
+                    text = iptv.channelName.ifBlank { iptv.name.ifBlank { "当前频道" } },
                     style = MaterialTheme.typography.titleMedium,
-                    color = onSurface,
+                    color = onBg,
+                )
+                Text(
+                    text = "回看时长",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = onBg.copy(alpha = 0.75f),
+                    modifier = Modifier.padding(top = 4.dp, bottom = 8.dp),
                 )
                 Text(
                     text = "能力：${capabilityLabelProvider()}",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = onSurface.copy(alpha = 0.92f),
+                    color = onBg.copy(alpha = 0.92f),
                 )
                 Text(
                     text = capabilityDetailProvider(),
                     style = MaterialTheme.typography.bodySmall,
-                    color = onSurface.copy(alpha = 0.8f),
+                    color = onBg.copy(alpha = 0.8f),
+                    modifier = Modifier.padding(top = 4.dp, bottom = 4.dp),
                 )
                 if (replaySupportedProvider()) {
                     Text(
-                        text = "最大回看：${maxHoursProvider()}小时",
+                        text = "最大回看：${maxH}小时",
                         style = MaterialTheme.typography.bodySmall,
-                        color = onSurface.copy(alpha = 0.85f),
+                        color = onBg.copy(alpha = 0.85f),
+                        modifier = Modifier.padding(bottom = 4.dp),
                     )
-                    options.forEach { minutes ->
-                        androidx.tv.material3.ListItem(
-                            modifier = Modifier.pointerInput(minutes) {
-                                detectTapGestures(
-                                    onTap = { onReplayByBackMinutes(minutes) },
-                                )
-                            },
-                            selected = false,
-                            onClick = { onReplayByBackMinutes(minutes) },
-                            headlineContent = { Text("回看 $minutes 分钟") },
-                        )
+                }
+                if (replaySupportedProvider() && options.isNotEmpty()) {
+                    TvLazyColumn(
+                        state = listState,
+                        contentPadding = PaddingValues(vertical = 4.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        items(options, key = { it }) { minutes ->
+                            QuickPanelReplayMinutesRow(
+                                minutes = minutes,
+                                requestInitialFocus = minutes == options.first(),
+                                autoCloseState = autoCloseState,
+                                onSelect = { onReplayByBackMinutes(minutes) },
+                            )
+                        }
                     }
+                } else {
+                    Text(
+                        text = "当前无法选择回看时长",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = onBg.copy(alpha = 0.85f),
+                        modifier = Modifier.padding(8.dp),
+                    )
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun QuickPanelReplayMinutesRow(
+    minutes: Int,
+    requestInitialFocus: Boolean,
+    autoCloseState: PanelAutoCloseState,
+    onSelect: () -> Unit,
+) {
+    var isFocused by remember { mutableStateOf(false) }
+    val focusRequester = remember { FocusRequester() }
+
+    LaunchedEffect(minutes, requestInitialFocus) {
+        if (requestInitialFocus) {
+            focusRequester.requestFocus()
+        }
+    }
+
+    CompositionLocalProvider(
+        LocalContentColor provides if (isFocused) MaterialTheme.colorScheme.background
+        else MaterialTheme.colorScheme.onBackground,
+    ) {
+        androidx.tv.material3.ListItem(
+            modifier = Modifier
+                .focusRequester(focusRequester)
+                .onFocusChanged {
+                    isFocused = it.isFocused || it.hasFocus
+                    if (isFocused) autoCloseState.active()
+                }
+                .handleLeanbackKeyEvents(
+                    pointerTapEnabled = false,
+                    onSelect = {
+                        focusRequester.requestFocus()
+                        onSelect()
+                    },
+                )
+                .pointerInput(minutes) {
+                    detectTapGestures(
+                        onTap = {
+                            focusRequester.requestFocus()
+                            onSelect()
+                        },
+                    )
+                },
+            colors = ListItemDefaults.colors(
+                containerColor = Color.Transparent,
+                focusedContainerColor = MaterialTheme.colorScheme.onBackground,
+                selectedContainerColor = Color.Transparent,
+            ),
+            selected = false,
+            onClick = onSelect,
+            headlineContent = { Text("回看 $minutes 分钟") },
+        )
     }
 }
 

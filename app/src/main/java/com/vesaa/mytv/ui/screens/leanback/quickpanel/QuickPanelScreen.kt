@@ -41,6 +41,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -134,7 +135,6 @@ fun LeanbackQuickPanelScreen(
     isReplayActiveProvider: () -> Boolean = { false },
     onBackToLive: () -> Unit = {},
     catchupSupportedProvider: () -> Boolean = { false },
-    onReplayUnsupported: () -> Unit = {},
     catchupMaxHoursProvider: () -> Int = { 24 },
     onReplayByBackMinutes: (Int) -> Unit = {},
     onReplayByProgramme: (Long, Long) -> Unit = { _, _ -> },
@@ -154,7 +154,9 @@ fun LeanbackQuickPanelScreen(
     val focusMenuStream = remember { FocusRequester() }
     val focusMenuHome = remember { FocusRequester() }
     var lastSubPanel by remember { mutableStateOf(LeanbackQuickPanelSubPanel.None) }
-    val showBottomChrome = subPanel != LeanbackQuickPanelSubPanel.Epg
+    val showBottomChrome =
+        subPanel != LeanbackQuickPanelSubPanel.Epg &&
+            subPanel != LeanbackQuickPanelSubPanel.ReplayDetail
 
     LaunchedEffect(Unit) {
         autoCloseState.active()
@@ -169,7 +171,8 @@ fun LeanbackQuickPanelScreen(
             delay(48)
             when (previous) {
                 LeanbackQuickPanelSubPanel.Epg -> focusMenuEpg.requestFocus()
-                LeanbackQuickPanelSubPanel.ReplayDetail -> focusMenuReplay.requestFocus()
+                LeanbackQuickPanelSubPanel.ReplayDetail ->
+                    runCatching { focusMenuReplay.requestFocus() }
                 LeanbackQuickPanelSubPanel.StreamDetail -> focusMenuStream.requestFocus()
                 LeanbackQuickPanelSubPanel.None -> Unit
             }
@@ -215,7 +218,7 @@ fun LeanbackQuickPanelScreen(
             val sideTopPad = 12.dp
             val sideStartPad = childPadding.start
 
-            val epgBottom = if (showBottomChrome) bottomInsetDefault else bottomInsetEpg
+            val leftSheetBottom = if (showBottomChrome) bottomInsetDefault else bottomInsetEpg
 
             when (subPanel) {
                 LeanbackQuickPanelSubPanel.Epg ->
@@ -225,7 +228,7 @@ fun LeanbackQuickPanelScreen(
                             .padding(
                                 start = sideStartPad,
                                 top = sideTopPad,
-                                bottom = epgBottom,
+                                bottom = leftSheetBottom,
                             )
                             .fillMaxHeight()
                             .fillMaxWidth(0.40f),
@@ -243,16 +246,17 @@ fun LeanbackQuickPanelScreen(
                     )
 
                 LeanbackQuickPanelSubPanel.ReplayDetail ->
-                    LeanbackQuickPanelReplayRightSheet(
+                    LeanbackQuickPanelReplayLeftSheet(
                         modifier = Modifier
-                            .align(Alignment.TopEnd)
+                            .align(Alignment.TopStart)
                             .padding(
-                                end = sideStartPad,
+                                start = sideStartPad,
                                 top = sideTopPad,
-                                bottom = bottomInsetRight,
+                                bottom = leftSheetBottom,
                             )
                             .fillMaxHeight()
-                            .fillMaxWidth(0.336f),
+                            .fillMaxWidth(0.40f),
+                        iptvProvider = currentIptvProvider,
                         capabilityLabelProvider = replayCapabilityProvider,
                         capabilityDetailProvider = replayCapabilityDetailProvider,
                         maxHoursProvider = catchupMaxHoursProvider,
@@ -370,6 +374,7 @@ fun LeanbackQuickPanelScreen(
 
                                 QuickPanelBottomMenuSlot.Replay ->
                                     LeanbackQuickPanelButton(
+                                        enabled = catchupSupportedProvider(),
                                         buttonFocusRequester = focusMenuReplay,
                                         leadingIcon = Icons.Filled.Schedule,
                                         titleProvider = {
@@ -378,16 +383,14 @@ fun LeanbackQuickPanelScreen(
                                         titleMaxLines = 2,
                                         titleOverflow = TextOverflow.Clip,
                                         onSelect = {
-                                            if (catchupSupportedProvider()) {
-                                                onSubPanelChange(
-                                                    if (subPanel == LeanbackQuickPanelSubPanel.ReplayDetail) {
-                                                        LeanbackQuickPanelSubPanel.None
-                                                    } else {
-                                                        LeanbackQuickPanelSubPanel.ReplayDetail
-                                                    },
-                                                )
-                                            }
-                                            else onReplayUnsupported()
+                                            onSubPanelChange(
+                                                if (subPanel == LeanbackQuickPanelSubPanel.ReplayDetail) {
+                                                    LeanbackQuickPanelSubPanel.None
+                                                } else {
+                                                    LeanbackQuickPanelSubPanel.ReplayDetail
+                                                },
+                                            )
+                                            autoCloseState.active()
                                         },
                                     )
 
@@ -443,6 +446,8 @@ fun LeanbackQuickPanelScreen(
 @Composable
 private fun LeanbackQuickPanelButton(
     modifier: Modifier = Modifier,
+    /** 为 false 时不参与焦点、不响应确定键与触摸（用于「回看不可用」等仅展示状态） */
+    enabled: Boolean = true,
     /** 由父级持有时可从详情返回后 `requestFocus()`，保持该项为当前焦点 */
     buttonFocusRequester: FocusRequester? = null,
     /** 底栏横向列表在首项按左键时跳到最后一项（如「主菜单」） */
@@ -460,12 +465,16 @@ private fun LeanbackQuickPanelButton(
     val focusRequester = buttonFocusRequester ?: defaultFocusRequester
     var isFocused by remember { mutableStateOf(false) }
     val scheme = MaterialTheme.colorScheme
-    val menuContentColor =
-        if (isFocused) scheme.inverseOnSurface
-        else scheme.onSurface.copy(alpha = 0.88f)
-    val menuSubtitleColor =
-        if (isFocused) scheme.inverseOnSurface.copy(alpha = 0.78f)
-        else scheme.onSurfaceVariant.copy(alpha = 0.9f)
+    val menuContentColor = when {
+        !enabled -> scheme.onSurface.copy(alpha = 0.40f)
+        isFocused -> scheme.inverseOnSurface
+        else -> scheme.onSurface.copy(alpha = 0.88f)
+    }
+    val menuSubtitleColor = when {
+        !enabled -> scheme.onSurfaceVariant.copy(alpha = 0.45f)
+        isFocused -> scheme.inverseOnSurface.copy(alpha = 0.78f)
+        else -> scheme.onSurfaceVariant.copy(alpha = 0.9f)
+    }
     androidx.tv.material3.Button(
         onClick = { },
         shape = ButtonDefaults.shape(
@@ -500,6 +509,7 @@ private fun LeanbackQuickPanelButton(
             vertical = (8f * QuickPanelMenuLayoutFactor).dp,
         ),
         modifier = modifier
+            .focusProperties { canFocus = enabled }
             .focusRequester(focusRequester)
             .onFocusChanged {
                 isFocused = it.isFocused || it.hasFocus
@@ -508,6 +518,7 @@ private fun LeanbackQuickPanelButton(
                 // 必须用 KeyDown：若用 KeyUp，从相邻项移入本项时系统会把同一次按键的 KeyUp 交给新焦点，
                 // 会误触发首尾环绕（例如刚到「主菜单」又跳到「节目单」）。
                 if (e.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
+                if (!enabled) return@onPreviewKeyEvent false
                 if (!isFocused) return@onPreviewKeyEvent false
                 val left =
                     e.key == Key.DirectionLeft ||
@@ -528,17 +539,21 @@ private fun LeanbackQuickPanelButton(
             .handleLeanbackKeyEvents(
                 pointerTapEnabled = false,
                 onSelect = {
-                    if (isFocused) onSelect()
-                    else focusRequester.requestFocus()
+                    if (enabled) {
+                        if (isFocused) onSelect()
+                        else focusRequester.requestFocus()
+                    }
                 },
             )
-            .pointerInput(Unit) {
-                detectTapGestures(
-                    onTap = {
-                        focusRequester.requestFocus()
-                        onSelect()
-                    },
-                )
+            .pointerInput(enabled) {
+                if (enabled) {
+                    detectTapGestures(
+                        onTap = {
+                            focusRequester.requestFocus()
+                            onSelect()
+                        },
+                    )
+                }
             },
     ) {
         Row(
