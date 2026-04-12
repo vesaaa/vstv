@@ -5,7 +5,5 @@ enum class LeanbackQuickPanelSubPanel {
     None,
     Epg,
     ReplayDetail,
-    VideoDetail,
-    AudioDetail,
     StreamDetail,
 }

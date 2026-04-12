@@ -19,7 +19,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AltRoute
 import androidx.compose.material.icons.filled.AspectRatio
@@ -28,8 +27,6 @@ import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.LiveTv
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Memory
-import androidx.compose.material.icons.filled.MusicNote
-import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -113,8 +110,6 @@ private enum class QuickPanelBottomMenuSlot {
     BackLive,
     MultiLine,
     AspectRatio,
-    Video,
-    Audio,
     Stream,
     Home,
 }
@@ -128,6 +123,8 @@ fun LeanbackQuickPanelScreen(
     currentEpgProvider: () -> Epg = { Epg() },
     currentIptvChannelNoProvider: () -> String = { "" },
     videoPlayerMetadataProvider: () -> LeanbackVideoPlayer.Metadata = { LeanbackVideoPlayer.Metadata() },
+    /** 当前实际拉流 URL（与播放器一致，含回看拼接后的地址） */
+    currentPlaybackUrlProvider: () -> String = { "" },
     videoPlayerAspectRatioProvider: () -> Float = { 16f / 9f },
     onChangeVideoPlayerAspectRatio: (Float) -> Unit = {},
     onIptvUrlIdxChange: (Int) -> Unit = {},
@@ -153,8 +150,7 @@ fun LeanbackQuickPanelScreen(
     val childPadding = rememberLeanbackChildPadding()
     val rootFocusRequester = remember { FocusRequester() }
     val focusMenuEpg = remember { FocusRequester() }
-    val focusMenuVideo = remember { FocusRequester() }
-    val focusMenuAudio = remember { FocusRequester() }
+    val focusMenuReplay = remember { FocusRequester() }
     val focusMenuStream = remember { FocusRequester() }
     val focusMenuHome = remember { FocusRequester() }
     var lastSubPanel by remember { mutableStateOf(LeanbackQuickPanelSubPanel.None) }
@@ -173,9 +169,7 @@ fun LeanbackQuickPanelScreen(
             delay(48)
             when (previous) {
                 LeanbackQuickPanelSubPanel.Epg -> focusMenuEpg.requestFocus()
-                LeanbackQuickPanelSubPanel.ReplayDetail -> focusMenuEpg.requestFocus()
-                LeanbackQuickPanelSubPanel.VideoDetail -> focusMenuVideo.requestFocus()
-                LeanbackQuickPanelSubPanel.AudioDetail -> focusMenuAudio.requestFocus()
+                LeanbackQuickPanelSubPanel.ReplayDetail -> focusMenuReplay.requestFocus()
                 LeanbackQuickPanelSubPanel.StreamDetail -> focusMenuStream.requestFocus()
                 LeanbackQuickPanelSubPanel.None -> Unit
             }
@@ -270,38 +264,6 @@ fun LeanbackQuickPanelScreen(
                         autoCloseState = autoCloseState,
                     )
 
-                LeanbackQuickPanelSubPanel.VideoDetail ->
-                    LeanbackQuickPanelMetadataRightSheet(
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .padding(
-                                end = sideStartPad,
-                                top = sideTopPad,
-                                bottom = bottomInsetRight,
-                            )
-                            .fillMaxHeight()
-                            .fillMaxWidth(0.336f),
-                        title = "视频信息",
-                        body = formatQuickPanelVideoDetailBody(videoPlayerMetadataProvider()),
-                        autoCloseState = autoCloseState,
-                    )
-
-                LeanbackQuickPanelSubPanel.AudioDetail ->
-                    LeanbackQuickPanelMetadataRightSheet(
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .padding(
-                                end = sideStartPad,
-                                top = sideTopPad,
-                                bottom = bottomInsetRight,
-                            )
-                            .fillMaxHeight()
-                            .fillMaxWidth(0.336f),
-                        title = "音频信息",
-                        body = formatQuickPanelAudioDetailBody(videoPlayerMetadataProvider()),
-                        autoCloseState = autoCloseState,
-                    )
-
                 LeanbackQuickPanelSubPanel.StreamDetail ->
                     LeanbackQuickPanelMetadataRightSheet(
                         modifier = Modifier
@@ -314,7 +276,10 @@ fun LeanbackQuickPanelScreen(
                             .fillMaxHeight()
                             .fillMaxWidth(0.336f),
                         title = "解码与码流",
-                        body = formatQuickPanelStreamDetailBody(videoPlayerMetadataProvider()),
+                        body = formatQuickPanelStreamDetailBody(
+                            videoPlayerMetadataProvider(),
+                            currentPlaybackUrlProvider(),
+                        ),
                         autoCloseState = autoCloseState,
                     )
 
@@ -359,8 +324,6 @@ fun LeanbackQuickPanelScreen(
                             if (isReplayActiveProvider()) add(QuickPanelBottomMenuSlot.BackLive)
                             if (showMultiLineMenuItem) add(QuickPanelBottomMenuSlot.MultiLine)
                             add(QuickPanelBottomMenuSlot.AspectRatio)
-                            add(QuickPanelBottomMenuSlot.Video)
-                            add(QuickPanelBottomMenuSlot.Audio)
                             add(QuickPanelBottomMenuSlot.Stream)
                             add(QuickPanelBottomMenuSlot.Home)
                         }
@@ -407,13 +370,13 @@ fun LeanbackQuickPanelScreen(
 
                                 QuickPanelBottomMenuSlot.Replay ->
                                     LeanbackQuickPanelButton(
+                                        buttonFocusRequester = focusMenuReplay,
                                         leadingIcon = Icons.Filled.Schedule,
                                         titleProvider = {
-                                            if (catchupSupportedProvider()) "支持回看" else "不支持"
+                                            if (catchupSupportedProvider()) "回看可用" else "回看不可用"
                                         },
-                                        titleMaxLines = 1,
-                                        titleOverflow = TextOverflow.Ellipsis,
-                                        modifier = Modifier.widthIn(max = (190f * QuickPanelMenuLayoutFactor).dp),
+                                        titleMaxLines = 2,
+                                        titleOverflow = TextOverflow.Clip,
                                         onSelect = {
                                             if (catchupSupportedProvider()) {
                                                 onSubPanelChange(
@@ -439,50 +402,6 @@ fun LeanbackQuickPanelScreen(
                                     LeanbackQuickPanelActionVideoAspectRatio(
                                         videoPlayerAspectRatioProvider = videoPlayerAspectRatioProvider,
                                         onChangeVideoPlayerAspectRatio = onChangeVideoPlayerAspectRatio,
-                                    )
-
-                                QuickPanelBottomMenuSlot.Video ->
-                                    LeanbackQuickPanelButton(
-                                        buttonFocusRequester = focusMenuVideo,
-                                        leadingIcon = Icons.Filled.Videocam,
-                                        titleProvider = {
-                                            formatQuickPanelVideoButtonLabel(videoPlayerMetadataProvider())
-                                        },
-                                        titleMaxLines = 1,
-                                        titleOverflow = TextOverflow.Ellipsis,
-                                        modifier = Modifier.widthIn(max = (220f * QuickPanelMenuLayoutFactor).dp),
-                                        onSelect = {
-                                            onSubPanelChange(
-                                                if (subPanel == LeanbackQuickPanelSubPanel.VideoDetail) {
-                                                    LeanbackQuickPanelSubPanel.None
-                                                } else {
-                                                    LeanbackQuickPanelSubPanel.VideoDetail
-                                                },
-                                            )
-                                            autoCloseState.active()
-                                        },
-                                    )
-
-                                QuickPanelBottomMenuSlot.Audio ->
-                                    LeanbackQuickPanelButton(
-                                        buttonFocusRequester = focusMenuAudio,
-                                        leadingIcon = Icons.Filled.MusicNote,
-                                        titleProvider = {
-                                            formatQuickPanelAudioButtonLabel(videoPlayerMetadataProvider())
-                                        },
-                                        titleMaxLines = 1,
-                                        titleOverflow = TextOverflow.Ellipsis,
-                                        modifier = Modifier.widthIn(max = (240f * QuickPanelMenuLayoutFactor).dp),
-                                        onSelect = {
-                                            onSubPanelChange(
-                                                if (subPanel == LeanbackQuickPanelSubPanel.AudioDetail) {
-                                                    LeanbackQuickPanelSubPanel.None
-                                                } else {
-                                                    LeanbackQuickPanelSubPanel.AudioDetail
-                                                },
-                                            )
-                                            autoCloseState.active()
-                                        },
                                     )
 
                                 QuickPanelBottomMenuSlot.Stream ->
@@ -739,6 +658,7 @@ private fun LeanbackQuickPanelScreenPreview() {
                     audioChannels = 2,
                 )
             },
+            currentPlaybackUrlProvider = { "https://example.com/stream.m3u8" },
         )
     }
 }

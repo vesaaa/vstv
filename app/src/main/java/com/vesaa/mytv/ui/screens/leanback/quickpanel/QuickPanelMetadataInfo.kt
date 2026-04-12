@@ -82,7 +82,16 @@ internal fun formatQuickPanelAudioDetailBody(m: LeanbackVideoPlayer.Metadata): S
     }
 }.trimEnd()
 
-internal fun formatQuickPanelStreamDetailBody(m: LeanbackVideoPlayer.Metadata): String = buildString {
+internal fun formatQuickPanelStreamDetailBody(
+    m: LeanbackVideoPlayer.Metadata,
+    playbackUrl: String = "",
+): String = buildString {
+    val u = playbackUrl.trim()
+    if (u.isNotEmpty()) {
+        appendLine("播放地址")
+        appendLine(u)
+        appendLine()
+    }
     appendLine(formatQuickPanelStreamExtraLine(m))
     appendLine()
     appendLine("视频：${formatQuickPanelVideoMenuSubtitle(m)}")

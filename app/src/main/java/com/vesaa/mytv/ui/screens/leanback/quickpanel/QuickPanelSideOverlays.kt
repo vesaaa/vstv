@@ -290,6 +290,7 @@ fun LeanbackQuickPanelReplayRightSheet(
     autoCloseState: PanelAutoCloseState,
 ) {
     val focusRequester = remember { FocusRequester() }
+    val scroll = rememberScrollState()
     val onSurface = MaterialTheme.colorScheme.onSurface
     val options = listOf(15, 30, 60, 120, 1440).filter { it <= maxHoursProvider() * 60 }
 
@@ -303,11 +304,17 @@ fun LeanbackQuickPanelReplayRightSheet(
                 .fillMaxSize()
                 .focusRequester(focusRequester)
                 .focusable()
+                .handleLeanbackKeyEvents(
+                    onSelect = { autoCloseState.active() },
+                )
                 .onFocusChanged { if (it.isFocused || it.hasFocus) autoCloseState.active() },
             contentAlignment = Alignment.TopStart,
         ) {
             Column(
-                Modifier.padding(horizontal = 20.dp, vertical = 16.dp),
+                Modifier
+                    .fillMaxSize()
+                    .verticalScroll(scroll)
+                    .padding(horizontal = 20.dp, vertical = 16.dp),
                 verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(10.dp),
             ) {
                 Text(
@@ -331,22 +338,17 @@ fun LeanbackQuickPanelReplayRightSheet(
                         style = MaterialTheme.typography.bodySmall,
                         color = onSurface.copy(alpha = 0.85f),
                     )
-                    TvLazyColumn(
-                        contentPadding = PaddingValues(vertical = 4.dp),
-                        verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp),
-                    ) {
-                        items(options, key = { it }) { minutes ->
-                            androidx.tv.material3.ListItem(
-                                modifier = Modifier.pointerInput(minutes) {
-                                    detectTapGestures(
-                                        onTap = { onReplayByBackMinutes(minutes) },
-                                    )
-                                },
-                                selected = false,
-                                onClick = { onReplayByBackMinutes(minutes) },
-                                headlineContent = { Text("回看 $minutes 分钟") },
-                            )
-                        }
+                    options.forEach { minutes ->
+                        androidx.tv.material3.ListItem(
+                            modifier = Modifier.pointerInput(minutes) {
+                                detectTapGestures(
+                                    onTap = { onReplayByBackMinutes(minutes) },
+                                )
+                            },
+                            selected = false,
+                            onClick = { onReplayByBackMinutes(minutes) },
+                            headlineContent = { Text("回看 $minutes 分钟") },
+                        )
                     }
                 }
             }
@@ -383,8 +385,9 @@ fun LeanbackQuickPanelMetadataRightSheet(
         ) {
             Column(
                 Modifier
-                    .padding(horizontal = 20.dp, vertical = 16.dp)
-                    .verticalScroll(scroll),
+                    .fillMaxSize()
+                    .verticalScroll(scroll)
+                    .padding(horizontal = 20.dp, vertical = 16.dp),
             ) {
                 Text(
                     text = title,

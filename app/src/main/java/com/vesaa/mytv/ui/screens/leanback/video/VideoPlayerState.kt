@@ -48,8 +48,12 @@ class LeanbackVideoPlayerState(
     /** 元数据 */
     var metadata by mutableStateOf(LeanbackVideoPlayer.Metadata())
 
+    /** 当前正在拉流的地址（含回看/多线路切换后的实际 URL），供 UI 展示 */
+    var currentMediaUrl by mutableStateOf("")
+
     fun prepare(url: String, streamRequestHeaders: String? = null) {
         error = null
+        currentMediaUrl = url.trim()
         // 新播放请求前先停掉旧会话，降低旧错误回调串扰到新频道的概率。
         instance.onDeactivate()
         instance.prepare(url, streamRequestHeaders)

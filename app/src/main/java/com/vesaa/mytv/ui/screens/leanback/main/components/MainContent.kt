@@ -565,6 +565,7 @@ fun LeanbackMainContent(
                     if (idx >= 0) (idx + 1).toString().padStart(2, '0') else "--"
                 },
                 videoPlayerMetadataProvider = { videoPlayerState.metadata },
+                currentPlaybackUrlProvider = { videoPlayerState.currentMediaUrl },
                 videoPlayerAspectRatioProvider = { videoPlayerState.aspectRatio },
                 onChangeVideoPlayerAspectRatio = { videoPlayerState.aspectRatio = it },
                 onIptvUrlIdxChange = {
