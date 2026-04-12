@@ -284,14 +284,6 @@ private fun GroupActionDialog(
                         },
                     )
                 }
-                item {
-                    Text(
-                        text = "上下选择，确定执行",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(start = 8.dp, top = 2.dp),
-                    )
-                }
             }
         }
     }

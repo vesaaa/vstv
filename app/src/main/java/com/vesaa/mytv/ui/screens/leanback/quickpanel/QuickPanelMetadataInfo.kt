@@ -86,16 +86,16 @@ internal fun formatQuickPanelStreamDetailBody(
     m: LeanbackVideoPlayer.Metadata,
     playbackUrl: String = "",
 ): String = buildString {
-    val u = playbackUrl.trim()
-    if (u.isNotEmpty()) {
-        appendLine("播放地址")
-        appendLine(u)
-        appendLine()
-    }
     appendLine(formatQuickPanelStreamExtraLine(m))
     appendLine()
     appendLine("视频：${formatQuickPanelVideoMenuSubtitle(m)}")
     appendLine("音频：${formatQuickPanelAudioMenuSubtitle(m)}")
+    val u = playbackUrl.trim()
+    if (u.isNotEmpty()) {
+        appendLine()
+        appendLine("播放地址")
+        appendLine(u)
+    }
 }.trimEnd()
 
 /** 按钮用短后缀，如 H.264/AVC → AVC */
