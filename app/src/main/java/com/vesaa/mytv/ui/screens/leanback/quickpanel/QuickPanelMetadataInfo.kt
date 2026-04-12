@@ -3,6 +3,53 @@ package com.vesaa.mytv.ui.screens.leanback.quickpanel
 import com.vesaa.mytv.ui.screens.leanback.video.player.LeanbackVideoPlayer
 import java.util.Locale
 
+/**
+ * 与 [com.vesaa.mytv.ui.screens.leanback.panel.components.LeanbackPanelPlayerInfo] 内
+ * PanelPlayerInfoFps 一致：流里声明的帧率优先，缺失时用渲染侧估算帧率。
+ */
+internal fun effectiveVideoFpsForDisplay(m: LeanbackVideoPlayer.Metadata): Float {
+    val declared = m.videoFrameRate
+    val rendered = m.videoRenderedFps
+    return when {
+        declared > 0.05f -> declared
+        rendered > 0.05f -> rendered
+        else -> 0f
+    }
+}
+
+private fun deviceRefreshRateLabel(activeRefreshRate: Float, maxSupportedRefreshRate: Float): String {
+    if (activeRefreshRate <= 1f) return ""
+    val activeFpsText = activeRefreshRate.toInt().toString()
+    val maxFpsText = if (maxSupportedRefreshRate > 1f) maxSupportedRefreshRate.toInt().toString() else ""
+    return if (maxFpsText.isNotEmpty() && maxSupportedRefreshRate - activeRefreshRate > 1f) {
+        "$activeFpsText($maxFpsText)"
+    } else {
+        activeFpsText
+    }
+}
+
+/** 与底部栏「帧率：A/B FPS」同一套数字（单行展示用）。 */
+internal fun formatVideoFpsForPanelStyle(
+    m: LeanbackVideoPlayer.Metadata,
+    displayRefreshHz: Float = 0f,
+    maxSupportedRefreshHz: Float = 0f,
+): String {
+    val effective = effectiveVideoFpsForDisplay(m)
+    val videoFpsText = if (effective > 0.05f) effective.toInt().toString() else "N/A"
+    val deviceFpsText = if (displayRefreshHz > 1f) {
+        deviceRefreshRateLabel(displayRefreshHz, maxSupportedRefreshHz)
+    } else {
+        ""
+    }
+    return if (deviceFpsText.isNotEmpty()) {
+        "$videoFpsText/$deviceFpsText FPS"
+    } else if (effective > 0.05f) {
+        String.format(Locale.getDefault(), "%.2f FPS", effective)
+    } else {
+        "N/A（部分直播流不提供）"
+    }
+}
+
 /** 底部按钮副标题：分辨率 + 视频格式（简写） */
 internal fun formatQuickPanelVideoMenuSubtitle(m: LeanbackVideoPlayer.Metadata): String {
     val res = if (m.videoWidth > 0 && m.videoHeight > 0) {
@@ -56,8 +103,12 @@ internal fun formatQuickPanelAudioButtonLabel(m: LeanbackVideoPlayer.Metadata): 
     return "$ch,$tail"
 }
 
-internal fun formatQuickPanelVideoDetailBody(m: LeanbackVideoPlayer.Metadata): String = buildString {
-    appendLine(formatQuickPanelVideoLine(m))
+internal fun formatQuickPanelVideoDetailBody(
+    m: LeanbackVideoPlayer.Metadata,
+    displayRefreshHz: Float = 0f,
+    maxSupportedRefreshHz: Float = 0f,
+): String = buildString {
+    appendLine(formatQuickPanelVideoLine(m, displayRefreshHz, maxSupportedRefreshHz))
     val dr = videoDynamicRangeLabel(m)
     if (dr != null) appendLine("动态范围：$dr")
     if (m.videoBitrate > 0) {
@@ -135,15 +186,25 @@ private fun shortAudioCodecLabel(mime: String): String {
 }
 
 /** 底部快捷菜单里「视频 / 音频 / 码流」Toast 文案（数据来自 ExoPlayer Format 回调）。 */
-internal fun formatQuickPanelVideoLine(m: LeanbackVideoPlayer.Metadata): String {
+internal fun formatQuickPanelVideoLine(
+    m: LeanbackVideoPlayer.Metadata,
+    displayRefreshHz: Float = 0f,
+    maxSupportedRefreshHz: Float = 0f,
+): String {
     val res = if (m.videoWidth > 0 && m.videoHeight > 0) {
         "${m.videoWidth}×${m.videoHeight}"
     } else {
         "未知"
     }
+    val effective = effectiveVideoFpsForDisplay(m)
     val fps = when {
-        m.videoFrameRate > 0.05f ->
-            String.format(Locale.getDefault(), "%.2f fps", m.videoFrameRate)
+        effective > 0.05f && displayRefreshHz > 1f -> {
+            val streamInt = effective.toInt()
+            val dev = deviceRefreshRateLabel(displayRefreshHz, maxSupportedRefreshHz)
+            "$streamInt/$dev fps"
+        }
+        effective > 0.05f ->
+            String.format(Locale.getDefault(), "%.2f fps", effective)
         else -> "帧率未知（部分直播流不提供）"
     }
     val mime = m.videoMimeType.ifBlank { "视频编码未知" }

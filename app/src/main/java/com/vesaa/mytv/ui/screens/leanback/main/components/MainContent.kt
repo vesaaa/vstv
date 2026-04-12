@@ -166,6 +166,7 @@ fun LeanbackMainContent(
             }.onFailure {
                 LeanbackToastState.I.showToast("回看请求失败，请重试")
             }
+            Unit
         }
     }
     val playbackStatusText =

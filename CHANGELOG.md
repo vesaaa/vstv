@@ -4,6 +4,11 @@
 
 > **说明**：本文件仍由人编写条目，**不会由机器人自动撰写内容**。推送 **Release 标签**（`v*.*.*`）时，GitHub Actions 会检查 `CHANGELOG.md` 中是否已有对应章节 **`## [x.y.z]`**（`x.y.z` 为标签去掉 `v`/`tv-` 及预发布后缀 `-…` 的核心版本）；**未写入则 Release 构建失败**，避免发版记录遗漏。**GitHub Release 页面上的版本说明**会**自动截取并发布本文件中该版本章节全文**（不再使用仅含提交列表与「Full Changelog」链接的自动生成说明）。若需对照历史，见 [GitHub Releases](https://github.com/vesaaa/vstv/releases)。
 
+## [1.8.1] - 2026-04-11
+
+- **帧率展示**：调试/元数据 overlay 与快捷侧文案中的帧率与底部信息条一致——流侧有效帧率（**Format 声明优先**，缺失时用 **渲染估算**）；在可读取 `Display` 时展示 **流/设备** 刷新率（如 `60/120`），避免长期只显示容器里声明的 60fps。
+- **编译**：修复 `playReplayWindow` 中 `runCatching { … }.onFailure { … }` 使整个 lambda 被推断为返回 `Result<Unit>`，与 `LeanbackMainEpgSurfaces` 所需的 `(Iptv, Long, Long, String) -> Unit` 不匹配的问题（末尾显式 `Unit`）。
+
 ## [1.8.0] - 2026-04-11
 
 - **性能（EPG 与播放）**：将依赖节目单的界面（临时换台条、经典选台、快捷面板）拆到独立组合 `MainContentEpgSurfaces`，节目单大规模更新时重组主要落在此子树；对当前频道节目信息做 `remember` 缓存；稳定回看与上下键换台回调引用，减轻对全屏播放层的不必要重组。**不挡播**，拉流仍仅依赖直播源就绪。

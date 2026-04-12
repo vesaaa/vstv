@@ -1,5 +1,6 @@
 package com.vesaa.mytv.ui.screens.leanback.video.components
 
+import android.os.Build
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -11,10 +12,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.vesaa.mytv.ui.screens.leanback.quickpanel.formatQuickPanelAudioDetailBody
 import com.vesaa.mytv.ui.screens.leanback.quickpanel.formatQuickPanelVideoDetailBody
+import com.vesaa.mytv.ui.screens.leanback.quickpanel.formatVideoFpsForPanelStyle
 import com.vesaa.mytv.ui.screens.leanback.video.player.LeanbackVideoPlayer
 import com.vesaa.mytv.ui.theme.LeanbackTheme
 
@@ -23,6 +26,14 @@ fun LeanbackVideoPlayerMetadata(
     modifier: Modifier = Modifier,
     metadata: LeanbackVideoPlayer.Metadata,
 ) {
+    val view = LocalView.current
+    val display = view.display
+    val displayRefreshHz = display?.refreshRate ?: 0f
+    val maxSupportedRefreshHz = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+        display?.supportedModes?.maxOfOrNull { it.refreshRate } ?: 0f
+    } else {
+        0f
+    }
     CompositionLocalProvider(
         LocalTextStyle provides MaterialTheme.typography.labelMedium,
         LocalContentColor provides MaterialTheme.colorScheme.onBackground
@@ -44,9 +55,15 @@ fun LeanbackVideoPlayerMetadata(
                     Text("解码器: ${metadata.videoDecoder}")
                     Text("分辨率: ${metadata.videoWidth}x${metadata.videoHeight}")
                     Text("色彩: ${metadata.videoColor}")
-                    Text("帧率: ${metadata.videoFrameRate}")
+                    Text(
+                        "帧率: ${formatVideoFpsForPanelStyle(metadata, displayRefreshHz, maxSupportedRefreshHz)}",
+                    )
                     Text("比特率: ${metadata.videoBitrate / 1024} kbps")
-                    val dr = formatQuickPanelVideoDetailBody(metadata)
+                    val dr = formatQuickPanelVideoDetailBody(
+                        metadata,
+                        displayRefreshHz,
+                        maxSupportedRefreshHz,
+                    )
                         .lineSequence()
                         .firstOrNull { it.startsWith("动态范围：") }
                     if (!dr.isNullOrBlank()) Text(dr)
