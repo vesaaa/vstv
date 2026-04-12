@@ -61,6 +61,8 @@ import kotlin.math.max
 fun LeanbackClassicPanelEpgList(
     modifier: Modifier = Modifier,
     epgProvider: () -> Epg? = { Epg() },
+    /** 与 [IptvCatchup.supportCatchup] 一致：仅命中回看能力时才展示「回看」并允许点击回看 */
+    catchupSupportedProvider: () -> Boolean = { false },
     onSelectProgramme: (EpgProgramme) -> Unit = {},
     exitFocusRequesterProvider: () -> FocusRequester = { FocusRequester.Default },
     onUserAction: () -> Unit = {},
@@ -114,6 +116,7 @@ fun LeanbackClassicPanelEpgList(
                 items(programmes) { programme ->
                     LeanbackClassicPanelEpgItem(
                         epgProgrammeProvider = { programme },
+                        catchupSupportedProvider = catchupSupportedProvider,
                         onSelectProgramme = onSelectProgramme,
                     )
                 }
@@ -147,12 +150,14 @@ fun LeanbackClassicPanelEpgList(
 private fun LeanbackClassicPanelEpgItem(
     modifier: Modifier = Modifier,
     epgProgrammeProvider: () -> EpgProgramme = { EpgProgramme() },
+    catchupSupportedProvider: () -> Boolean = { false },
     onSelectProgramme: (EpgProgramme) -> Unit = {},
 ) {
     val programme = epgProgrammeProvider()
     val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
-    /** 已结束的历史节目：展示「回看」；无 M3U catchup 时由播放层按 playseek 兜底拼接 */
-    val canReplay = programme.endAt in 1 until System.currentTimeMillis()
+    val isPastProgramme = programme.endAt in 1 until System.currentTimeMillis()
+    /** 仅当频道命中 [IptvCatchup] 回看规则且节目已结束时展示「回看」并允许进入回看 */
+    val canReplay = isPastProgramme && catchupSupportedProvider()
 
     val focusRequester = remember { FocusRequester() }
     var isFocused by remember { mutableStateOf(false) }
@@ -316,6 +321,7 @@ private fun LeanbackClassicPanelEpgDayItem(
 private fun LeanbackClassicPanelEpgListPreview() {
     LeanbackTheme {
         LeanbackClassicPanelEpgList(
+            catchupSupportedProvider = { true },
             epgProvider = {
                 Epg(
                     channel = "CCTV1", programmes = EpgProgrammeList(

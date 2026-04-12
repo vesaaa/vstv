@@ -4,6 +4,8 @@ import android.view.KeyEvent as AndroidKeyEvent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -32,6 +34,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.key
 import androidx.compose.runtime.LaunchedEffect
 import kotlinx.coroutines.delay
 import androidx.compose.runtime.getValue
@@ -55,9 +58,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.tv.foundation.lazy.list.TvLazyRow
-import androidx.tv.foundation.lazy.list.items
-import androidx.tv.foundation.lazy.list.rememberTvLazyListState
 import androidx.tv.material3.Border
 import androidx.tv.material3.ButtonDefaults
 import androidx.tv.material3.Glow
@@ -95,7 +95,7 @@ private val QuickPanelMenuIconSize = 24.dp
  */
 private const val QuickPanelMenuLayoutFactor = 0.85f
 
-/** TvLazyRow 视口左缘会裁剪子项；首项需内缩，否则按钮左侧圆角/焦点环显示不全 */
+/** 底栏横向行首项内缩，避免按钮左侧圆角/焦点环贴边被裁切 */
 private val QuickPanelBottomMenuRowStartInset = (8f * QuickPanelMenuLayoutFactor).dp
 
 private val QuickPanelMenuItemSpacing = (10f * QuickPanelMenuLayoutFactor).dp
@@ -238,8 +238,10 @@ fun LeanbackQuickPanelScreen(
                         iptvProvider = currentIptvProvider,
                         epgProvider = currentEpgProvider,
                         autoCloseState = autoCloseState,
+                        catchupSupportedProvider = catchupSupportedProvider,
                         onSelectProgramme = { programme ->
-                            if (programme.endAt in 1 until System.currentTimeMillis()) {
+                            val past = programme.endAt in 1 until System.currentTimeMillis()
+                            if (past && catchupSupportedProvider()) {
                                 onReplayByProgramme(programme.startAt, programme.endAt)
                                 onSubPanelChange(LeanbackQuickPanelSubPanel.None)
                             }
@@ -349,7 +351,6 @@ fun LeanbackQuickPanelScreen(
                         metadataProvider = videoPlayerMetadataProvider,
                     )
 
-                    val menuListState = rememberTvLazyListState()
                     val showMultiLineMenuItem = currentIptvProvider().urlList.size > 1
                     val menuSlots = remember(showMultiLineMenuItem, isReplayActiveProvider(), catchupSupportedProvider()) {
                         buildList {
@@ -364,20 +365,19 @@ fun LeanbackQuickPanelScreen(
                             add(QuickPanelBottomMenuSlot.Home)
                         }
                     }
-                    TvLazyRow(
-                        state = menuListState,
-                        modifier = Modifier.fillMaxWidth(),
+                    // 使用 Row 而非 TvLazyRow：懒列表未进入视口的子项不会组合，首尾环绕时
+                    // FocusRequester 尚未附着，requestFocus() 会抛异常导致部分电视盒闪退。
+                    val bottomMenuScrollState = rememberScrollState()
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(bottomMenuScrollState),
                         horizontalArrangement = Arrangement.spacedBy(QuickPanelMenuItemSpacing),
                         verticalAlignment = Alignment.CenterVertically,
-                        contentPadding = PaddingValues(
-                            start = QuickPanelBottomMenuRowStartInset,
-                            end = childPadding.end,
-                        ),
                     ) {
-                        items(
-                            menuSlots,
-                            key = { it },
-                        ) { slot ->
+                        Spacer(Modifier.width(QuickPanelBottomMenuRowStartInset))
+                        for (slot in menuSlots) {
+                            key(slot) {
                             when (slot) {
                                 QuickPanelBottomMenuSlot.Epg ->
                                     LeanbackQuickPanelButton(
@@ -511,7 +511,9 @@ fun LeanbackQuickPanelScreen(
                                         onSelect = onMoreSettings,
                                     )
                             }
+                            }
                         }
+                        Spacer(Modifier.width(childPadding.end))
                     }
                 }
             }
@@ -595,11 +597,11 @@ private fun LeanbackQuickPanelButton(
                     e.key == Key.DirectionRight ||
                         e.nativeKeyEvent.keyCode == AndroidKeyEvent.KEYCODE_DPAD_RIGHT
                 if (left && dPadLeftWrapTo != null) {
-                    dPadLeftWrapTo.requestFocus()
+                    runCatching { dPadLeftWrapTo.requestFocus() }
                     return@onPreviewKeyEvent true
                 }
                 if (right && dPadRightWrapTo != null) {
-                    dPadRightWrapTo.requestFocus()
+                    runCatching { dPadRightWrapTo.requestFocus() }
                     return@onPreviewKeyEvent true
                 }
                 false

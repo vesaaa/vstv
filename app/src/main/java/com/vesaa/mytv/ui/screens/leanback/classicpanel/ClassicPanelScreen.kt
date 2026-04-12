@@ -48,6 +48,7 @@ import com.vesaa.mytv.ui.screens.leanback.panel.PanelAutoCloseState
 import com.vesaa.mytv.ui.screens.leanback.panel.rememberPanelAutoCloseState
 import com.vesaa.mytv.ui.theme.LeanbackTheme
 import com.vesaa.mytv.ui.utils.handleLeanbackKeyEvents
+import com.vesaa.mytv.utils.IptvCatchup
 import kotlin.math.max
 
 @Composable
@@ -257,6 +258,7 @@ private fun LeanbackClassicPanelScreenContent(
         LeanbackVisible({ epgListVisible }) {
             LeanbackClassicPanelEpgList(
                 epgProvider = { epgListProvider().firstOrNull { it.matchesIptv(focusedIptv) } },
+                catchupSupportedProvider = { IptvCatchup.supportCatchup(focusedIptv) },
                 onSelectProgramme = { programme ->
                     onReplayByProgramme(focusedIptv, programme.startAt, programme.endAt)
                 },

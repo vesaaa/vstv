@@ -102,6 +102,8 @@ fun LeanbackQuickPanelEpgLeftSheet(
     iptvProvider: () -> Iptv,
     epgProvider: () -> Epg,
     autoCloseState: PanelAutoCloseState,
+    /** 与 [com.vesaa.mytv.utils.IptvCatchup.supportCatchup] 一致 */
+    catchupSupportedProvider: () -> Boolean = { false },
     onSelectProgramme: (EpgProgramme) -> Unit = {},
 ) {
     val iptv = iptvProvider()
@@ -161,6 +163,7 @@ fun LeanbackQuickPanelEpgLeftSheet(
                                 timeFormat = timeFormat,
                                 hasFocusedFlag = hasFocused,
                                 onFocusedLive = { hasFocused = true },
+                                catchupSupportedProvider = catchupSupportedProvider,
                                 autoCloseState = autoCloseState,
                                 onSelect = { onSelectProgramme(programme) },
                             )
@@ -187,6 +190,7 @@ private fun QuickPanelEpgProgrammeRow(
     timeFormat: SimpleDateFormat,
     hasFocusedFlag: Boolean,
     onFocusedLive: () -> Unit,
+    catchupSupportedProvider: () -> Boolean,
     autoCloseState: PanelAutoCloseState,
     onSelect: () -> Unit,
 ) {
@@ -200,7 +204,8 @@ private fun QuickPanelEpgProgrammeRow(
         }
     }
 
-    val canReplay = programme.endAt in 1 until System.currentTimeMillis()
+    val isPastProgramme = programme.endAt in 1 until System.currentTimeMillis()
+    val canReplay = isPastProgramme && catchupSupportedProvider()
 
     CompositionLocalProvider(
         LocalContentColor provides if (isFocused) MaterialTheme.colorScheme.background

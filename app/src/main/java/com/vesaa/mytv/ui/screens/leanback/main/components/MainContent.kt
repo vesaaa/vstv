@@ -248,7 +248,15 @@ fun LeanbackMainContent(
         }
         val cur = mainContentState.currentIptv
         if (cur !in visible) {
-            mainContentState.changeCurrentIptv(visible.first())
+            // 列表晚于首帧就绪时，init 可能在空列表上选了空 Iptv；此处若用 first() 会丢掉「上次频道」。
+            // 按 SP 中保存的扁平序号恢复，并与换台逻辑一致（隐藏分组后序号已钳制在可见列表范围内）。
+            val idx = SP.iptvLastIptvIdx.coerceIn(0, (visible.size - 1).coerceAtLeast(0))
+            val target = visible[idx]
+            mainContentState.changeCurrentIptv(
+                iptv = target,
+                streamRequestHeaders = resolveExtraStreamHeaders(target),
+                reason = LeanbackMainContentState.ChangeReason.INIT,
+            )
         }
     }
 
