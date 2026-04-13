@@ -365,15 +365,17 @@ fun LeanbackQuickPanelScreen(
                         isSplitMode,
                     ) {
                         buildList {
-                            add(QuickPanelBottomMenuSlot.Split)
                             if (!isSplitMode) {
                                 add(QuickPanelBottomMenuSlot.Epg)
+                                add(QuickPanelBottomMenuSlot.Split)
                                 add(QuickPanelBottomMenuSlot.Replay)
                                 if (isReplayActiveProvider()) add(QuickPanelBottomMenuSlot.BackLive)
                                 if (showMultiLineMenuItem) add(QuickPanelBottomMenuSlot.MultiLine)
                                 add(QuickPanelBottomMenuSlot.AspectRatio)
                                 add(QuickPanelBottomMenuSlot.Stream)
                                 add(QuickPanelBottomMenuSlot.Home)
+                            } else {
+                                add(QuickPanelBottomMenuSlot.Split)
                             }
                         }
                     }
@@ -396,15 +398,7 @@ fun LeanbackQuickPanelScreen(
                                         buttonFocusRequester = focusMenuSplit,
                                         leadingIcon = Icons.Filled.ViewModule,
                                         titleProvider = {
-                                            when (splitModeProvider()) {
-                                                QuickPanelSplitMode.Off -> "分屏播放"
-                                                QuickPanelSplitMode.LeftRight -> "左右分屏"
-                                                QuickPanelSplitMode.FourGrid -> "四宫格"
-                                            }
-                                        },
-                                        subtitleProvider = {
-                                            if (splitModeProvider() == QuickPanelSplitMode.Off) "关闭"
-                                            else "已开启"
+                                            "分屏播放"
                                         },
                                         dPadLeftWrapTo = if (isSplitMode) focusMenuSplit else focusMenuHome,
                                         dPadRightWrapTo = if (isSplitMode) focusMenuSplit else null,

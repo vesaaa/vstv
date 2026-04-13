@@ -27,7 +27,7 @@ import com.vesaa.mytv.ui.screens.leanback.video.LeanbackVideoScreen
 import com.vesaa.mytv.ui.utils.handleLeanbackDragGestures
 import com.vesaa.mytv.ui.utils.handleLeanbackKeyEvents
 
-private val SplitPaneShape = RoundedCornerShape(10.dp)
+private val SplitPaneShape = RoundedCornerShape(6.dp)
 
 @Composable
 internal fun LeanbackSplitPlaybackScreen(
@@ -54,12 +54,6 @@ internal fun LeanbackSplitPlaybackScreen(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .padding(16.dp) // 预留“非格子安全区”：长按打开快捷面板
-            .pointerInput(mode) {
-                detectTapGestures(
-                    onLongPress = { onOpenQuickPanelFromSafeArea() },
-                )
-            }
             .onPreviewKeyEvent { event ->
                 if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
                 val native = event.nativeKeyEvent.keyCode
@@ -139,7 +133,11 @@ internal fun LeanbackSplitPlaybackScreen(
                 pointerTapEnabled = false,
                 onSelect = { onOpenChannelPanelForFocused() },
                 onLongSelect = {
-                    onActivePaneChange(focusedPane)
+                    if (focusedPane == activePane) {
+                        onOpenQuickPanelFromSafeArea()
+                    } else {
+                        onActivePaneChange(focusedPane)
+                    }
                 },
                 onSettings = onOpenQuickPanelFromSafeArea,
                 onLongDown = onOpenQuickPanelFromSafeArea,
@@ -162,7 +160,7 @@ internal fun LeanbackSplitPlaybackScreen(
         if (paneCount == 2) {
             Row(
                 modifier = Modifier.fillMaxSize(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(2.dp),
             ) {
                 LeanbackSplitPane(
                     state = paneStates[0],
@@ -186,11 +184,11 @@ internal fun LeanbackSplitPlaybackScreen(
         } else {
             Column(
                 modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
                 Row(
                     modifier = Modifier.weight(1f).fillMaxSize(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(2.dp),
                 ) {
                     LeanbackSplitPane(
                         state = paneStates[0],
@@ -213,7 +211,7 @@ internal fun LeanbackSplitPlaybackScreen(
                 }
                 Row(
                     modifier = Modifier.weight(1f).fillMaxSize(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(2.dp),
                 ) {
                     LeanbackSplitPane(
                         state = paneStates[2],
@@ -236,6 +234,21 @@ internal fun LeanbackSplitPlaybackScreen(
                 }
             }
         }
+        // 分屏铺满全屏后，保留上下窄条作为“非格子安全区”：长按打开快捷面板。
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(26.dp)
+                .align(Alignment.TopCenter)
+                .pointerInput(mode) { detectTapGestures(onLongPress = { onOpenQuickPanelFromSafeArea() }) },
+        )
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(26.dp)
+                .align(Alignment.BottomCenter)
+                .pointerInput(mode) { detectTapGestures(onLongPress = { onOpenQuickPanelFromSafeArea() }) },
+        )
     }
 }
 
@@ -250,13 +263,13 @@ private fun LeanbackSplitPane(
     modifier: Modifier = Modifier,
 ) {
     val borderColor = when {
-        active -> Color(0xFFFFD54F)
-        focused -> Color(0xFF64B5F6)
-        else -> Color.White.copy(alpha = 0.18f)
+        active -> Color(0xFFFFD54F).copy(alpha = 0.65f)
+        focused -> Color(0xFF64B5F6).copy(alpha = 0.52f)
+        else -> Color.White.copy(alpha = 0.12f)
     }
     Box(
         modifier = modifier
-            .border(2.dp, borderColor, SplitPaneShape)
+            .border(1.dp, borderColor, SplitPaneShape)
             .background(Color.Black.copy(alpha = 0.15f), SplitPaneShape)
             .pointerInput(index) {
                 detectTapGestures(

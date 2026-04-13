@@ -476,6 +476,7 @@ fun LeanbackQuickPanelSplitLeftSheet(
                         QuickPanelSplitModeRow(
                             title = title,
                             selected = currentMode == mode,
+                            requestInitialFocus = mode == currentMode || (currentMode == QuickPanelSplitMode.Off && mode == QuickPanelSplitMode.LeftRight),
                             autoCloseState = autoCloseState,
                             onSelect = { onSelectSplitMode(mode) },
                         )
@@ -484,6 +485,7 @@ fun LeanbackQuickPanelSplitLeftSheet(
                         QuickPanelSplitModeRow(
                             title = "退出分屏",
                             selected = false,
+                            requestInitialFocus = false,
                             autoCloseState = autoCloseState,
                             onSelect = onExitSplitMode,
                         )
@@ -498,11 +500,17 @@ fun LeanbackQuickPanelSplitLeftSheet(
 private fun QuickPanelSplitModeRow(
     title: String,
     selected: Boolean,
+    requestInitialFocus: Boolean,
     autoCloseState: PanelAutoCloseState,
     onSelect: () -> Unit,
 ) {
     var isFocused by remember { mutableStateOf(false) }
     val focusRequester = remember { FocusRequester() }
+    LaunchedEffect(requestInitialFocus, title) {
+        if (requestInitialFocus) {
+            focusRequester.requestFocus()
+        }
+    }
 
     CompositionLocalProvider(
         LocalContentColor provides if (isFocused) MaterialTheme.colorScheme.background
