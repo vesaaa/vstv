@@ -595,7 +595,11 @@ fun LeanbackMainContent(
                 ),
                 focusedPane = splitFocusedPane.coerceIn(0, splitPaneCount - 1),
                 activePane = splitActivePane.coerceIn(0, splitPaneCount - 1),
-                onFocusedPaneChange = { splitFocusedPane = it.coerceIn(0, splitPaneCount - 1) },
+                onFocusedPaneChange = {
+                    val pane = it.coerceIn(0, splitPaneCount - 1)
+                    splitFocusedPane = pane
+                    splitActivePane = pane
+                },
                 onActivePaneChange = { splitActivePane = it.coerceIn(0, splitPaneCount - 1) },
                 onOpenQuickPanelFromSafeArea = { mainContentState.isQuickPanelVisible = true },
                 onOpenChannelPanelForFocused = {

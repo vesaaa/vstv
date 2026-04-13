@@ -9,10 +9,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -45,7 +42,6 @@ internal fun LeanbackSplitPlaybackScreen(
     onLineRight: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var hasActivatedPane by remember(mode) { mutableStateOf(false) }
     val paneCount = when (mode) {
         QuickPanelSplitMode.LeftRight -> 2
         QuickPanelSplitMode.FourGrid -> 4
@@ -58,14 +54,8 @@ internal fun LeanbackSplitPlaybackScreen(
                 if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
                 val native = event.nativeKeyEvent.keyCode
                 when {
-                    native == KeyEvent.KEYCODE_CHANNEL_UP -> {
-                        onChannelUp()
-                        true
-                    }
-                    native == KeyEvent.KEYCODE_CHANNEL_DOWN -> {
-                        onChannelDown()
-                        true
-                    }
+                    native == KeyEvent.KEYCODE_CHANNEL_UP -> true
+                    native == KeyEvent.KEYCODE_CHANNEL_DOWN -> true
                     native == KeyEvent.KEYCODE_DPAD_LEFT ||
                         native == KeyEvent.KEYCODE_DPAD_RIGHT ||
                         native == KeyEvent.KEYCODE_DPAD_UP ||
@@ -117,20 +107,13 @@ internal fun LeanbackSplitPlaybackScreen(
             .handleLeanbackKeyEvents(
                 pointerTapEnabled = false,
                 onSelect = { onOpenChannelPanelForFocused() },
-                onLongSelect = {
-                    if (hasActivatedPane && activePane == focusedPane) {
-                        hasActivatedPane = false
-                    } else {
-                        hasActivatedPane = true
-                        onActivePaneChange(focusedPane)
-                    }
-                },
+                onLongSelect = {},
                 onSettings = onOpenQuickPanelFromSafeArea,
                 onLongDown = onOpenQuickPanelFromSafeArea,
             )
             .handleLeanbackDragGestures(
-                onSwipeUp = onChannelUp,
-                onSwipeDown = onChannelDown,
+                onSwipeUp = {},
+                onSwipeDown = {},
                 onSwipeLeft = onLineRight,
                 onSwipeRight = onLineLeft,
             ),
@@ -145,36 +128,18 @@ internal fun LeanbackSplitPlaybackScreen(
                     index = 0,
                     paneCount = paneCount,
                     focused = focusedPane == 0,
-                    active = activePane == 0,
-                    activated = hasActivatedPane && activePane == 0,
                     modifier = Modifier.weight(1f).fillMaxSize(),
                     onFocus = { onFocusedPaneChange(0) },
-                    onToggleActivate = {
-                        if (hasActivatedPane && activePane == 0) {
-                            hasActivatedPane = false
-                        } else {
-                            hasActivatedPane = true
-                            onActivePaneChange(0)
-                        }
-                    },
+                    onSelectFocusedPane = { onOpenChannelPanelForFocused() },
                 )
                 LeanbackSplitPane(
                     state = paneStates[1],
                     index = 1,
                     paneCount = paneCount,
                     focused = focusedPane == 1,
-                    active = activePane == 1,
-                    activated = hasActivatedPane && activePane == 1,
                     modifier = Modifier.weight(1f).fillMaxSize(),
                     onFocus = { onFocusedPaneChange(1) },
-                    onToggleActivate = {
-                        if (hasActivatedPane && activePane == 1) {
-                            hasActivatedPane = false
-                        } else {
-                            hasActivatedPane = true
-                            onActivePaneChange(1)
-                        }
-                    },
+                    onSelectFocusedPane = { onOpenChannelPanelForFocused() },
                 )
             }
         } else {
@@ -191,36 +156,18 @@ internal fun LeanbackSplitPlaybackScreen(
                         index = 0,
                         paneCount = paneCount,
                         focused = focusedPane == 0,
-                        active = activePane == 0,
-                        activated = hasActivatedPane && activePane == 0,
                         modifier = Modifier.weight(1f).fillMaxSize(),
                         onFocus = { onFocusedPaneChange(0) },
-                        onToggleActivate = {
-                            if (hasActivatedPane && activePane == 0) {
-                                hasActivatedPane = false
-                            } else {
-                                hasActivatedPane = true
-                                onActivePaneChange(0)
-                            }
-                        },
+                        onSelectFocusedPane = { onOpenChannelPanelForFocused() },
                     )
                     LeanbackSplitPane(
                         state = paneStates[1],
                         index = 1,
                         paneCount = paneCount,
                         focused = focusedPane == 1,
-                        active = activePane == 1,
-                        activated = hasActivatedPane && activePane == 1,
                         modifier = Modifier.weight(1f).fillMaxSize(),
                         onFocus = { onFocusedPaneChange(1) },
-                        onToggleActivate = {
-                            if (hasActivatedPane && activePane == 1) {
-                                hasActivatedPane = false
-                            } else {
-                                hasActivatedPane = true
-                                onActivePaneChange(1)
-                            }
-                        },
+                        onSelectFocusedPane = { onOpenChannelPanelForFocused() },
                     )
                 }
                 Row(
@@ -232,36 +179,18 @@ internal fun LeanbackSplitPlaybackScreen(
                         index = 2,
                         paneCount = paneCount,
                         focused = focusedPane == 2,
-                        active = activePane == 2,
-                        activated = hasActivatedPane && activePane == 2,
                         modifier = Modifier.weight(1f).fillMaxSize(),
                         onFocus = { onFocusedPaneChange(2) },
-                        onToggleActivate = {
-                            if (hasActivatedPane && activePane == 2) {
-                                hasActivatedPane = false
-                            } else {
-                                hasActivatedPane = true
-                                onActivePaneChange(2)
-                            }
-                        },
+                        onSelectFocusedPane = { onOpenChannelPanelForFocused() },
                     )
                     LeanbackSplitPane(
                         state = paneStates[3],
                         index = 3,
                         paneCount = paneCount,
                         focused = focusedPane == 3,
-                        active = activePane == 3,
-                        activated = hasActivatedPane && activePane == 3,
                         modifier = Modifier.weight(1f).fillMaxSize(),
                         onFocus = { onFocusedPaneChange(3) },
-                        onToggleActivate = {
-                            if (hasActivatedPane && activePane == 3) {
-                                hasActivatedPane = false
-                            } else {
-                                hasActivatedPane = true
-                                onActivePaneChange(3)
-                            }
-                        },
+                        onSelectFocusedPane = { onOpenChannelPanelForFocused() },
                     )
                 }
             }
@@ -300,10 +229,8 @@ private fun LeanbackSplitPane(
     index: Int,
     paneCount: Int,
     focused: Boolean,
-    active: Boolean,
-    activated: Boolean,
     onFocus: () -> Unit,
-    onToggleActivate: () -> Unit,
+    onSelectFocusedPane: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Box(
@@ -311,10 +238,12 @@ private fun LeanbackSplitPane(
             .background(Color.Black.copy(alpha = 0.15f), SplitPaneShape)
             .pointerInput(index) {
                 detectTapGestures(
-                    onTap = { onFocus() },
+                    onTap = {
+                        if (focused) onSelectFocusedPane()
+                        else onFocus()
+                    },
                     onLongPress = {
                         onFocus()
-                        onToggleActivate()
                     },
                 )
             },
@@ -326,7 +255,6 @@ private fun LeanbackSplitPane(
             modifier = Modifier.fillMaxSize(),
         )
         val statusLabel = when {
-            activated -> "固化"
             focused -> "选中"
             else -> ""
         }
@@ -340,7 +268,7 @@ private fun LeanbackSplitPane(
                 paneCount == 4 && index == 3 -> Alignment.TopStart
                 else -> Alignment.TopStart
             }
-            val statusColor = if (activated) Color(0xFF42A5F5) else Color(0xFFFFD54F)
+            val statusColor = Color(0xFFFFD54F)
             Box(
                 modifier = Modifier
                     .padding(8.dp)
