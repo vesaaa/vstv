@@ -74,7 +74,7 @@ class MainActivity : ComponentActivity() {
         }
 
         lifecycleScope.launch {
-            delay(420)
+            delay(900)
             startActivity(Intent(this@MainActivity, activityClass).apply {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             })

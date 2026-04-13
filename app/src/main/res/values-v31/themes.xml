@@ -2,8 +2,8 @@
 <resources>
     <style name="Theme.MyTV.Splash" parent="android:Theme.Black.NoTitleBar.Fullscreen">
         <item name="android:windowSplashScreenBackground">@android:color/black</item>
-        <item name="android:windowSplashScreenAnimatedIcon">@drawable/splash_empty</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/splash_vstv_wordmark</item>
         <item name="android:windowSplashScreenIconBackgroundColor">@android:color/transparent</item>
-        <item name="android:windowBackground">@android:color/black</item>
+        <item name="android:windowBackground">@drawable/splash_window</item>
     </style>
 </resources>

@@ -3,6 +3,6 @@
     <style name="Theme.MyTV" parent="android:Theme.Material.Light.NoActionBar" />
     <style name="Theme.MyTV.Leanback" parent="android:Theme.Black.NoTitleBar.Fullscreen" />
     <style name="Theme.MyTV.Splash" parent="android:Theme.Black.NoTitleBar.Fullscreen">
-        <item name="android:windowBackground">@android:color/black</item>
+        <item name="android:windowBackground">@drawable/splash_window</item>
     </style>
 </resources>
