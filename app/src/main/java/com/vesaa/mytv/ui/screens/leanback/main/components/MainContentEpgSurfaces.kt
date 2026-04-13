@@ -13,6 +13,7 @@ import com.vesaa.mytv.ui.screens.leanback.classicpanel.LeanbackClassicPanelScree
 import com.vesaa.mytv.ui.screens.leanback.components.LeanbackVisible
 import com.vesaa.mytv.ui.screens.leanback.panel.LeanbackPanelTempScreen
 import com.vesaa.mytv.ui.screens.leanback.quickpanel.LeanbackQuickPanelScreen
+import com.vesaa.mytv.ui.screens.leanback.quickpanel.QuickPanelSplitMode
 import com.vesaa.mytv.ui.screens.leanback.quickpanel.LeanbackQuickPanelSubPanel
 import com.vesaa.mytv.ui.screens.leanback.settings.LeanbackSettingsViewModel
 import com.vesaa.mytv.ui.screens.leanback.toast.LeanbackToastState
@@ -35,9 +36,12 @@ internal fun LeanbackMainEpgSurfaces(
     playReplayWindow: (Iptv, Long, Long, String) -> Unit,
     playbackStatusText: String,
     replayCapabilityDetailText: String,
-    resolveExtraStreamHeaders: (Iptv) -> String?,
     onIptvGroupLongPressHide: (IptvGroup) -> Unit,
     onIptvGroupLongPressAddToFavorites: (IptvGroup) -> Unit,
+    onIptvSelected: (Iptv, String?) -> Unit,
+    splitModeProvider: () -> QuickPanelSplitMode,
+    onSplitModeChange: (QuickPanelSplitMode) -> Unit,
+    onSplitExit: () -> Unit,
     /** 与主界面数字选台输入互斥：有输入时不显示临时换台条 */
     channelNoSelectIdle: () -> Boolean,
 ) {
@@ -76,12 +80,7 @@ internal fun LeanbackMainEpgSurfaces(
             currentIptvProvider = { mainContentState.currentIptv },
             playbackStatusProvider = { playbackStatusText },
             showProgrammeProgressProvider = { settingsViewModel.uiShowEpgProgrammeProgress },
-            onIptvSelected = { iptv, streamHeaders ->
-                mainContentState.changeCurrentIptv(
-                    iptv,
-                    streamRequestHeaders = streamHeaders ?: resolveExtraStreamHeaders(iptv),
-                )
-            },
+            onIptvSelected = onIptvSelected,
             onIptvFavoriteToggle = {
                 if (!settingsViewModel.iptvChannelFavoriteEnable) {
                     LeanbackToastState.I.showToast("请先在设置 → 精选设置 中启用精选")
@@ -161,6 +160,9 @@ internal fun LeanbackMainEpgSurfaces(
             onReplayByProgramme = { startMs, endMs ->
                 playReplayWindow(mainContentState.currentIptv, startMs, endMs, "回看中 - 节目回看")
             },
+            splitModeProvider = splitModeProvider,
+            onSplitModeChange = onSplitModeChange,
+            onSplitExit = onSplitExit,
             subPanel = mainContentState.quickPanelSubPanel,
             onSubPanelChange = { mainContentState.quickPanelSubPanel = it },
             onMoreSettings = {

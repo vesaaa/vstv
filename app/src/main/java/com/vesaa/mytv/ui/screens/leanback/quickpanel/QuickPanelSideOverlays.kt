@@ -430,6 +430,119 @@ private fun QuickPanelReplayMinutesRow(
 }
 
 @Composable
+fun LeanbackQuickPanelSplitLeftSheet(
+    modifier: Modifier = Modifier,
+    splitModeProvider: () -> QuickPanelSplitMode = { QuickPanelSplitMode.Off },
+    onSelectSplitMode: (QuickPanelSplitMode) -> Unit = {},
+    onExitSplitMode: () -> Unit = {},
+    autoCloseState: PanelAutoCloseState,
+) {
+    val options = listOf(
+        "左右分屏" to QuickPanelSplitMode.LeftRight,
+        "四宫格" to QuickPanelSplitMode.FourGrid,
+    )
+    val listState = remember { TvLazyListState() }
+    val currentMode = splitModeProvider()
+    LaunchedEffect(listState) {
+        snapshotFlow { listState.isScrollInProgress }
+            .distinctUntilChanged()
+            .collect { _ -> autoCloseState.active() }
+    }
+
+    val onBg = MaterialTheme.colorScheme.onBackground
+    QuickPanelEpgSurfacePanel(modifier = modifier) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.TopStart,
+        ) {
+            Column(Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
+                Text(
+                    text = "分屏播放",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = onBg,
+                )
+                Text(
+                    text = "选择布局后立即切换",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = onBg.copy(alpha = 0.75f),
+                    modifier = Modifier.padding(top = 4.dp, bottom = 8.dp),
+                )
+                TvLazyColumn(
+                    state = listState,
+                    contentPadding = PaddingValues(vertical = 4.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    items(options, key = { it.first }) { (title, mode) ->
+                        QuickPanelSplitModeRow(
+                            title = title,
+                            selected = currentMode == mode,
+                            autoCloseState = autoCloseState,
+                            onSelect = { onSelectSplitMode(mode) },
+                        )
+                    }
+                    item {
+                        QuickPanelSplitModeRow(
+                            title = "退出分屏",
+                            selected = false,
+                            autoCloseState = autoCloseState,
+                            onSelect = onExitSplitMode,
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun QuickPanelSplitModeRow(
+    title: String,
+    selected: Boolean,
+    autoCloseState: PanelAutoCloseState,
+    onSelect: () -> Unit,
+) {
+    var isFocused by remember { mutableStateOf(false) }
+    val focusRequester = remember { FocusRequester() }
+
+    CompositionLocalProvider(
+        LocalContentColor provides if (isFocused) MaterialTheme.colorScheme.background
+        else MaterialTheme.colorScheme.onBackground,
+    ) {
+        androidx.tv.material3.ListItem(
+            modifier = Modifier
+                .focusRequester(focusRequester)
+                .onFocusChanged {
+                    isFocused = it.isFocused || it.hasFocus
+                    if (isFocused) autoCloseState.active()
+                }
+                .handleLeanbackKeyEvents(
+                    pointerTapEnabled = false,
+                    onSelect = {
+                        focusRequester.requestFocus()
+                        onSelect()
+                    },
+                )
+                .pointerInput(title) {
+                    detectTapGestures(
+                        onTap = {
+                            focusRequester.requestFocus()
+                            onSelect()
+                        },
+                    )
+                },
+            colors = ListItemDefaults.colors(
+                containerColor = Color.Transparent,
+                focusedContainerColor = MaterialTheme.colorScheme.onBackground,
+                selectedContainerColor = Color.Transparent,
+            ),
+            selected = selected,
+            onClick = onSelect,
+            headlineContent = { Text(title) },
+        )
+    }
+}
+
+@Composable
 fun LeanbackQuickPanelMetadataRightSheet(
     modifier: Modifier = Modifier,
     title: String,

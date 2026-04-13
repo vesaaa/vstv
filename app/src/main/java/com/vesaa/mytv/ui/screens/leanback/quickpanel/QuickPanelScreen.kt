@@ -27,6 +27,7 @@ import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.LiveTv
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Memory
+import androidx.compose.material.icons.filled.ViewModule
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -106,6 +107,7 @@ private val QuickPanelMenuIconTextGap = (4f * QuickPanelMenuLayoutFactor).dp
 
 /** 底部快捷栏横向列表槽位（用 [items] DSL，避免依赖部分 tv-foundation 版本不存在的 [item] 导入） */
 private enum class QuickPanelBottomMenuSlot {
+    Split,
     Epg,
     Replay,
     BackLive,
@@ -138,6 +140,9 @@ fun LeanbackQuickPanelScreen(
     catchupMaxHoursProvider: () -> Int = { 24 },
     onReplayByBackMinutes: (Int) -> Unit = {},
     onReplayByProgramme: (Long, Long) -> Unit = { _, _ -> },
+    splitModeProvider: () -> QuickPanelSplitMode = { QuickPanelSplitMode.Off },
+    onSplitModeChange: (QuickPanelSplitMode) -> Unit = {},
+    onSplitExit: () -> Unit = {},
     subPanel: LeanbackQuickPanelSubPanel = LeanbackQuickPanelSubPanel.None,
     onSubPanelChange: (LeanbackQuickPanelSubPanel) -> Unit = {},
     onMoreSettings: () -> Unit = {},
@@ -150,18 +155,24 @@ fun LeanbackQuickPanelScreen(
     val childPadding = rememberLeanbackChildPadding()
     val rootFocusRequester = remember { FocusRequester() }
     val focusMenuEpg = remember { FocusRequester() }
+    val focusMenuSplit = remember { FocusRequester() }
     val focusMenuReplay = remember { FocusRequester() }
     val focusMenuStream = remember { FocusRequester() }
     val focusMenuHome = remember { FocusRequester() }
     var lastSubPanel by remember { mutableStateOf(LeanbackQuickPanelSubPanel.None) }
     val showBottomChrome =
         subPanel != LeanbackQuickPanelSubPanel.Epg &&
-            subPanel != LeanbackQuickPanelSubPanel.ReplayDetail
+            subPanel != LeanbackQuickPanelSubPanel.ReplayDetail &&
+            subPanel != LeanbackQuickPanelSubPanel.SplitDetail
 
     LaunchedEffect(Unit) {
         autoCloseState.active()
         delay(16)
-        focusMenuEpg.requestFocus()
+        if (splitModeProvider() != QuickPanelSplitMode.Off) {
+            focusMenuSplit.requestFocus()
+        } else {
+            focusMenuEpg.requestFocus()
+        }
     }
 
     LaunchedEffect(subPanel) {
@@ -171,6 +182,8 @@ fun LeanbackQuickPanelScreen(
             delay(48)
             when (previous) {
                 LeanbackQuickPanelSubPanel.Epg -> focusMenuEpg.requestFocus()
+                LeanbackQuickPanelSubPanel.SplitDetail ->
+                    runCatching { focusMenuSplit.requestFocus() }
                 LeanbackQuickPanelSubPanel.ReplayDetail ->
                     runCatching { focusMenuReplay.requestFocus() }
                 LeanbackQuickPanelSubPanel.StreamDetail -> focusMenuStream.requestFocus()
@@ -268,6 +281,29 @@ fun LeanbackQuickPanelScreen(
                         autoCloseState = autoCloseState,
                     )
 
+                LeanbackQuickPanelSubPanel.SplitDetail ->
+                    LeanbackQuickPanelSplitLeftSheet(
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .padding(
+                                start = sideStartPad,
+                                top = sideTopPad,
+                                bottom = leftSheetBottom,
+                            )
+                            .fillMaxHeight()
+                            .fillMaxWidth(0.40f),
+                        splitModeProvider = splitModeProvider,
+                        onSelectSplitMode = {
+                            onSplitModeChange(it)
+                            onSubPanelChange(LeanbackQuickPanelSubPanel.None)
+                        },
+                        onExitSplitMode = {
+                            onSplitExit()
+                            onSubPanelChange(LeanbackQuickPanelSubPanel.None)
+                        },
+                        autoCloseState = autoCloseState,
+                    )
+
                 LeanbackQuickPanelSubPanel.StreamDetail ->
                     LeanbackQuickPanelMetadataRightSheet(
                         modifier = Modifier
@@ -321,15 +357,24 @@ fun LeanbackQuickPanelScreen(
                     )
 
                     val showMultiLineMenuItem = currentIptvProvider().urlList.size > 1
-                    val menuSlots = remember(showMultiLineMenuItem, isReplayActiveProvider(), catchupSupportedProvider()) {
+                    val isSplitMode = splitModeProvider() != QuickPanelSplitMode.Off
+                    val menuSlots = remember(
+                        showMultiLineMenuItem,
+                        isReplayActiveProvider(),
+                        catchupSupportedProvider(),
+                        isSplitMode,
+                    ) {
                         buildList {
-                            add(QuickPanelBottomMenuSlot.Epg)
-                            add(QuickPanelBottomMenuSlot.Replay)
-                            if (isReplayActiveProvider()) add(QuickPanelBottomMenuSlot.BackLive)
-                            if (showMultiLineMenuItem) add(QuickPanelBottomMenuSlot.MultiLine)
-                            add(QuickPanelBottomMenuSlot.AspectRatio)
-                            add(QuickPanelBottomMenuSlot.Stream)
-                            add(QuickPanelBottomMenuSlot.Home)
+                            add(QuickPanelBottomMenuSlot.Split)
+                            if (!isSplitMode) {
+                                add(QuickPanelBottomMenuSlot.Epg)
+                                add(QuickPanelBottomMenuSlot.Replay)
+                                if (isReplayActiveProvider()) add(QuickPanelBottomMenuSlot.BackLive)
+                                if (showMultiLineMenuItem) add(QuickPanelBottomMenuSlot.MultiLine)
+                                add(QuickPanelBottomMenuSlot.AspectRatio)
+                                add(QuickPanelBottomMenuSlot.Stream)
+                                add(QuickPanelBottomMenuSlot.Home)
+                            }
                         }
                     }
                     // 使用 Row 而非 TvLazyRow：懒列表未进入视口的子项不会组合，首尾环绕时
@@ -346,10 +391,38 @@ fun LeanbackQuickPanelScreen(
                         for (slot in menuSlots) {
                             key(slot) {
                             when (slot) {
+                                QuickPanelBottomMenuSlot.Split ->
+                                    LeanbackQuickPanelButton(
+                                        buttonFocusRequester = focusMenuSplit,
+                                        leadingIcon = Icons.Filled.ViewModule,
+                                        titleProvider = {
+                                            when (splitModeProvider()) {
+                                                QuickPanelSplitMode.Off -> "分屏播放"
+                                                QuickPanelSplitMode.LeftRight -> "左右分屏"
+                                                QuickPanelSplitMode.FourGrid -> "四宫格"
+                                            }
+                                        },
+                                        subtitleProvider = {
+                                            if (splitModeProvider() == QuickPanelSplitMode.Off) "关闭"
+                                            else "已开启"
+                                        },
+                                        dPadLeftWrapTo = if (isSplitMode) focusMenuSplit else focusMenuHome,
+                                        dPadRightWrapTo = if (isSplitMode) focusMenuSplit else null,
+                                        onSelect = {
+                                            onSubPanelChange(
+                                                if (subPanel == LeanbackQuickPanelSubPanel.SplitDetail) {
+                                                    LeanbackQuickPanelSubPanel.None
+                                                } else {
+                                                    LeanbackQuickPanelSubPanel.SplitDetail
+                                                },
+                                            )
+                                            autoCloseState.active()
+                                        },
+                                    )
+
                                 QuickPanelBottomMenuSlot.Epg ->
                                     LeanbackQuickPanelButton(
                                         buttonFocusRequester = focusMenuEpg,
-                                        dPadLeftWrapTo = focusMenuHome,
                                         leadingIcon = Icons.Filled.List,
                                         titleProvider = { "节目单" },
                                         onSelect = {
@@ -427,7 +500,7 @@ fun LeanbackQuickPanelScreen(
                                 QuickPanelBottomMenuSlot.Home ->
                                     LeanbackQuickPanelButton(
                                         buttonFocusRequester = focusMenuHome,
-                                        dPadRightWrapTo = focusMenuEpg,
+                                        dPadRightWrapTo = focusMenuSplit,
                                         leadingIcon = Icons.Filled.Home,
                                         titleProvider = { "主菜单" },
                                         onSelect = onMoreSettings,

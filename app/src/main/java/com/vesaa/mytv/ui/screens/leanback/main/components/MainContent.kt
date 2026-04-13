@@ -8,6 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -39,11 +40,13 @@ import com.vesaa.mytv.ui.screens.leanback.monitor.LeanbackMonitorScreen
 import com.vesaa.mytv.ui.screens.leanback.panel.LeanbackPanelChannelNoSelectScreen
 import com.vesaa.mytv.ui.screens.leanback.panel.LeanbackPanelDateTimeScreen
 import com.vesaa.mytv.ui.screens.leanback.panel.rememberLeanbackPanelChannelNoSelectState
+import com.vesaa.mytv.ui.screens.leanback.quickpanel.QuickPanelSplitMode
 import com.vesaa.mytv.ui.screens.leanback.quickpanel.LeanbackQuickPanelSubPanel
 import com.vesaa.mytv.ui.screens.leanback.settings.LeanbackSettingsScreen
 import com.vesaa.mytv.ui.screens.leanback.settings.LeanbackSettingsViewModel
 import com.vesaa.mytv.ui.screens.leanback.toast.LeanbackToastState
 import com.vesaa.mytv.ui.screens.leanback.update.LeanbackUpdateScreen
+import com.vesaa.mytv.ui.screens.leanback.video.LeanbackVideoPlayerState
 import com.vesaa.mytv.ui.screens.leanback.video.LeanbackVideoScreen
 import com.vesaa.mytv.ui.screens.leanback.video.rememberLeanbackVideoPlayerState
 import com.vesaa.mytv.ui.utils.SP
@@ -61,17 +64,27 @@ fun LeanbackMainContent(
 ) {
     val configuration = LocalConfiguration.current
 
-    val videoPlayerState = rememberLeanbackVideoPlayerState(
-        defaultAspectRatioProvider = {
-            when (settingsViewModel.videoPlayerAspectRatio) {
-                SP.VideoPlayerAspectRatio.ORIGINAL -> null
-                SP.VideoPlayerAspectRatio.SIXTEEN_NINE -> 16f / 9f
-                SP.VideoPlayerAspectRatio.FOUR_THREE -> 4f / 3f
-                SP.VideoPlayerAspectRatio.AUTO -> {
-                    configuration.screenHeightDp.toFloat() / configuration.screenWidthDp.toFloat()
-                }
+    val defaultAspectRatioProvider = {
+        when (settingsViewModel.videoPlayerAspectRatio) {
+            SP.VideoPlayerAspectRatio.ORIGINAL -> null
+            SP.VideoPlayerAspectRatio.SIXTEEN_NINE -> 16f / 9f
+            SP.VideoPlayerAspectRatio.FOUR_THREE -> 4f / 3f
+            SP.VideoPlayerAspectRatio.AUTO -> {
+                configuration.screenHeightDp.toFloat() / configuration.screenWidthDp.toFloat()
             }
         }
+    }
+    val videoPlayerState = rememberLeanbackVideoPlayerState(
+        defaultAspectRatioProvider = defaultAspectRatioProvider,
+    )
+    val splitPane1PlayerState = rememberLeanbackVideoPlayerState(
+        defaultAspectRatioProvider = defaultAspectRatioProvider,
+    )
+    val splitPane2PlayerState = rememberLeanbackVideoPlayerState(
+        defaultAspectRatioProvider = defaultAspectRatioProvider,
+    )
+    val splitPane3PlayerState = rememberLeanbackVideoPlayerState(
+        defaultAspectRatioProvider = defaultAspectRatioProvider,
     )
     val mainContentState = rememberLeanbackMainContentState(
         videoPlayerState = videoPlayerState,
@@ -121,6 +134,24 @@ fun LeanbackMainContent(
     val channelOrderList =
         if (favoritesOnlyUi) currentFavorites.map { it.toIptv() }
         else uiIptvGroupList.iptvList
+    var splitMode by remember { mutableStateOf(QuickPanelSplitMode.Off) }
+    var splitFocusedPane by remember { mutableIntStateOf(0) }
+    var splitActivePane by remember { mutableIntStateOf(0) }
+    var splitPaneStates by remember { mutableStateOf(List(4) { SplitPanePlaybackState() }) }
+    val splitPlayerStateAt: (Int) -> LeanbackVideoPlayerState = remember(
+        splitPane1PlayerState,
+        splitPane2PlayerState,
+        splitPane3PlayerState,
+    ) {
+        { pane ->
+            when (pane) {
+                1 -> splitPane1PlayerState
+                2 -> splitPane2PlayerState
+                3 -> splitPane3PlayerState
+                else -> videoPlayerState
+            }
+        }
+    }
     val playReplayWindow = remember(mainContentState, resolveExtraStreamHeaders) {
         { targetIptv: Iptv, rawStartMs: Long, rawEndMs: Long, replayHint: String ->
             runCatching {
@@ -193,6 +224,134 @@ fun LeanbackMainContent(
         if (err.isBlank() || err == lastReplayError) return@LaunchedEffect
         lastReplayError = err
         LeanbackToastState.I.showToast(replayErrorTip(err))
+    }
+    val clearExtraSplitPanes = {
+        splitPane1PlayerState.stop()
+        splitPane2PlayerState.stop()
+        splitPane3PlayerState.stop()
+        splitPaneStates = splitPaneStates.mapIndexed { idx, state ->
+            if (idx == 0) state else SplitPanePlaybackState()
+        }
+    }
+    val exitSplitMode = {
+        splitMode = QuickPanelSplitMode.Off
+        splitFocusedPane = 0
+        splitActivePane = 0
+        clearExtraSplitPanes()
+    }
+    val splitPaneCount = if (splitMode == QuickPanelSplitMode.FourGrid) 4 else 2
+    val isSplitMode = splitMode != QuickPanelSplitMode.Off
+    val resolveAdjacentChannel: (Iptv, Boolean) -> Iptv = { current: Iptv, next: Boolean ->
+        if (channelOrderList.isEmpty()) {
+            Iptv()
+        } else {
+            val i = channelOrderList.indexOf(current).let { if (it < 0) 0 else it }
+            if (next) {
+                channelOrderList.getOrElse(i + 1) { channelOrderList.first() }
+            } else {
+                channelOrderList.getOrElse(i - 1) { channelOrderList.last() }
+            }
+        }
+    }
+    val playIptvInPane: (Int, Iptv, String?) -> Unit = { paneIndex, iptv, streamHeaders ->
+        if (iptv.urlList.isEmpty()) {
+            LeanbackToastState.I.showToast("当前频道无可用播放地址")
+        } else {
+            val headers = streamHeaders?.trim()?.takeIf { it.isNotEmpty() } ?: resolveExtraStreamHeaders(iptv)
+            if (paneIndex <= 0) {
+                mainContentState.changeCurrentIptv(
+                    iptv = iptv,
+                    streamRequestHeaders = headers,
+                )
+            } else {
+                val currentFps = videoPlayerState.metadata.videoRenderedFps
+                val activatedPaneCount = splitPaneStates.drop(1).count { it.iptv.urlList.isNotEmpty() }
+                if (
+                    splitMode == QuickPanelSplitMode.FourGrid &&
+                    paneIndex >= 2 &&
+                    activatedPaneCount >= 2 &&
+                    currentFps in 0.1f..24f
+                ) {
+                    LeanbackToastState.I.showToast("当前设备性能不足，无法激活该子屏")
+                } else {
+                    val url = iptv.urlList.firstOrNull().orEmpty()
+                    if (url.isBlank()) {
+                        LeanbackToastState.I.showToast("当前频道播放地址为空")
+                    } else {
+                        splitPlayerStateAt(paneIndex).prepare(url, headers)
+                        splitPaneStates = splitPaneStates.mapIndexed { idx, old ->
+                            if (idx == paneIndex) {
+                                old.copy(
+                                    iptv = iptv,
+                                    urlIdx = 0,
+                                    streamHeaders = headers,
+                                )
+                            } else old
+                        }
+                    }
+                }
+            }
+        }
+    }
+    val changeActivePaneChannel: (Boolean) -> Unit = { isUp ->
+        if (!isSplitMode) {
+            if (isUp) {
+                if (settingsViewModel.iptvChannelChangeFlip) mainContentState.changeCurrentIptvToNext()
+                else mainContentState.changeCurrentIptvToPrev()
+            } else {
+                if (settingsViewModel.iptvChannelChangeFlip) mainContentState.changeCurrentIptvToPrev()
+                else mainContentState.changeCurrentIptvToNext()
+            }
+        } else {
+            val targetPane = splitActivePane.coerceIn(0, splitPaneCount - 1)
+            if (targetPane == 0) {
+                if (isUp) {
+                    if (settingsViewModel.iptvChannelChangeFlip) mainContentState.changeCurrentIptvToNext()
+                    else mainContentState.changeCurrentIptvToPrev()
+                } else {
+                    if (settingsViewModel.iptvChannelChangeFlip) mainContentState.changeCurrentIptvToPrev()
+                    else mainContentState.changeCurrentIptvToNext()
+                }
+            } else {
+                val current = splitPaneStates[targetPane].iptv
+                val base = if (current.urlList.isNotEmpty()) current else mainContentState.currentIptv
+                val next = resolveAdjacentChannel(base, next = !isUp)
+                playIptvInPane(targetPane, next, resolveExtraStreamHeaders(next))
+            }
+        }
+    }
+    val changeActivePaneLine: (Boolean) -> Unit = { isLeft ->
+        val pane = if (isSplitMode) splitActivePane.coerceIn(0, splitPaneCount - 1) else 0
+        if (pane == 0) {
+            if (mainContentState.currentIptv.urlList.size > 1) {
+                mainContentState.changeCurrentIptv(
+                    iptv = mainContentState.currentIptv,
+                    urlIdx = if (isLeft) mainContentState.currentIptvUrlIdx - 1 else mainContentState.currentIptvUrlIdx + 1,
+                )
+            }
+        } else {
+            val paneState = splitPaneStates[pane]
+            if (paneState.iptv.urlList.size > 1) {
+                val size = paneState.iptv.urlList.size
+                val nextIdx = if (isLeft) paneState.urlIdx - 1 else paneState.urlIdx + 1
+                val normalizedIdx = (nextIdx + size) % size
+                val url = paneState.iptv.urlList[normalizedIdx]
+                splitPlayerStateAt(pane).prepare(url, paneState.streamHeaders ?: resolveExtraStreamHeaders(paneState.iptv))
+                splitPaneStates = splitPaneStates.mapIndexed { idx, old ->
+                    if (idx == pane) old.copy(urlIdx = normalizedIdx) else old
+                }
+            }
+        }
+    }
+    LaunchedEffect(mainContentState.currentIptv, mainContentState.currentIptvUrlIdx) {
+        splitPaneStates = splitPaneStates.mapIndexed { idx, old ->
+            if (idx == 0) {
+                old.copy(
+                    iptv = mainContentState.currentIptv,
+                    urlIdx = mainContentState.currentIptvUrlIdx,
+                )
+            } else old
+        }
     }
 
     val onIptvGroupLongPressHide: (IptvGroup) -> Unit = { group ->
@@ -325,21 +484,15 @@ fun LeanbackMainContent(
             val order = channelOrderList
             if (channelNo in order.indices) {
                 val iptv = order[channelNo]
-                if (favoritesOnlyUi) {
-                    val entry = currentFavorites.find { e ->
+                val header = if (favoritesOnlyUi) {
+                    currentFavorites.find { e ->
                         IptvFavoriteEntry.stableKeyFrom(iptv.urlList, iptv.channelName) == e.stableKey()
-                    }
-                    mainContentState.changeCurrentIptv(
-                        iptv,
-                        streamRequestHeaders = entry?.playbackRequestHeaders?.trim()
-                            ?.takeIf { it.isNotEmpty() },
-                    )
+                    }?.playbackRequestHeaders?.trim()?.takeIf { h -> h.isNotEmpty() }
                 } else {
-                    mainContentState.changeCurrentIptv(
-                        iptv,
-                        streamRequestHeaders = resolveExtraStreamHeaders(iptv),
-                    )
+                    resolveExtraStreamHeaders(iptv)
                 }
+                val targetPane = if (isSplitMode) splitFocusedPane.coerceIn(0, splitPaneCount - 1) else 0
+                playIptvInPane(targetPane, iptv, header)
             }
         }
     )
@@ -352,17 +505,25 @@ fun LeanbackMainContent(
             if (!mainContentState.isPanelVisible
                 && !mainContentState.isSettingsVisible
                 && !mainContentState.isQuickPanelVisible
+                && !isSplitMode
             ) {
                 focusRequester.requestFocus()
             }
             delay(100)
         }
     }
+    LaunchedEffect(splitMode) {
+        if (splitMode != QuickPanelSplitMode.Off) {
+            delay(32)
+            runCatching { focusRequester.requestFocus() }
+        }
+    }
 
     val videoFocusEnabled =
         !mainContentState.isPanelVisible &&
             !mainContentState.isSettingsVisible &&
-            !mainContentState.isQuickPanelVisible
+            !mainContentState.isQuickPanelVisible &&
+            !isSplitMode
 
     val liveDpadVerticalChannel: ((isUp: Boolean) -> Unit)? = remember(
         videoFocusEnabled,
@@ -400,66 +561,60 @@ fun LeanbackMainContent(
             else onBackPressed()
         },
     ) {
-        LeanbackVideoScreen(
-            state = videoPlayerState,
-            showMetadataProvider = { false },
-            modifier = Modifier
-                .focusRequester(focusRequester)
-                .focusable(videoFocusEnabled)
-                .handleLeanbackKeyEvents(
-                    onLeft = {
-                        if (mainContentState.currentIptv.urlList.size > 1) {
-                            mainContentState.changeCurrentIptv(
-                                iptv = mainContentState.currentIptv,
-                                urlIdx = mainContentState.currentIptvUrlIdx - 1,
-                            )
-                        }
-                    },
-                    onRight = {
-                        if (mainContentState.currentIptv.urlList.size > 1) {
-                            mainContentState.changeCurrentIptv(
-                                iptv = mainContentState.currentIptv,
-                                urlIdx = mainContentState.currentIptvUrlIdx + 1,
-                            )
-                        }
-                    },
-                    onSelect = { mainContentState.isPanelVisible = true },
-                    onLongSelect = { mainContentState.isQuickPanelVisible = true },
-                    onSettings = { mainContentState.isQuickPanelVisible = true },
-                    onNumber = {
-                        if (settingsViewModel.iptvChannelNoSelectEnable) {
-                            panelChannelNoSelectState.input(it)
-                        }
-                    },
-                    onLongDown = { mainContentState.isQuickPanelVisible = true },
-                )
-                .handleLeanbackDragGestures(
-                    onSwipeDown = {
-                        if (settingsViewModel.iptvChannelChangeFlip) mainContentState.changeCurrentIptvToNext()
-                        else mainContentState.changeCurrentIptvToPrev()
-                    },
-                    onSwipeUp = {
-                        if (settingsViewModel.iptvChannelChangeFlip) mainContentState.changeCurrentIptvToPrev()
-                        else mainContentState.changeCurrentIptvToNext()
-                    },
-                    onSwipeRight = {
-                        if (mainContentState.currentIptv.urlList.size > 1) {
-                            mainContentState.changeCurrentIptv(
-                                iptv = mainContentState.currentIptv,
-                                urlIdx = mainContentState.currentIptvUrlIdx - 1,
-                            )
-                        }
-                    },
-                    onSwipeLeft = {
-                        if (mainContentState.currentIptv.urlList.size > 1) {
-                            mainContentState.changeCurrentIptv(
-                                iptv = mainContentState.currentIptv,
-                                urlIdx = mainContentState.currentIptvUrlIdx + 1,
-                            )
-                        }
-                    },
+        if (isSplitMode) {
+            LeanbackSplitPlaybackScreen(
+                modifier = Modifier
+                    .focusRequester(focusRequester)
+                    .focusable(),
+                mode = splitMode,
+                paneStates = listOf(
+                    videoPlayerState,
+                    splitPane1PlayerState,
+                    splitPane2PlayerState,
+                    splitPane3PlayerState,
                 ),
-        )
+                focusedPane = splitFocusedPane.coerceIn(0, splitPaneCount - 1),
+                activePane = splitActivePane.coerceIn(0, splitPaneCount - 1),
+                onFocusedPaneChange = { splitFocusedPane = it.coerceIn(0, splitPaneCount - 1) },
+                onActivePaneChange = { splitActivePane = it.coerceIn(0, splitPaneCount - 1) },
+                onOpenQuickPanelFromSafeArea = { mainContentState.isQuickPanelVisible = true },
+                onOpenChannelPanelForFocused = {
+                    splitFocusedPane = splitFocusedPane.coerceIn(0, splitPaneCount - 1)
+                    mainContentState.isPanelVisible = true
+                },
+                onChannelUp = { changeActivePaneChannel(true) },
+                onChannelDown = { changeActivePaneChannel(false) },
+                onLineLeft = { changeActivePaneLine(true) },
+                onLineRight = { changeActivePaneLine(false) },
+            )
+        } else {
+            LeanbackVideoScreen(
+                state = videoPlayerState,
+                showMetadataProvider = { false },
+                modifier = Modifier
+                    .focusRequester(focusRequester)
+                    .focusable(videoFocusEnabled)
+                    .handleLeanbackKeyEvents(
+                        onLeft = { changeActivePaneLine(true) },
+                        onRight = { changeActivePaneLine(false) },
+                        onSelect = { mainContentState.isPanelVisible = true },
+                        onLongSelect = { mainContentState.isQuickPanelVisible = true },
+                        onSettings = { mainContentState.isQuickPanelVisible = true },
+                        onNumber = {
+                            if (settingsViewModel.iptvChannelNoSelectEnable) {
+                                panelChannelNoSelectState.input(it)
+                            }
+                        },
+                        onLongDown = { mainContentState.isQuickPanelVisible = true },
+                    )
+                    .handleLeanbackDragGestures(
+                        onSwipeDown = { changeActivePaneChannel(false) },
+                        onSwipeUp = { changeActivePaneChannel(true) },
+                        onSwipeRight = { changeActivePaneLine(true) },
+                        onSwipeLeft = { changeActivePaneLine(false) },
+                    ),
+            )
+        }
 
         CompositionLocalProvider(
             LocalDensity provides Density(
@@ -494,9 +649,35 @@ fun LeanbackMainContent(
                 playReplayWindow = playReplayWindow,
                 playbackStatusText = playbackStatusText,
                 replayCapabilityDetailText = replayCapabilityDetailText,
-                resolveExtraStreamHeaders = resolveExtraStreamHeaders,
                 onIptvGroupLongPressHide = onIptvGroupLongPressHide,
                 onIptvGroupLongPressAddToFavorites = onIptvGroupLongPressAddToFavorites,
+                onIptvSelected = { iptv, streamHeaders ->
+                    val pane = if (isSplitMode) splitFocusedPane.coerceIn(0, splitPaneCount - 1) else 0
+                    val headers = streamHeaders ?: resolveExtraStreamHeaders(iptv)
+                    playIptvInPane(pane, iptv, headers)
+                },
+                splitModeProvider = { splitMode },
+                onSplitModeChange = { newMode ->
+                    when (newMode) {
+                        QuickPanelSplitMode.Off -> exitSplitMode()
+                        QuickPanelSplitMode.LeftRight -> {
+                            splitMode = newMode
+                            splitFocusedPane = splitFocusedPane.coerceIn(0, 1)
+                            splitActivePane = splitActivePane.coerceIn(0, 1)
+                            splitPane2PlayerState.stop()
+                            splitPane3PlayerState.stop()
+                            splitPaneStates = splitPaneStates.mapIndexed { idx, old ->
+                                if (idx <= 1) old else SplitPanePlaybackState()
+                            }
+                        }
+                        QuickPanelSplitMode.FourGrid -> {
+                            splitMode = newMode
+                            splitFocusedPane = splitFocusedPane.coerceIn(0, 3)
+                            splitActivePane = splitActivePane.coerceIn(0, 3)
+                        }
+                    }
+                },
+                onSplitExit = { exitSplitMode() },
                 channelNoSelectIdle = { panelChannelNoSelectState.channelNo.isEmpty() },
             )
         }
@@ -550,6 +731,12 @@ fun LeanbackBackPressHandledArea(
         }
         .then(modifier),
     content = content,
+)
+
+private data class SplitPanePlaybackState(
+    val iptv: Iptv = Iptv(),
+    val urlIdx: Int = 0,
+    val streamHeaders: String? = null,
 )
 
 private fun replayErrorTip(errorText: String): String {

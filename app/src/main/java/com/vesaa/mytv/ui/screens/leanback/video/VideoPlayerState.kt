@@ -59,6 +59,14 @@ class LeanbackVideoPlayerState(
         instance.prepare(url, streamRequestHeaders)
     }
 
+    /** 分屏退出或子屏释放时调用，停止当前会话并清空展示态。 */
+    fun stop() {
+        instance.onDeactivate()
+        error = null
+        currentMediaUrl = ""
+        metadata = LeanbackVideoPlayer.Metadata()
+    }
+
     fun play() {
         instance.play()
     }
