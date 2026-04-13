@@ -44,7 +44,7 @@
         <activity
             android:name=".activities.MainActivity"
             android:exported="false"
-            android:theme="@style/Theme.MyTV">
+            android:theme="@style/Theme.MyTV.Splash">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <!-- <category android:name="android.intent.category.LAUNCHER" /> -->
