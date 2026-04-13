@@ -6,12 +6,13 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.ColumnScope.weight
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope.weight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -23,7 +24,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
@@ -81,7 +81,7 @@ internal fun LeanbackSplitPlaybackScreen(
                         true
                     }
                     else -> {
-                        if (event.key == Key.DirectionLeft) {
+                        if (native == KeyEvent.KEYCODE_DPAD_LEFT) {
                             val isLeftBoundary = when (paneCount) {
                                 2 -> focusedPane == 0
                                 4 -> focusedPane == 0 || focusedPane == 2
@@ -102,30 +102,30 @@ internal fun LeanbackSplitPlaybackScreen(
                             lastLeftBoundaryKeyDownMs = 0L
                         }
                         val nextFocused = when {
-                            paneCount == 2 && event.key == Key.DirectionLeft -> 0
-                            paneCount == 2 && event.key == Key.DirectionRight -> 1
-                            paneCount == 4 && event.key == Key.DirectionLeft -> {
+                            paneCount == 2 && native == KeyEvent.KEYCODE_DPAD_LEFT -> 0
+                            paneCount == 2 && native == KeyEvent.KEYCODE_DPAD_RIGHT -> 1
+                            paneCount == 4 && native == KeyEvent.KEYCODE_DPAD_LEFT -> {
                                 when (focusedPane) {
                                     1 -> 0
                                     3 -> 2
                                     else -> focusedPane
                                 }
                             }
-                            paneCount == 4 && event.key == Key.DirectionRight -> {
+                            paneCount == 4 && native == KeyEvent.KEYCODE_DPAD_RIGHT -> {
                                 when (focusedPane) {
                                     0 -> 1
                                     2 -> 3
                                     else -> focusedPane
                                 }
                             }
-                            paneCount == 4 && event.key == Key.DirectionUp -> {
+                            paneCount == 4 && native == KeyEvent.KEYCODE_DPAD_UP -> {
                                 when (focusedPane) {
                                     2 -> 0
                                     3 -> 1
                                     else -> focusedPane
                                 }
                             }
-                            paneCount == 4 && event.key == Key.DirectionDown -> {
+                            paneCount == 4 && native == KeyEvent.KEYCODE_DPAD_DOWN -> {
                                 when (focusedPane) {
                                     0 -> 2
                                     1 -> 3

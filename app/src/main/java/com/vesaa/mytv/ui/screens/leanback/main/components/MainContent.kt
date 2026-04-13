@@ -315,7 +315,7 @@ fun LeanbackMainContent(
             } else {
                 val current = splitPaneStates[targetPane].iptv
                 val base = if (current.urlList.isNotEmpty()) current else mainContentState.currentIptv
-                val next = resolveAdjacentChannel(base, next = !isUp)
+                val next = resolveAdjacentChannel(base, !isUp)
                 playIptvInPane(targetPane, next, resolveExtraStreamHeaders(next))
             }
         }
