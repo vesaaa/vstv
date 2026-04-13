@@ -50,6 +50,28 @@ internal fun formatVideoFpsForPanelStyle(
     }
 }
 
+/**
+ * 顶部状态徽标分辨率档位：
+ * <=720 -> 720p，<=1080 -> 1080p，<=1440 -> 2K，<=4320 -> 4K，>4320 -> 8K。
+ */
+internal fun formatQuickPanelResolutionBadge(m: LeanbackVideoPlayer.Metadata): String {
+    val width = m.videoWidth
+    val height = m.videoHeight
+    val shortSide = when {
+        width > 0 && height > 0 -> minOf(width, height)
+        height > 0 -> height
+        width > 0 -> width
+        else -> return ""
+    }
+    return when {
+        shortSide <= 720 -> "720p"
+        shortSide <= 1080 -> "1080p"
+        shortSide <= 1440 -> "2K"
+        shortSide <= 4320 -> "4K"
+        else -> "8K"
+    }
+}
+
 /** 底部按钮副标题：分辨率 + 视频格式（简写） */
 internal fun formatQuickPanelVideoMenuSubtitle(m: LeanbackVideoPlayer.Metadata): String {
     val res = if (m.videoWidth > 0 && m.videoHeight > 0) {

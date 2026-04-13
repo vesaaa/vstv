@@ -350,6 +350,9 @@ fun LeanbackQuickPanelScreen(
                         iptvUrlIdxProvider = currentIptvUrlIdxProvider,
                         currentProgrammesProvider = currentProgrammesProvider,
                         playbackStatusProvider = playbackStatusProvider,
+                        videoResolutionTagProvider = {
+                            formatQuickPanelResolutionBadge(videoPlayerMetadataProvider())
+                        },
                     )
 
                     LeanbackPanelPlayerInfo(

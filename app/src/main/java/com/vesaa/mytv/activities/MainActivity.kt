@@ -14,7 +14,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         val launchAt = SystemClock.elapsedRealtime()
         installSplashScreen().setKeepOnScreenCondition {
-            SystemClock.elapsedRealtime() - launchAt < 1000L
+            SystemClock.elapsedRealtime() - launchAt < 1500L
         }
         super.onCreate(savedInstanceState)
 
@@ -25,7 +25,7 @@ class MainActivity : ComponentActivity() {
         }
 
         lifecycleScope.launch {
-            delay(1000L)
+            delay(1500L)
             startActivity(Intent(this@MainActivity, activityClass).apply {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             })

@@ -25,6 +25,9 @@ class LeanbackVideoPlayerState(
     private val instance: LeanbackVideoPlayer,
     private val defaultAspectRatioProvider: () -> Float? = { null },
 ) {
+    /** 当前是否静音（用于分屏仅激活子屏发声） */
+    var isMuted by mutableStateOf(false)
+
     private fun friendlyErrorText(ex: LeanbackVideoPlayer.PlaybackException): String {
         val code = ex.errorCode
         val raw = ex.errorCodeName.trim()
@@ -73,6 +76,11 @@ class LeanbackVideoPlayerState(
 
     fun pause() {
         instance.pause()
+    }
+
+    fun setMuted(muted: Boolean) {
+        isMuted = muted
+        instance.setMuted(muted)
     }
 
     fun setVideoSurfaceView(surfaceView: SurfaceView) {

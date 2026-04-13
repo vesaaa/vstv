@@ -346,6 +346,10 @@ class LeanbackMedia3VideoPlayer(
         videoPlayer.pause()
     }
 
+    override fun setMuted(muted: Boolean) {
+        videoPlayer.volume = if (muted) 0f else 1f
+    }
+
     override fun onDeactivate() {
         parseRetryJob?.cancel()
         parseRetryJob = null

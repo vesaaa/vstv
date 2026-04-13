@@ -29,11 +29,13 @@ fun LeanbackPanelIptvInfo(
     iptvUrlIdxProvider: () -> Int = { 0 },
     currentProgrammesProvider: () -> EpgProgrammeCurrent? = { null },
     playbackStatusProvider: () -> String = { "" },
+    videoResolutionTagProvider: () -> String = { "" },
 ) {
     val iptv = iptvProvider()
     val iptvUrlIdx = iptvUrlIdxProvider()
     val currentProgrammes = currentProgrammesProvider()
     val playbackStatus = playbackStatusProvider().trim()
+    val videoResolutionTag = videoResolutionTagProvider().trim()
 
     Column(modifier = modifier) {
         Row(verticalAlignment = Alignment.Bottom) {
@@ -82,6 +84,13 @@ fun LeanbackPanelIptvInfo(
                         val urlIdx = iptvUrlIdx.coerceIn(iptv.urlList.indices)
                         Text(
                             text = if (iptv.urlList[urlIdx].isIPv6()) "IPV6" else "IPV4",
+                            modifier = textModifier,
+                        )
+                    }
+
+                    if (videoResolutionTag.isNotEmpty()) {
+                        Text(
+                            text = videoResolutionTag,
                             modifier = textModifier,
                         )
                     }

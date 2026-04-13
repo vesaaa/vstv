@@ -38,6 +38,9 @@ abstract class LeanbackVideoPlayer(
 
     abstract fun pause()
 
+    /** 静音控制（分屏时用于仅保留激活子屏发声） */
+    abstract fun setMuted(muted: Boolean)
+
     abstract fun setVideoSurfaceView(surfaceView: SurfaceView)
 
     private val onResolutionListeners = mutableListOf<(width: Int, height: Int) -> Unit>()

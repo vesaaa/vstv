@@ -9,10 +9,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -45,7 +42,6 @@ internal fun LeanbackSplitPlaybackScreen(
     onLineRight: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var lastLeftBoundaryKeyDownMs by remember { mutableLongStateOf(0L) }
     val paneCount = when (mode) {
         QuickPanelSplitMode.LeftRight -> 2
         QuickPanelSplitMode.FourGrid -> 4
@@ -66,27 +62,10 @@ internal fun LeanbackSplitPlaybackScreen(
                         onChannelDown()
                         true
                     }
-                    else -> {
-                        if (native == KeyEvent.KEYCODE_DPAD_LEFT) {
-                            val isLeftBoundary = when (paneCount) {
-                                2 -> focusedPane == 0
-                                4 -> focusedPane == 0 || focusedPane == 2
-                                else -> true
-                            }
-                            if (isLeftBoundary) {
-                                val now = event.nativeKeyEvent.eventTime
-                                if (lastLeftBoundaryKeyDownMs > 0L && now - lastLeftBoundaryKeyDownMs <= 280L) {
-                                    onOpenQuickPanelFromSafeArea()
-                                    lastLeftBoundaryKeyDownMs = 0L
-                                    return@onPreviewKeyEvent true
-                                }
-                                lastLeftBoundaryKeyDownMs = now
-                            } else {
-                                lastLeftBoundaryKeyDownMs = 0L
-                            }
-                        } else {
-                            lastLeftBoundaryKeyDownMs = 0L
-                        }
+                    native == KeyEvent.KEYCODE_DPAD_LEFT ||
+                        native == KeyEvent.KEYCODE_DPAD_RIGHT ||
+                        native == KeyEvent.KEYCODE_DPAD_UP ||
+                        native == KeyEvent.KEYCODE_DPAD_DOWN -> {
                         val nextFocused = when {
                             paneCount == 2 && native == KeyEvent.KEYCODE_DPAD_LEFT -> 0
                             paneCount == 2 && native == KeyEvent.KEYCODE_DPAD_RIGHT -> 1
@@ -122,10 +101,12 @@ internal fun LeanbackSplitPlaybackScreen(
                         }
                         if (nextFocused != focusedPane) {
                             onFocusedPaneChange(nextFocused)
-                            true
-                        } else {
-                            false
                         }
+                        // 分屏内方向键仅用于子屏选择：即使边界无变化也消费，避免触发其它动作。
+                        true
+                    }
+                    else -> {
+                        false
                     }
                 }
             }
@@ -133,22 +114,10 @@ internal fun LeanbackSplitPlaybackScreen(
                 pointerTapEnabled = false,
                 onSelect = { onOpenChannelPanelForFocused() },
                 onLongSelect = {
-                    if (focusedPane == activePane) {
-                        onOpenQuickPanelFromSafeArea()
-                    } else {
-                        onActivePaneChange(focusedPane)
-                    }
+                    onActivePaneChange(focusedPane)
                 },
                 onSettings = onOpenQuickPanelFromSafeArea,
                 onLongDown = onOpenQuickPanelFromSafeArea,
-                onUp = {
-                    if (paneCount == 2) onChannelUp()
-                },
-                onDown = {
-                    if (paneCount == 2) onChannelDown()
-                },
-                onLeft = onLineLeft,
-                onRight = onLineRight,
             )
             .handleLeanbackDragGestures(
                 onSwipeUp = onChannelUp,
@@ -273,13 +242,11 @@ private fun LeanbackSplitPane(
     modifier: Modifier = Modifier,
 ) {
     val borderColor = when {
-        active -> Color(0xFFFFD54F).copy(alpha = 0.65f)
-        focused -> Color(0xFF64B5F6).copy(alpha = 0.52f)
-        else -> Color.White.copy(alpha = 0.12f)
+        focused || active -> Color(0xFF64B5F6).copy(alpha = 0.92f)
+        else -> Color.White.copy(alpha = 0.28f)
     }
     Box(
         modifier = modifier
-            .border(2.dp, borderColor, SplitPaneShape)
             .background(Color.Black.copy(alpha = 0.15f), SplitPaneShape)
             .pointerInput(index) {
                 detectTapGestures(
@@ -295,6 +262,12 @@ private fun LeanbackSplitPane(
             state = state,
             showMetadataProvider = { false },
             modifier = Modifier.fillMaxSize(),
+        )
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(1.dp)
+                .border(2.dp, borderColor, SplitPaneShape),
         )
         if (active) {
             Box(
