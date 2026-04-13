@@ -2,8 +2,8 @@
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:drawable="@android:color/transparent" />
     <item
-        android:width="86dp"
-        android:height="34dp"
+        android:width="96dp"
+        android:height="38dp"
         android:gravity="center"
         android:drawable="@drawable/splash_vstv_wordmark" />
 </layer-list>
