@@ -141,6 +141,7 @@ fun LeanbackMainContent(
         if (favoritesOnlyUi) currentFavorites.map { it.toIptv() }
         else uiIptvGroupList.iptvList
     var splitMode by remember { mutableStateOf(QuickPanelSplitMode.Off) }
+    var splitExitRefreshPending by remember { mutableStateOf(false) }
     var splitFocusedPane by remember { mutableIntStateOf(0) }
     var splitActivePane by remember { mutableIntStateOf(0) }
     var splitPaneStates by remember { mutableStateOf(List(4) { SplitPanePlaybackState() }) }
@@ -241,6 +242,7 @@ fun LeanbackMainContent(
     }
     val exitSplitMode = {
         splitMode = QuickPanelSplitMode.Off
+        splitExitRefreshPending = true
         splitFocusedPane = 0
         splitActivePane = 0
         clearExtraSplitPanes()
@@ -526,10 +528,22 @@ fun LeanbackMainContent(
             delay(100)
         }
     }
-    LaunchedEffect(splitMode) {
+    LaunchedEffect(splitMode, splitExitRefreshPending) {
         if (splitMode != QuickPanelSplitMode.Off) {
             delay(32)
             runCatching { focusRequester.requestFocus() }
+        } else if (splitExitRefreshPending) {
+            // 退出分屏时显式刷新主屏输出，避免部分电视机型出现“有声音无画面”。
+            delay(120)
+            val current = mainContentState.currentIptv
+            if (current.urlList.isNotEmpty()) {
+                mainContentState.changeCurrentIptv(
+                    iptv = current,
+                    urlIdx = mainContentState.currentIptvUrlIdx,
+                    reason = LeanbackMainContentState.ChangeReason.CUTOFF_RETRY,
+                )
+            }
+            splitExitRefreshPending = false
         }
     }
 

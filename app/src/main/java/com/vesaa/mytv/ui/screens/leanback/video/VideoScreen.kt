@@ -38,9 +38,7 @@ fun LeanbackVideoScreen(
                             isFocusableInTouchMode = false
                         }
                     } else {
-                        // 单屏继续使用 SurfaceView，保持现有性能与兼容性
                         SurfaceView(context).apply {
-                            // 避免 SurfaceView 抢走窗口焦点，导致外层 Compose 收不到方向键换台
                             isFocusable = false
                             isFocusableInTouchMode = false
                         }
