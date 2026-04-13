@@ -118,8 +118,12 @@ internal fun LeanbackSplitPlaybackScreen(
                 pointerTapEnabled = false,
                 onSelect = { onOpenChannelPanelForFocused() },
                 onLongSelect = {
-                    hasActivatedPane = true
-                    onActivePaneChange(focusedPane)
+                    if (hasActivatedPane && activePane == focusedPane) {
+                        hasActivatedPane = false
+                    } else {
+                        hasActivatedPane = true
+                        onActivePaneChange(focusedPane)
+                    }
                 },
                 onSettings = onOpenQuickPanelFromSafeArea,
                 onLongDown = onOpenQuickPanelFromSafeArea,
@@ -139,22 +143,38 @@ internal fun LeanbackSplitPlaybackScreen(
                 LeanbackSplitPane(
                     state = paneStates[0],
                     index = 0,
+                    paneCount = paneCount,
                     focused = focusedPane == 0,
                     active = activePane == 0,
                     activated = hasActivatedPane && activePane == 0,
                     modifier = Modifier.weight(1f).fillMaxSize(),
                     onFocus = { onFocusedPaneChange(0) },
-                    onActivate = { onActivePaneChange(0) },
+                    onToggleActivate = {
+                        if (hasActivatedPane && activePane == 0) {
+                            hasActivatedPane = false
+                        } else {
+                            hasActivatedPane = true
+                            onActivePaneChange(0)
+                        }
+                    },
                 )
                 LeanbackSplitPane(
                     state = paneStates[1],
                     index = 1,
+                    paneCount = paneCount,
                     focused = focusedPane == 1,
                     active = activePane == 1,
                     activated = hasActivatedPane && activePane == 1,
                     modifier = Modifier.weight(1f).fillMaxSize(),
                     onFocus = { onFocusedPaneChange(1) },
-                    onActivate = { onActivePaneChange(1) },
+                    onToggleActivate = {
+                        if (hasActivatedPane && activePane == 1) {
+                            hasActivatedPane = false
+                        } else {
+                            hasActivatedPane = true
+                            onActivePaneChange(1)
+                        }
+                    },
                 )
             }
         } else {
@@ -169,22 +189,38 @@ internal fun LeanbackSplitPlaybackScreen(
                     LeanbackSplitPane(
                         state = paneStates[0],
                         index = 0,
+                        paneCount = paneCount,
                         focused = focusedPane == 0,
                         active = activePane == 0,
                         activated = hasActivatedPane && activePane == 0,
                         modifier = Modifier.weight(1f).fillMaxSize(),
                         onFocus = { onFocusedPaneChange(0) },
-                        onActivate = { onActivePaneChange(0) },
+                        onToggleActivate = {
+                            if (hasActivatedPane && activePane == 0) {
+                                hasActivatedPane = false
+                            } else {
+                                hasActivatedPane = true
+                                onActivePaneChange(0)
+                            }
+                        },
                     )
                     LeanbackSplitPane(
                         state = paneStates[1],
                         index = 1,
+                        paneCount = paneCount,
                         focused = focusedPane == 1,
                         active = activePane == 1,
                         activated = hasActivatedPane && activePane == 1,
                         modifier = Modifier.weight(1f).fillMaxSize(),
                         onFocus = { onFocusedPaneChange(1) },
-                        onActivate = { onActivePaneChange(1) },
+                        onToggleActivate = {
+                            if (hasActivatedPane && activePane == 1) {
+                                hasActivatedPane = false
+                            } else {
+                                hasActivatedPane = true
+                                onActivePaneChange(1)
+                            }
+                        },
                     )
                 }
                 Row(
@@ -194,22 +230,38 @@ internal fun LeanbackSplitPlaybackScreen(
                     LeanbackSplitPane(
                         state = paneStates[2],
                         index = 2,
+                        paneCount = paneCount,
                         focused = focusedPane == 2,
                         active = activePane == 2,
                         activated = hasActivatedPane && activePane == 2,
                         modifier = Modifier.weight(1f).fillMaxSize(),
                         onFocus = { onFocusedPaneChange(2) },
-                        onActivate = { onActivePaneChange(2) },
+                        onToggleActivate = {
+                            if (hasActivatedPane && activePane == 2) {
+                                hasActivatedPane = false
+                            } else {
+                                hasActivatedPane = true
+                                onActivePaneChange(2)
+                            }
+                        },
                     )
                     LeanbackSplitPane(
                         state = paneStates[3],
                         index = 3,
+                        paneCount = paneCount,
                         focused = focusedPane == 3,
                         active = activePane == 3,
                         activated = hasActivatedPane && activePane == 3,
                         modifier = Modifier.weight(1f).fillMaxSize(),
                         onFocus = { onFocusedPaneChange(3) },
-                        onActivate = { onActivePaneChange(3) },
+                        onToggleActivate = {
+                            if (hasActivatedPane && activePane == 3) {
+                                hasActivatedPane = false
+                            } else {
+                                hasActivatedPane = true
+                                onActivePaneChange(3)
+                            }
+                        },
                     )
                 }
             }
@@ -246,18 +298,14 @@ internal fun LeanbackSplitPlaybackScreen(
 private fun LeanbackSplitPane(
     state: LeanbackVideoPlayerState,
     index: Int,
+    paneCount: Int,
     focused: Boolean,
     active: Boolean,
     activated: Boolean,
     onFocus: () -> Unit,
-    onActivate: () -> Unit,
+    onToggleActivate: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val borderColor = when {
-        activated -> Color(0xFF64B5F6).copy(alpha = 0.92f)
-        focused -> Color(0xFFFFD54F).copy(alpha = 0.95f)
-        else -> Color.Transparent
-    }
     Box(
         modifier = modifier
             .background(Color.Black.copy(alpha = 0.15f), SplitPaneShape)
@@ -266,7 +314,7 @@ private fun LeanbackSplitPane(
                     onTap = { onFocus() },
                     onLongPress = {
                         onFocus()
-                        onActivate()
+                        onToggleActivate()
                     },
                 )
             },
@@ -276,35 +324,35 @@ private fun LeanbackSplitPane(
             showMetadataProvider = { false },
             modifier = Modifier.fillMaxSize(),
         )
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(1.dp)
-                .border(1.dp, borderColor, SplitPaneShape),
-        )
-        if (active) {
+        val statusLabel = when {
+            activated -> "固化"
+            focused -> "选中"
+            else -> ""
+        }
+        if (statusLabel.isNotEmpty()) {
+            val statusAlign = when {
+                paneCount == 2 && index == 0 -> Alignment.TopEnd
+                paneCount == 2 && index == 1 -> Alignment.TopStart
+                paneCount == 4 && index == 0 -> Alignment.BottomEnd
+                paneCount == 4 && index == 1 -> Alignment.BottomStart
+                paneCount == 4 && index == 2 -> Alignment.TopEnd
+                paneCount == 4 && index == 3 -> Alignment.TopStart
+                else -> Alignment.TopStart
+            }
+            val statusColor = if (activated) Color(0xFF42A5F5) else Color(0xFFFFD54F)
             Box(
                 modifier = Modifier
                     .padding(8.dp)
-                    .align(Alignment.TopStart)
-                    .background(Color.Black.copy(alpha = 0.55f), RoundedCornerShape(6.dp)),
+                    .align(statusAlign)
+                    .background(statusColor.copy(alpha = 0.90f), RoundedCornerShape(6.dp)),
             ) {
                 Text(
-                    text = "已固化",
+                    text = statusLabel,
                     style = MaterialTheme.typography.labelSmall,
-                    color = Color.White,
+                    color = Color.Black.copy(alpha = 0.86f),
                     modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
                 )
             }
-        }
-        if (focused && !active) {
-            Box(
-                modifier = Modifier
-                    .size(8.dp)
-                    .align(Alignment.TopEnd)
-                    .padding(4.dp)
-                    .background(Color(0xFF64B5F6), RoundedCornerShape(50)),
-            )
         }
     }
 }

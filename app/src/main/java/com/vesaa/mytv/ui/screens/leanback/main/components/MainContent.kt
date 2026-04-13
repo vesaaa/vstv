@@ -618,7 +618,6 @@ fun LeanbackMainContent(
                         onLeft = { changeActivePaneLine(true) },
                         onRight = { changeActivePaneLine(false) },
                         onSelect = { mainContentState.isPanelVisible = true },
-                        onLongSelect = { mainContentState.isQuickPanelVisible = true },
                         onSettings = { mainContentState.isQuickPanelVisible = true },
                         onNumber = {
                             if (settingsViewModel.iptvChannelNoSelectEnable) {
