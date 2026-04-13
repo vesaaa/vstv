@@ -78,7 +78,7 @@ class LeanbackVideoPlayerState(
         instance.pause()
     }
 
-    fun setMuted(muted: Boolean) {
+    fun applyMuted(muted: Boolean) {
         isMuted = muted
         instance.setMuted(muted)
     }

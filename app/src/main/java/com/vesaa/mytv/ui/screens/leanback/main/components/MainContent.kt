@@ -249,17 +249,17 @@ fun LeanbackMainContent(
     val isSplitMode = splitMode != QuickPanelSplitMode.Off
     LaunchedEffect(isSplitMode, splitPaneCount, splitActivePane) {
         if (!isSplitMode) {
-            videoPlayerState.setMuted(false)
-            splitPane1PlayerState.setMuted(true)
-            splitPane2PlayerState.setMuted(true)
-            splitPane3PlayerState.setMuted(true)
+            videoPlayerState.applyMuted(false)
+            splitPane1PlayerState.applyMuted(true)
+            splitPane2PlayerState.applyMuted(true)
+            splitPane3PlayerState.applyMuted(true)
             return@LaunchedEffect
         }
         val active = splitActivePane.coerceIn(0, splitPaneCount - 1)
-        videoPlayerState.setMuted(active != 0)
-        splitPane1PlayerState.setMuted(active != 1)
-        splitPane2PlayerState.setMuted(active != 2 || splitPaneCount < 3)
-        splitPane3PlayerState.setMuted(active != 3 || splitPaneCount < 4)
+        videoPlayerState.applyMuted(active != 0)
+        splitPane1PlayerState.applyMuted(active != 1)
+        splitPane2PlayerState.applyMuted(active != 2 || splitPaneCount < 3)
+        splitPane3PlayerState.applyMuted(active != 3 || splitPaneCount < 4)
     }
     val resolveAdjacentChannel: (Iptv, Boolean) -> Iptv = { current: Iptv, next: Boolean ->
         if (channelOrderList.isEmpty()) {

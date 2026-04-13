@@ -9,7 +9,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -42,6 +45,7 @@ internal fun LeanbackSplitPlaybackScreen(
     onLineRight: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    var hasActivatedPane by remember(mode) { mutableStateOf(false) }
     val paneCount = when (mode) {
         QuickPanelSplitMode.LeftRight -> 2
         QuickPanelSplitMode.FourGrid -> 4
@@ -114,6 +118,7 @@ internal fun LeanbackSplitPlaybackScreen(
                 pointerTapEnabled = false,
                 onSelect = { onOpenChannelPanelForFocused() },
                 onLongSelect = {
+                    hasActivatedPane = true
                     onActivePaneChange(focusedPane)
                 },
                 onSettings = onOpenQuickPanelFromSafeArea,
@@ -136,6 +141,7 @@ internal fun LeanbackSplitPlaybackScreen(
                     index = 0,
                     focused = focusedPane == 0,
                     active = activePane == 0,
+                    activated = hasActivatedPane && activePane == 0,
                     modifier = Modifier.weight(1f).fillMaxSize(),
                     onFocus = { onFocusedPaneChange(0) },
                     onActivate = { onActivePaneChange(0) },
@@ -145,6 +151,7 @@ internal fun LeanbackSplitPlaybackScreen(
                     index = 1,
                     focused = focusedPane == 1,
                     active = activePane == 1,
+                    activated = hasActivatedPane && activePane == 1,
                     modifier = Modifier.weight(1f).fillMaxSize(),
                     onFocus = { onFocusedPaneChange(1) },
                     onActivate = { onActivePaneChange(1) },
@@ -164,6 +171,7 @@ internal fun LeanbackSplitPlaybackScreen(
                         index = 0,
                         focused = focusedPane == 0,
                         active = activePane == 0,
+                        activated = hasActivatedPane && activePane == 0,
                         modifier = Modifier.weight(1f).fillMaxSize(),
                         onFocus = { onFocusedPaneChange(0) },
                         onActivate = { onActivePaneChange(0) },
@@ -173,6 +181,7 @@ internal fun LeanbackSplitPlaybackScreen(
                         index = 1,
                         focused = focusedPane == 1,
                         active = activePane == 1,
+                        activated = hasActivatedPane && activePane == 1,
                         modifier = Modifier.weight(1f).fillMaxSize(),
                         onFocus = { onFocusedPaneChange(1) },
                         onActivate = { onActivePaneChange(1) },
@@ -187,6 +196,7 @@ internal fun LeanbackSplitPlaybackScreen(
                         index = 2,
                         focused = focusedPane == 2,
                         active = activePane == 2,
+                        activated = hasActivatedPane && activePane == 2,
                         modifier = Modifier.weight(1f).fillMaxSize(),
                         onFocus = { onFocusedPaneChange(2) },
                         onActivate = { onActivePaneChange(2) },
@@ -196,6 +206,7 @@ internal fun LeanbackSplitPlaybackScreen(
                         index = 3,
                         focused = focusedPane == 3,
                         active = activePane == 3,
+                        activated = hasActivatedPane && activePane == 3,
                         modifier = Modifier.weight(1f).fillMaxSize(),
                         onFocus = { onFocusedPaneChange(3) },
                         onActivate = { onActivePaneChange(3) },
@@ -237,13 +248,15 @@ private fun LeanbackSplitPane(
     index: Int,
     focused: Boolean,
     active: Boolean,
+    activated: Boolean,
     onFocus: () -> Unit,
     onActivate: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val borderColor = when {
-        focused || active -> Color(0xFF64B5F6).copy(alpha = 0.92f)
-        else -> Color.White.copy(alpha = 0.28f)
+        activated -> Color(0xFF64B5F6).copy(alpha = 0.92f)
+        focused -> Color(0xFFFFD54F).copy(alpha = 0.95f)
+        else -> Color.Transparent
     }
     Box(
         modifier = modifier
@@ -267,7 +280,7 @@ private fun LeanbackSplitPane(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(1.dp)
-                .border(2.dp, borderColor, SplitPaneShape),
+                .border(1.dp, borderColor, SplitPaneShape),
         )
         if (active) {
             Box(
