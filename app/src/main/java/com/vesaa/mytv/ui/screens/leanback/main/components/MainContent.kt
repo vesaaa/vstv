@@ -380,7 +380,6 @@ fun LeanbackMainContent(
         if (group.name.isNotBlank() && !isSpecial) {
             SP.iptvHiddenGroupNames = SP.iptvHiddenGroupNames + group.name
             settingsViewModel.bumpIptvHiddenGroupFilterEpoch()
-            LeanbackToastState.I.showToast("已隐藏分组：${group.name}")
         }
     }
     val onIptvGroupLongPressAddToFavorites: (IptvGroup) -> Unit = addToFav@{ group ->
@@ -388,12 +387,7 @@ fun LeanbackMainContent(
             LeanbackToastState.I.showToast("请先在设置 → 精选设置 中启用精选")
             return@addToFav
         }
-        val added = settingsViewModel.addIptvGroupToFavorites(group.iptvList)
-        if (added > 0) {
-            LeanbackToastState.I.showToast("已添加到精选频道：$added 个")
-        } else {
-            LeanbackToastState.I.showToast("该分组频道已全部在精选中")
-        }
+        settingsViewModel.addIptvGroupToFavorites(group.iptvList)
     }
 
     LaunchedEffect(iptvGroupList) {
