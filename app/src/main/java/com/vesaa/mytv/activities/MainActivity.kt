@@ -54,10 +54,10 @@ class MainActivity : ComponentActivity() {
             ) {
                 Text(
                     text = "VsTV",
-                    color = Color(0xFFE53935),
-                    fontSize = 56.sp,
+                    color = Color(0xFFE50914),
+                    fontSize = 64.sp,
                     fontWeight = FontWeight.Black,
-                    letterSpacing = 1.5.sp,
+                    letterSpacing = 1.2.sp,
                     modifier = Modifier.graphicsLayer {
                         alpha = textAlpha
                         scaleX = textScale
