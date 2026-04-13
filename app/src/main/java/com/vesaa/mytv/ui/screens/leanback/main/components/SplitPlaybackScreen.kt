@@ -160,7 +160,7 @@ internal fun LeanbackSplitPlaybackScreen(
         if (paneCount == 2) {
             Row(
                 modifier = Modifier.fillMaxSize(),
-                horizontalArrangement = Arrangement.spacedBy(2.dp),
+                horizontalArrangement = Arrangement.spacedBy(1.dp),
             ) {
                 LeanbackSplitPane(
                     state = paneStates[0],
@@ -184,11 +184,11 @@ internal fun LeanbackSplitPlaybackScreen(
         } else {
             Column(
                 modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.spacedBy(2.dp),
+                verticalArrangement = Arrangement.spacedBy(1.dp),
             ) {
                 Row(
                     modifier = Modifier.weight(1f).fillMaxSize(),
-                    horizontalArrangement = Arrangement.spacedBy(2.dp),
+                    horizontalArrangement = Arrangement.spacedBy(1.dp),
                 ) {
                     LeanbackSplitPane(
                         state = paneStates[0],
@@ -211,7 +211,7 @@ internal fun LeanbackSplitPlaybackScreen(
                 }
                 Row(
                     modifier = Modifier.weight(1f).fillMaxSize(),
-                    horizontalArrangement = Arrangement.spacedBy(2.dp),
+                    horizontalArrangement = Arrangement.spacedBy(1.dp),
                 ) {
                     LeanbackSplitPane(
                         state = paneStates[2],
@@ -240,14 +240,24 @@ internal fun LeanbackSplitPlaybackScreen(
                 .fillMaxWidth()
                 .height(26.dp)
                 .align(Alignment.TopCenter)
-                .pointerInput(mode) { detectTapGestures(onLongPress = { onOpenQuickPanelFromSafeArea() }) },
+                .pointerInput(mode) {
+                    detectTapGestures(
+                        onLongPress = { onOpenQuickPanelFromSafeArea() },
+                        onDoubleTap = { onOpenQuickPanelFromSafeArea() },
+                    )
+                },
         )
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(26.dp)
                 .align(Alignment.BottomCenter)
-                .pointerInput(mode) { detectTapGestures(onLongPress = { onOpenQuickPanelFromSafeArea() }) },
+                .pointerInput(mode) {
+                    detectTapGestures(
+                        onLongPress = { onOpenQuickPanelFromSafeArea() },
+                        onDoubleTap = { onOpenQuickPanelFromSafeArea() },
+                    )
+                },
         )
     }
 }
@@ -269,7 +279,7 @@ private fun LeanbackSplitPane(
     }
     Box(
         modifier = modifier
-            .border(1.dp, borderColor, SplitPaneShape)
+            .border(2.dp, borderColor, SplitPaneShape)
             .background(Color.Black.copy(alpha = 0.15f), SplitPaneShape)
             .pointerInput(index) {
                 detectTapGestures(

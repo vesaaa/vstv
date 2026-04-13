@@ -295,11 +295,11 @@ fun LeanbackQuickPanelScreen(
                         splitModeProvider = splitModeProvider,
                         onSelectSplitMode = {
                             onSplitModeChange(it)
-                            onSubPanelChange(LeanbackQuickPanelSubPanel.None)
+                            onClose()
                         },
                         onExitSplitMode = {
                             onSplitExit()
-                            onSubPanelChange(LeanbackQuickPanelSubPanel.None)
+                            onClose()
                         },
                         autoCloseState = autoCloseState,
                     )
@@ -400,8 +400,8 @@ fun LeanbackQuickPanelScreen(
                                         titleProvider = {
                                             "分屏播放"
                                         },
-                                        dPadLeftWrapTo = if (isSplitMode) focusMenuSplit else focusMenuHome,
-                                        dPadRightWrapTo = if (isSplitMode) focusMenuSplit else null,
+                                        dPadLeftWrapTo = if (isSplitMode) focusMenuSplit else null,
+                                        dPadRightWrapTo = if (isSplitMode) focusMenuSplit else focusMenuEpg,
                                         onSelect = {
                                             onSubPanelChange(
                                                 if (subPanel == LeanbackQuickPanelSubPanel.SplitDetail) {
@@ -417,6 +417,7 @@ fun LeanbackQuickPanelScreen(
                                 QuickPanelBottomMenuSlot.Epg ->
                                     LeanbackQuickPanelButton(
                                         buttonFocusRequester = focusMenuEpg,
+                                        dPadLeftWrapTo = focusMenuHome,
                                         leadingIcon = Icons.Filled.List,
                                         titleProvider = { "节目单" },
                                         onSelect = {
@@ -494,7 +495,7 @@ fun LeanbackQuickPanelScreen(
                                 QuickPanelBottomMenuSlot.Home ->
                                     LeanbackQuickPanelButton(
                                         buttonFocusRequester = focusMenuHome,
-                                        dPadRightWrapTo = focusMenuSplit,
+                                        dPadRightWrapTo = if (isSplitMode) focusMenuSplit else focusMenuEpg,
                                         leadingIcon = Icons.Filled.Home,
                                         titleProvider = { "主菜单" },
                                         onSelect = onMoreSettings,
