@@ -1,6 +1,7 @@
 package com.vesaa.mytv.ui.screens.leanback.video
 
 import android.view.SurfaceView
+import android.view.TextureView
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.Stable
@@ -85,6 +86,10 @@ class LeanbackVideoPlayerState(
 
     fun setVideoSurfaceView(surfaceView: SurfaceView) {
         instance.setVideoSurfaceView(surfaceView)
+    }
+
+    fun setVideoTextureView(textureView: TextureView) {
+        instance.setVideoTextureView(textureView)
     }
 
     private val onReadyListeners = mutableListOf<() -> Unit>()

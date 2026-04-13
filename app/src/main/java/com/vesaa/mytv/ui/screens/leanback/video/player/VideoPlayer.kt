@@ -1,6 +1,7 @@
 package com.vesaa.mytv.ui.screens.leanback.video.player
 
 import android.view.SurfaceView
+import android.view.TextureView
 import androidx.media3.common.PlaybackException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -42,6 +43,9 @@ abstract class LeanbackVideoPlayer(
     abstract fun setMuted(muted: Boolean)
 
     abstract fun setVideoSurfaceView(surfaceView: SurfaceView)
+
+    /** 分屏模式可改用 TextureView，避免部分电视上 SurfaceView 覆盖 UI 角标。 */
+    abstract fun setVideoTextureView(textureView: TextureView)
 
     private val onResolutionListeners = mutableListOf<(width: Int, height: Int) -> Unit>()
     private val onErrorListeners = mutableListOf<(error: PlaybackException?) -> Unit>()

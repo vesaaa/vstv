@@ -322,6 +322,7 @@ private fun LeanbackSplitPane(
         LeanbackVideoScreen(
             state = state,
             showMetadataProvider = { false },
+            useTextureView = true,
             modifier = Modifier.fillMaxSize(),
         )
         val statusLabel = when {
