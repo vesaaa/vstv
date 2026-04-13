@@ -52,6 +52,8 @@ class LeanbackMedia3VideoPlayer(
     private val contentTypeAttempts = mutableMapOf<Int, Boolean>()
     private var updatePositionJob: Job? = null
     private var parseRetryJob: Job? = null
+    private var boundSurfaceView: SurfaceView? = null
+    private var boundTextureView: TextureView? = null
     private var latestZapStartElapsedMs: Long = 0L
     private var awaitingFirstReadyAfterPrepare: Boolean = false
     private var lastRenderedFpsElapsedMs: Long = 0L
@@ -362,10 +364,22 @@ class LeanbackMedia3VideoPlayer(
     }
 
     override fun setVideoSurfaceView(surfaceView: SurfaceView) {
+        if (boundTextureView != null) {
+            videoPlayer.clearVideoTextureView(boundTextureView)
+            boundTextureView = null
+        }
+        if (boundSurfaceView === surfaceView) return
+        boundSurfaceView = surfaceView
         videoPlayer.setVideoSurfaceView(surfaceView)
     }
 
     override fun setVideoTextureView(textureView: TextureView) {
+        if (boundSurfaceView != null) {
+            videoPlayer.clearVideoSurfaceView(boundSurfaceView)
+            boundSurfaceView = null
+        }
+        if (boundTextureView === textureView) return
+        boundTextureView = textureView
         videoPlayer.setVideoTextureView(textureView)
     }
 }
