@@ -2,8 +2,11 @@ package com.vesaa.mytv.ui.screens.leanback.main.components
 
 import android.view.KeyEvent
 import androidx.compose.foundation.focusable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -15,14 +18,17 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.delay
 import com.vesaa.mytv.data.entities.EpgList
@@ -693,6 +699,28 @@ fun LeanbackMainContent(
 
         LeanbackVisible({ settingsViewModel.debugShowFps }) {
             LeanbackMonitorScreen()
+        }
+
+        if (!mainContentState.isQuickPanelVisible && !mainContentState.isSettingsVisible) {
+            // 全局左下角触摸入口：单屏/分屏统一支持双击（兼容模拟器）与长按唤起快捷面板。
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .width(220.dp)
+                    .height(140.dp)
+                    .pointerInput(Unit) {
+                        detectTapGestures(
+                            onDoubleTap = {
+                                mainContentState.quickPanelSubPanel = LeanbackQuickPanelSubPanel.None
+                                mainContentState.isQuickPanelVisible = true
+                            },
+                            onLongPress = {
+                                mainContentState.quickPanelSubPanel = LeanbackQuickPanelSubPanel.None
+                                mainContentState.isQuickPanelVisible = true
+                            },
+                        )
+                    },
+            )
         }
 
         LeanbackUpdateScreen()

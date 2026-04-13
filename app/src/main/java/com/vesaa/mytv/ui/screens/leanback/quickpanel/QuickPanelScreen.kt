@@ -365,18 +365,14 @@ fun LeanbackQuickPanelScreen(
                         isSplitMode,
                     ) {
                         buildList {
-                            if (!isSplitMode) {
-                                add(QuickPanelBottomMenuSlot.Epg)
-                                add(QuickPanelBottomMenuSlot.Split)
-                                add(QuickPanelBottomMenuSlot.Replay)
-                                if (isReplayActiveProvider()) add(QuickPanelBottomMenuSlot.BackLive)
-                                if (showMultiLineMenuItem) add(QuickPanelBottomMenuSlot.MultiLine)
-                                add(QuickPanelBottomMenuSlot.AspectRatio)
-                                add(QuickPanelBottomMenuSlot.Stream)
-                                add(QuickPanelBottomMenuSlot.Home)
-                            } else {
-                                add(QuickPanelBottomMenuSlot.Split)
-                            }
+                            add(QuickPanelBottomMenuSlot.Epg)
+                            add(QuickPanelBottomMenuSlot.Split)
+                            add(QuickPanelBottomMenuSlot.Replay)
+                            if (isReplayActiveProvider()) add(QuickPanelBottomMenuSlot.BackLive)
+                            if (showMultiLineMenuItem) add(QuickPanelBottomMenuSlot.MultiLine)
+                            add(QuickPanelBottomMenuSlot.AspectRatio)
+                            add(QuickPanelBottomMenuSlot.Stream)
+                            add(QuickPanelBottomMenuSlot.Home)
                         }
                     }
                     // 使用 Row 而非 TvLazyRow：懒列表未进入视口的子项不会组合，首尾环绕时
@@ -401,7 +397,7 @@ fun LeanbackQuickPanelScreen(
                                             "分屏播放"
                                         },
                                         dPadLeftWrapTo = if (isSplitMode) focusMenuSplit else null,
-                                        dPadRightWrapTo = if (isSplitMode) focusMenuSplit else focusMenuEpg,
+                                        dPadRightWrapTo = if (isSplitMode) focusMenuSplit else null,
                                         onSelect = {
                                             onSubPanelChange(
                                                 if (subPanel == LeanbackQuickPanelSubPanel.SplitDetail) {
