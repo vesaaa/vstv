@@ -147,6 +147,25 @@ fun LeanbackSettingsCategoryEpg(
                         WebPushConfigNotifier.notifyConfigMayHaveChanged()
                     }
                 },
+                onTouchInputConfirmed = { input ->
+                    showDialog = false
+                    val oldEpgUrl = settingsViewModel.epgXmlUrl.trim()
+                    val oldEpgHeaders = settingsViewModel.epgXmlRequestHeaders.trim()
+
+                    val newEpgUrl = input.epgUrl.trim()
+                    val newEpgHeaders = input.epgUa.trim().let {
+                        if (it.isBlank()) "" else "User-Agent: $it"
+                    }
+
+                    settingsViewModel.epgXmlUrl = newEpgUrl
+                    settingsViewModel.epgXmlRequestHeaders = newEpgHeaders
+
+                    val changed = oldEpgUrl != newEpgUrl || oldEpgHeaders != newEpgHeaders
+                    if (changed) {
+                        coroutineScope.launch { EpgRepository().clearCache() }
+                        WebPushConfigNotifier.notifyConfigMayHaveChanged()
+                    }
+                },
                 onDeleted = { urlKey ->
                     SP.putEpgHeadersForUrl(urlKey, "")
                     if (urlKey !in Constants.EPG_BUILTIN_XML_URLS) {
@@ -185,6 +204,7 @@ private fun LeanbackSettingsEpgSourceHistoryDialog(
     currentEpgXmlUrlProvider: () -> String = { Constants.EPG_XML_URL },
     currentEpgRequestHeadersProvider: () -> String = { "" },
     onSelected: (String) -> Unit = {},
+    onTouchInputConfirmed: (EpgSourceInput) -> Unit = {},
     onDeleted: (String) -> Unit = {},
 ) {
     val epgXmlUrlHistory =
@@ -284,7 +304,8 @@ private fun LeanbackSettingsEpgSourceHistoryDialog(
                     item {
                         val focusRequester = remember { FocusRequester() }
                         var isFocused by remember { mutableStateOf(false) }
-                        var showDialog by remember { mutableStateOf(false) }
+                        var showQrcodeDialog by remember { mutableStateOf(false) }
+                        var showTouchInputDialog by remember { mutableStateOf(false) }
 
                         androidx.tv.material3.ListItem(
                             modifier = Modifier
@@ -293,7 +314,7 @@ private fun LeanbackSettingsEpgSourceHistoryDialog(
                                 .handleLeanbackKeyEvents(
                                     pointerTapEnabled = false,
                                     onSelect = {
-                                        if (isFocused) showDialog = true
+                                        if (isFocused) showQrcodeDialog = true
                                         else focusRequester.requestFocus()
                                     },
                                 )
@@ -301,7 +322,7 @@ private fun LeanbackSettingsEpgSourceHistoryDialog(
                                     detectTapGestures(
                                         onTap = {
                                             focusRequester.requestFocus()
-                                            showDialog = true
+                                            showTouchInputDialog = true
                                         },
                                     )
                                 },
@@ -315,8 +336,23 @@ private fun LeanbackSettingsEpgSourceHistoryDialog(
                         LeanbackQrcodeDialog(
                             text = HttpServer.serverUrl(),
                             description = "扫码前往设置页面",
-                            showDialogProvider = { showDialog },
-                            onDismissRequest = { showDialog = false },
+                            showDialogProvider = { showQrcodeDialog },
+                            onDismissRequest = { showQrcodeDialog = false },
+                        )
+
+                        LeanbackTouchEpgInputDialog(
+                            showDialogProvider = { showTouchInputDialog },
+                            onDismissRequest = { showTouchInputDialog = false },
+                            initialInputProvider = {
+                                EpgSourceInput(
+                                    epgUrl = currentEpgXmlUrl,
+                                    epgUa = userAgentValueFromHeadersText(currentEpgRequestHeaders),
+                                )
+                            },
+                            onConfirm = {
+                                showTouchInputDialog = false
+                                onTouchInputConfirmed(it)
+                            },
                         )
                     }
                 }

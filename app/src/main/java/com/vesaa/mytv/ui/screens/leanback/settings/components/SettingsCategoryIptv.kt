@@ -35,7 +35,6 @@ import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
-import com.vesaa.mytv.data.repositories.epg.EpgRepository
 import com.vesaa.mytv.data.repositories.iptv.IptvRepository
 import com.vesaa.mytv.ui.screens.leanback.components.LeanbackQrcodeDialog
 import com.vesaa.mytv.ui.screens.leanback.settings.LeanbackSettingsViewModel
@@ -166,8 +165,6 @@ fun LeanbackSettingsCategoryIptv(
                 currentIptvSourceProvider = { settingsViewModel.iptvSourceUrl },
                 currentIptvRequestHeadersProvider = { settingsViewModel.iptvSourceRequestHeaders },
                 currentIptvChannelRequestHeadersProvider = { settingsViewModel.iptvChannelRequestHeaders },
-                currentEpgXmlUrlProvider = { settingsViewModel.epgXmlUrl },
-                currentEpgRequestHeadersProvider = { settingsViewModel.epgXmlRequestHeaders },
                 onSelected = {
                     showDialog = false
                     if (it.trim().startsWith(SP.IPTV_LOCAL_SOURCE_URL) && !SP.hasIptvLocalUploadFile()) {
@@ -190,30 +187,26 @@ fun LeanbackSettingsCategoryIptv(
                     val oldIptvUrl = settingsViewModel.iptvSourceUrl.trim()
                     val oldIptvSubUa = settingsViewModel.iptvSourceRequestHeaders.trim()
                     val oldIptvChUa = settingsViewModel.iptvChannelRequestHeaders.trim()
-                    val oldEpgUrl = settingsViewModel.epgXmlUrl.trim()
-                    val oldEpgUa = settingsViewModel.epgXmlRequestHeaders.trim()
 
                     val newIptvUrl = input.iptvUrl.trim()
-                    val newIptvSubUa = input.iptvSubscribeUa.trim()
-                    val newIptvChUa = input.iptvChannelUa.trim()
-                    val newEpgUrl = input.epgUrl.trim()
-                    val newEpgUa = input.epgUa.trim()
+                    val newIptvSubUa = input.iptvSubscribeUa.trim().let {
+                        if (it.isBlank()) "" else "User-Agent: $it"
+                    }
+                    val newIptvChUa = input.iptvChannelUa.trim().let {
+                        if (it.isBlank()) "" else "User-Agent: $it"
+                    }
 
                     settingsViewModel.iptvSourceUrl = newIptvUrl
                     settingsViewModel.iptvSourceRequestHeaders = newIptvSubUa
                     settingsViewModel.iptvChannelRequestHeaders = newIptvChUa
-                    settingsViewModel.epgXmlUrl = newEpgUrl
-                    settingsViewModel.epgXmlRequestHeaders = newEpgUa
 
                     val iptvChanged =
                         oldIptvUrl != newIptvUrl ||
                             oldIptvSubUa != newIptvSubUa ||
                             oldIptvChUa != newIptvChUa
-                    val epgChanged = oldEpgUrl != newEpgUrl || oldEpgUa != newEpgUa
 
                     if (iptvChanged) coroutineScope.launch { IptvRepository().clearCache() }
-                    if (epgChanged) coroutineScope.launch { EpgRepository().clearCache() }
-                    if (iptvChanged || epgChanged) {
+                    if (iptvChanged) {
                         WebPushConfigNotifier.notifyConfigMayHaveChanged()
                     }
                 },
@@ -246,8 +239,6 @@ private fun LeanbackSettingsIptvSourceHistoryDialog(
     currentIptvSourceProvider: () -> String = { "" },
     currentIptvRequestHeadersProvider: () -> String = { "" },
     currentIptvChannelRequestHeadersProvider: () -> String = { "" },
-    currentEpgXmlUrlProvider: () -> String = { "" },
-    currentEpgRequestHeadersProvider: () -> String = { "" },
     onSelected: (String) -> Unit = {},
     onTouchInputConfirmed: (StreamingSourceInput) -> Unit = {},
     onDeleted: (String) -> Unit = {},
@@ -256,8 +247,6 @@ private fun LeanbackSettingsIptvSourceHistoryDialog(
     val currentIptvSource = currentIptvSourceProvider()
     val currentIptvRequestHeaders = currentIptvRequestHeadersProvider()
     val currentIptvChannelRequestHeaders = currentIptvChannelRequestHeadersProvider()
-    val currentEpgXmlUrl = currentEpgXmlUrlProvider()
-    val currentEpgRequestHeaders = currentEpgRequestHeadersProvider()
     if (showDialogProvider()) {
         AlertDialog(
             properties = DialogProperties(usePlatformDefaultWidth = false),
@@ -413,10 +402,12 @@ private fun LeanbackSettingsIptvSourceHistoryDialog(
                             initialInputProvider = {
                                 StreamingSourceInput(
                                     iptvUrl = currentIptvSource,
-                                    iptvSubscribeUa = currentIptvRequestHeaders,
-                                    iptvChannelUa = currentIptvChannelRequestHeaders,
-                                    epgUrl = currentEpgXmlUrl,
-                                    epgUa = currentEpgRequestHeaders,
+                                    iptvSubscribeUa = userAgentValueFromHeadersText(
+                                        currentIptvRequestHeaders,
+                                    ),
+                                    iptvChannelUa = userAgentValueFromHeadersText(
+                                        currentIptvChannelRequestHeaders,
+                                    ),
                                 )
                             },
                             onConfirm = {

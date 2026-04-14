@@ -32,6 +32,9 @@ data class StreamingSourceInput(
     val iptvUrl: String,
     val iptvSubscribeUa: String,
     val iptvChannelUa: String,
+)
+
+data class EpgSourceInput(
     val epgUrl: String,
     val epgUa: String,
 )
@@ -40,7 +43,7 @@ data class StreamingSourceInput(
 fun LeanbackTouchSourceInputDialog(
     showDialogProvider: () -> Boolean = { false },
     onDismissRequest: () -> Unit = {},
-    initialInputProvider: () -> StreamingSourceInput = { StreamingSourceInput("", "", "", "", "") },
+    initialInputProvider: () -> StreamingSourceInput = { StreamingSourceInput("", "", "") },
     onConfirm: (StreamingSourceInput) -> Unit = {},
 ) {
     if (!showDialogProvider()) return
@@ -49,8 +52,6 @@ fun LeanbackTouchSourceInputDialog(
     var iptvUrl by remember(initial.iptvUrl) { mutableStateOf(initial.iptvUrl) }
     var iptvSubscribeUa by remember(initial.iptvSubscribeUa) { mutableStateOf(initial.iptvSubscribeUa) }
     var iptvChannelUa by remember(initial.iptvChannelUa) { mutableStateOf(initial.iptvChannelUa) }
-    var epgUrl by remember(initial.epgUrl) { mutableStateOf(initial.epgUrl) }
-    var epgUa by remember(initial.epgUa) { mutableStateOf(initial.epgUa) }
 
     Dialog(
         onDismissRequest = onDismissRequest,
@@ -75,10 +76,8 @@ fun LeanbackTouchSourceInputDialog(
             ) {
                 Text("添加直播源", style = MaterialTheme.typography.titleMedium)
                 SourceInputField("直播源地址", iptvUrl) { iptvUrl = it }
-                SourceInputField("拉取订阅UA", iptvSubscribeUa) { iptvSubscribeUa = it }
-                SourceInputField("播放频道UA", iptvChannelUa) { iptvChannelUa = it }
-                SourceInputField("节目单地址", epgUrl) { epgUrl = it }
-                SourceInputField("节目单UA", epgUa) { epgUa = it }
+                SourceInputField("拉取订阅 UA（仅填值）", iptvSubscribeUa) { iptvSubscribeUa = it }
+                SourceInputField("播放频道 UA（仅填值）", iptvChannelUa) { iptvChannelUa = it }
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -93,6 +92,64 @@ fun LeanbackTouchSourceInputDialog(
                                     iptvUrl = iptvUrl.trim(),
                                     iptvSubscribeUa = iptvSubscribeUa.trim(),
                                     iptvChannelUa = iptvChannelUa.trim(),
+                                ),
+                            )
+                        }
+                    ) { Text("保存") }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun LeanbackTouchEpgInputDialog(
+    showDialogProvider: () -> Boolean = { false },
+    onDismissRequest: () -> Unit = {},
+    initialInputProvider: () -> EpgSourceInput = { EpgSourceInput("", "") },
+    onConfirm: (EpgSourceInput) -> Unit = {},
+) {
+    if (!showDialogProvider()) return
+
+    val initial = initialInputProvider()
+    var epgUrl by remember(initial.epgUrl) { mutableStateOf(initial.epgUrl) }
+    var epgUa by remember(initial.epgUa) { mutableStateOf(initial.epgUa) }
+
+    Dialog(
+        onDismissRequest = onDismissRequest,
+        properties = DialogProperties(usePlatformDefaultWidth = false),
+    ) {
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 16.dp)
+                .widthIn(max = 900.dp),
+            shape = RoundedCornerShape(14.dp),
+            tonalElevation = 6.dp,
+            color = MaterialTheme.colorScheme.surface,
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .imePadding()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Text("添加节目单", style = MaterialTheme.typography.titleMedium)
+                SourceInputField("节目单地址", epgUrl) { epgUrl = it }
+                SourceInputField("节目单 UA（仅填值）", epgUa) { epgUa = it }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    TextButton(onClick = onDismissRequest) { Text("取消") }
+                    TextButton(
+                        onClick = {
+                            onConfirm(
+                                EpgSourceInput(
                                     epgUrl = epgUrl.trim(),
                                     epgUa = epgUa.trim(),
                                 ),
