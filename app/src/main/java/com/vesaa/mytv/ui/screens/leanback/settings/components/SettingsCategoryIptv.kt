@@ -35,6 +35,7 @@ import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
+import com.vesaa.mytv.data.repositories.epg.EpgRepository
 import com.vesaa.mytv.data.repositories.iptv.IptvRepository
 import com.vesaa.mytv.ui.screens.leanback.components.LeanbackQrcodeDialog
 import com.vesaa.mytv.ui.screens.leanback.settings.LeanbackSettingsViewModel
@@ -165,6 +166,8 @@ fun LeanbackSettingsCategoryIptv(
                 currentIptvSourceProvider = { settingsViewModel.iptvSourceUrl },
                 currentIptvRequestHeadersProvider = { settingsViewModel.iptvSourceRequestHeaders },
                 currentIptvChannelRequestHeadersProvider = { settingsViewModel.iptvChannelRequestHeaders },
+                currentEpgXmlUrlProvider = { settingsViewModel.epgXmlUrl },
+                currentEpgRequestHeadersProvider = { settingsViewModel.epgXmlRequestHeaders },
                 onSelected = {
                     showDialog = false
                     if (it.trim().startsWith(SP.IPTV_LOCAL_SOURCE_URL) && !SP.hasIptvLocalUploadFile()) {
@@ -179,6 +182,38 @@ fun LeanbackSettingsCategoryIptv(
                             if (it.isBlank()) "" else SP.getIptvChannelHeadersForUrl(it)
                                 .ifBlank { settingsViewModel.iptvSourceRequestHeaders }
                         coroutineScope.launch { IptvRepository().clearCache() }
+                        WebPushConfigNotifier.notifyConfigMayHaveChanged()
+                    }
+                },
+                onTouchInputConfirmed = { input ->
+                    showDialog = false
+                    val oldIptvUrl = settingsViewModel.iptvSourceUrl.trim()
+                    val oldIptvSubUa = settingsViewModel.iptvSourceRequestHeaders.trim()
+                    val oldIptvChUa = settingsViewModel.iptvChannelRequestHeaders.trim()
+                    val oldEpgUrl = settingsViewModel.epgXmlUrl.trim()
+                    val oldEpgUa = settingsViewModel.epgXmlRequestHeaders.trim()
+
+                    val newIptvUrl = input.iptvUrl.trim()
+                    val newIptvSubUa = input.iptvSubscribeUa.trim()
+                    val newIptvChUa = input.iptvChannelUa.trim()
+                    val newEpgUrl = input.epgUrl.trim()
+                    val newEpgUa = input.epgUa.trim()
+
+                    settingsViewModel.iptvSourceUrl = newIptvUrl
+                    settingsViewModel.iptvSourceRequestHeaders = newIptvSubUa
+                    settingsViewModel.iptvChannelRequestHeaders = newIptvChUa
+                    settingsViewModel.epgXmlUrl = newEpgUrl
+                    settingsViewModel.epgXmlRequestHeaders = newEpgUa
+
+                    val iptvChanged =
+                        oldIptvUrl != newIptvUrl ||
+                            oldIptvSubUa != newIptvSubUa ||
+                            oldIptvChUa != newIptvChUa
+                    val epgChanged = oldEpgUrl != newEpgUrl || oldEpgUa != newEpgUa
+
+                    if (iptvChanged) coroutineScope.launch { IptvRepository().clearCache() }
+                    if (epgChanged) coroutineScope.launch { EpgRepository().clearCache() }
+                    if (iptvChanged || epgChanged) {
                         WebPushConfigNotifier.notifyConfigMayHaveChanged()
                     }
                 },
@@ -211,13 +246,18 @@ private fun LeanbackSettingsIptvSourceHistoryDialog(
     currentIptvSourceProvider: () -> String = { "" },
     currentIptvRequestHeadersProvider: () -> String = { "" },
     currentIptvChannelRequestHeadersProvider: () -> String = { "" },
+    currentEpgXmlUrlProvider: () -> String = { "" },
+    currentEpgRequestHeadersProvider: () -> String = { "" },
     onSelected: (String) -> Unit = {},
+    onTouchInputConfirmed: (StreamingSourceInput) -> Unit = {},
     onDeleted: (String) -> Unit = {},
 ) {
     val iptvSourceHistory = listOf("") + iptvSourceHistoryProvider()
     val currentIptvSource = currentIptvSourceProvider()
     val currentIptvRequestHeaders = currentIptvRequestHeadersProvider()
     val currentIptvChannelRequestHeaders = currentIptvChannelRequestHeadersProvider()
+    val currentEpgXmlUrl = currentEpgXmlUrlProvider()
+    val currentEpgRequestHeaders = currentEpgRequestHeadersProvider()
     if (showDialogProvider()) {
         AlertDialog(
             properties = DialogProperties(usePlatformDefaultWidth = false),
@@ -331,7 +371,8 @@ private fun LeanbackSettingsIptvSourceHistoryDialog(
                     item {
                         val focusRequester = remember { FocusRequester() }
                         var isFocused by remember { mutableStateOf(false) }
-                        var showDialog by remember { mutableStateOf(false) }
+                        var showQrcodeDialog by remember { mutableStateOf(false) }
+                        var showTouchInputDialog by remember { mutableStateOf(false) }
 
                         androidx.tv.material3.ListItem(
                             modifier = Modifier
@@ -340,7 +381,7 @@ private fun LeanbackSettingsIptvSourceHistoryDialog(
                                 .handleLeanbackKeyEvents(
                                     pointerTapEnabled = false,
                                     onSelect = {
-                                        if (isFocused) showDialog = true
+                                        if (isFocused) showQrcodeDialog = true
                                         else focusRequester.requestFocus()
                                     },
                                 )
@@ -348,7 +389,7 @@ private fun LeanbackSettingsIptvSourceHistoryDialog(
                                     detectTapGestures(
                                         onTap = {
                                             focusRequester.requestFocus()
-                                            showDialog = true
+                                            showTouchInputDialog = true
                                         },
                                     )
                                 },
@@ -362,8 +403,26 @@ private fun LeanbackSettingsIptvSourceHistoryDialog(
                         LeanbackQrcodeDialog(
                             text = HttpServer.serverUrl(),
                             description = "扫码前往设置页面",
-                            showDialogProvider = { showDialog },
-                            onDismissRequest = { showDialog = false },
+                            showDialogProvider = { showQrcodeDialog },
+                            onDismissRequest = { showQrcodeDialog = false },
+                        )
+
+                        LeanbackTouchSourceInputDialog(
+                            showDialogProvider = { showTouchInputDialog },
+                            onDismissRequest = { showTouchInputDialog = false },
+                            initialInputProvider = {
+                                StreamingSourceInput(
+                                    iptvUrl = currentIptvSource,
+                                    iptvSubscribeUa = currentIptvRequestHeaders,
+                                    iptvChannelUa = currentIptvChannelRequestHeaders,
+                                    epgUrl = currentEpgXmlUrl,
+                                    epgUa = currentEpgRequestHeaders,
+                                )
+                            },
+                            onConfirm = {
+                                showTouchInputDialog = false
+                                onTouchInputConfirmed(it)
+                            },
                         )
                     }
                 }
