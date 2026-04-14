@@ -21,7 +21,6 @@ import com.vesaa.mytv.ui.screens.leanback.toast.LeanbackToastState
 import com.vesaa.mytv.ui.theme.LeanbackTheme
 import com.vesaa.mytv.ui.utils.HttpServer
 import com.vesaa.mytv.ui.utils.SP
-import kotlin.system.exitProcess
 
 class LeanbackActivity : ComponentActivity() {
     override fun onUserLeaveHint() {
@@ -60,8 +59,8 @@ class LeanbackActivity : ComponentActivity() {
                 ) {
                     LeanbackApp(
                         onBackPressed = {
+                            // 勿使用 exitProcess：会立刻杀进程，SP.apply() 尚未落盘，导致「上次频道」等偏好丢失。
                             finish()
-                            exitProcess(0)
                         },
                     )
                 }

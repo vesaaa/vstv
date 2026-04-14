@@ -73,7 +73,8 @@ fun LeanbackPanelIptvItem(
     }
 
     androidx.tv.material3.Card(
-        onClick = { },
+        // 触摸/鼠标点击由 Card 消费，避免与外层全屏点按关闭及下方 duplicate 的 detectTapGestures 竞态导致闪退（见 ModifierUtils.handleLeanbackKeyEvents 注释）。
+        onClick = { onIptvSelected() },
         modifier = modifier
             .width(130.dp)
             .height(54.dp)
@@ -83,6 +84,7 @@ fun LeanbackPanelIptvItem(
                 if (isFocused) onFocused()
             }
             .handleLeanbackKeyEvents(
+                pointerTapEnabled = false,
                 onSelect = {
                     if (isFocused) onIptvSelected()
                     else focusRequester.requestFocus()
@@ -94,7 +96,7 @@ fun LeanbackPanelIptvItem(
                 onSettings = {
                     if (isFocused) onShowEpg()
                     else focusRequester.requestFocus()
-                }
+                },
             ),
         colors = CardDefaults.colors(
             containerColor = Color.Transparent,

@@ -136,7 +136,10 @@ fun LeanbackPanelIptvGroupList(
 
             LeanbackPanelIptvList(
                 modifier = if (index == 0) {
-                    Modifier.handleLeanbackKeyEvents(onUp = { onToFavorite() })
+                    Modifier.handleLeanbackKeyEvents(
+                        pointerTapEnabled = false,
+                        onUp = { onToFavorite() },
+                    )
                 } else Modifier,
                 iptvListProvider = { iptvGroup.iptvList },
                 epgListProvider = epgListProvider,

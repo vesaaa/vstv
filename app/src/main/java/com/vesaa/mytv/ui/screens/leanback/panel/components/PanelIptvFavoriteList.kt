@@ -110,7 +110,10 @@ fun LeanbackPanelIptvFavoriteList(
                 val iptv = entry.toIptv()
                 LeanbackPanelIptvItem(
                     modifier = if (index < favoriteListSize && allowCloseByUpOnFirstRow) {
-                        Modifier.handleLeanbackKeyEvents(onUp = { onClose() })
+                        Modifier.handleLeanbackKeyEvents(
+                            pointerTapEnabled = false,
+                            onUp = { onClose() },
+                        )
                     } else {
                         Modifier
                     },
