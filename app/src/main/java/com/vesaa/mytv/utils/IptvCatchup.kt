@@ -58,25 +58,42 @@ object IptvCatchup {
     ): String? {
         val source = pickTemplate(iptv)
         if (source.isBlank()) return null
-        return normalizeCatchupStreamUrl(
-            renderCatchupTemplate(source, window.startMs, window.endMs, baseUrl),
-        )
+        return renderCatchupTemplate(source, window.startMs, window.endMs, baseUrl)
     }
 
     /**
      * 优先使用 M3U 声明的 catchup 模板或 DVR 推断；若无模板则按常见运营商习惯追加
      * `?playseek=yyyyMMddHHmmss-yyyyMMddHHmmss` 作为兜底，供节目单点击尝试回看。
-     * 最终会对完整 URL 做 pltv→tvod 规范化（与参考 fork 回放路径一致）。
+     * 仅返回首个候选地址；兼容地址（如 PLTV→TVOD）由候选列表顺序重试。
      */
     fun buildCatchupUrlWithFallback(
         iptv: Iptv,
         baseUrl: String,
         window: CatchupWindow,
     ): String {
-        buildCatchupUrl(iptv, baseUrl, window)?.let { return it }
-        return normalizeCatchupStreamUrl(
-            renderCatchupTemplate(DefaultAppendTemplate, window.startMs, window.endMs, baseUrl),
-        )
+        return buildCatchupUrlCandidatesWithFallback(iptv, baseUrl, window).firstOrNull().orEmpty()
+    }
+
+    /**
+     * 回看地址候选列表（按优先级）：
+     * 1) 先使用源内模板原样 URL；
+     * 2) 再尝试将路径段 PLTV/pltv 转成 TVOD/tvod 的兼容 URL；
+     * 3) 若源内无模板，则对默认 append 模板应用同样策略。
+     */
+    fun buildCatchupUrlCandidatesWithFallback(
+        iptv: Iptv,
+        baseUrl: String,
+        window: CatchupWindow,
+    ): List<String> {
+        val candidates = mutableListOf<String>()
+        val primary = buildCatchupUrl(iptv, baseUrl, window)
+        if (primary.isNullOrBlank()) {
+            val fallback = renderCatchupTemplate(DefaultAppendTemplate, window.startMs, window.endMs, baseUrl)
+            addPrimaryAndNormalizedCandidates(candidates, fallback)
+        } else {
+            addPrimaryAndNormalizedCandidates(candidates, primary)
+        }
+        return candidates
     }
 
     fun clampWindow(
@@ -127,10 +144,28 @@ object IptvCatchup {
 
     /**
      * 参考 mytv-android `ChannelUtil.urlToCanPlayback`：多数 IPTV 直播流 URL 含 `pltv`，
-     * 回看需在拼接时间参数后将流类型改为 `tvod`，否则服务端仍按直播处理导致回看失败。
+     * 部分源在回看时需将路径段改为 `tvod`；这里仅生成兼容候选，不影响首选原始模板。
      */
-    private fun normalizeCatchupStreamUrl(url: String): String =
-        url.replace("pltv", "tvod", ignoreCase = true)
+    private fun normalizeCatchupStreamUrl(url: String): String {
+        // 仅替换路径段 /PLTV/，并尽量保持原始大小写风格，避免区分大小写的源站 404。
+        val pltvSegmentRegex = Regex("""(?i)(?<=/)pltv(?=/)""")
+        return pltvSegmentRegex.replace(url) { m ->
+            when (m.value) {
+                "PLTV" -> "TVOD"
+                "pltv" -> "tvod"
+                else -> "Tvod"
+            }
+        }
+    }
+
+    private fun addPrimaryAndNormalizedCandidates(out: MutableList<String>, primaryUrl: String) {
+        if (primaryUrl.isBlank()) return
+        out += primaryUrl
+        val normalized = normalizeCatchupStreamUrl(primaryUrl)
+        if (!normalized.equals(primaryUrl, ignoreCase = false)) {
+            out += normalized
+        }
+    }
 
     private fun formatTs(ts: Long, raw: String): String {
         val tzRegex = Regex("""\{(utc|local)}""", RegexOption.IGNORE_CASE)

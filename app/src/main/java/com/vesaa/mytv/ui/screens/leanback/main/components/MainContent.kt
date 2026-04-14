@@ -159,6 +159,7 @@ fun LeanbackMainContent(
             }
         }
     }
+    var pendingReplayFallbackUrls by remember { mutableStateOf<List<String>>(emptyList()) }
     val playReplayWindow = remember(mainContentState, resolveExtraStreamHeaders) {
         { targetIptv: Iptv, rawStartMs: Long, rawEndMs: Long, replayHint: String ->
             runCatching {
@@ -184,11 +185,14 @@ fun LeanbackMainContent(
                     LeanbackToastState.I.showToast("当前频道播放地址为空")
                     return@runCatching
                 }
-                val replayUrl = IptvCatchup.buildCatchupUrlWithFallback(iptv, baseUrl, window)
-                if (replayUrl.isBlank()) {
+                val replayCandidates =
+                    IptvCatchup.buildCatchupUrlCandidatesWithFallback(iptv, baseUrl, window)
+                if (replayCandidates.isEmpty()) {
                     LeanbackToastState.I.showToast("该源未提供回看地址模板")
                     return@runCatching
                 }
+                val replayUrl = replayCandidates.first()
+                pendingReplayFallbackUrls = replayCandidates.drop(1)
                 if (mainContentState.currentIptv != iptv) {
                     mainContentState.changeCurrentIptv(
                         iptv = iptv,
@@ -225,10 +229,23 @@ fun LeanbackMainContent(
     LaunchedEffect(mainContentState.playbackMode, videoPlayerState.error) {
         if (mainContentState.playbackMode != LeanbackMainContentState.PlaybackMode.REPLAY) {
             lastReplayError = ""
+            pendingReplayFallbackUrls = emptyList()
             return@LaunchedEffect
         }
         val err = videoPlayerState.error?.trim().orEmpty()
         if (err.isBlank() || err == lastReplayError) return@LaunchedEffect
+        val retryUrl = pendingReplayFallbackUrls.firstOrNull().orEmpty()
+        if (retryUrl.isNotBlank()) {
+            pendingReplayFallbackUrls = pendingReplayFallbackUrls.drop(1)
+            lastReplayError = ""
+            mainContentState.playCurrentIptvWithOverrideUrl(
+                overrideUrl = retryUrl,
+                streamRequestHeaders = resolveExtraStreamHeaders(mainContentState.currentIptv),
+                replayHint = mainContentState.replayHint.ifBlank { "回看中" },
+            )
+            LeanbackToastState.I.showToast("回看首地址失败，正在尝试兼容地址")
+            return@LaunchedEffect
+        }
         lastReplayError = err
         LeanbackToastState.I.showToast(replayErrorTip(err))
     }
