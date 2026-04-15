@@ -15,6 +15,7 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.common.util.Util
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.DefaultHttpDataSource
+import androidx.media3.datasource.rtmp.RtmpDataSource
 import androidx.media3.exoplayer.DecoderReuseEvaluation
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON
@@ -97,10 +98,13 @@ class LeanbackMedia3VideoPlayer(
         val headers = streamRequestHeaders ?: activeStreamRequestHeaders
         val dataSourceFactory =
             DefaultDataSource.Factory(context, httpDataSourceFactory(uri, headers))
+        val isRtmp = uri.scheme.equals("rtmp", ignoreCase = true)
 
         val mediaItem = MediaItem.fromUri(uri)
 
-        val mediaSource = when (val type = contentType ?: Util.inferContentType(uri)) {
+        val mediaSource = if (isRtmp) {
+            ProgressiveMediaSource.Factory(RtmpDataSource.Factory()).createMediaSource(mediaItem)
+        } else when (val type = contentType ?: Util.inferContentType(uri)) {
             C.CONTENT_TYPE_HLS -> {
                 HlsMediaSource.Factory(dataSourceFactory).createMediaSource(mediaItem)
             }

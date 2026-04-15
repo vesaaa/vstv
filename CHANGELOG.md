@@ -4,6 +4,11 @@
 
 > **说明**：本文件仍由人编写条目，**不会由机器人自动撰写内容**。推送 **Release 标签**（`v*.*.*`）时，GitHub Actions 会检查 `CHANGELOG.md` 中是否已有对应章节 **`## [x.y.z]`**（`x.y.z` 为标签去掉 `v`/`tv-` 及预发布后缀 `-…` 的核心版本）；**未写入则 Release 构建失败**，避免发版记录遗漏。**GitHub Release 页面上的版本说明**会**自动截取并发布本文件中该版本章节全文**（不再使用仅含提交列表与「Full Changelog」链接的自动生成说明）。若需对照历史，见 [GitHub Releases](https://github.com/vesaaa/vstv/releases)。
 
+## [1.9.6] - 2026-04-14
+
+- **RTMP 直播源解析**：M3U 解析器新增 `rtmp://` 协议识别，RTMP 频道不再被当作无效地址过滤。
+- **RTMP 播放支持**：播放器新增 `media3-datasource-rtmp` 依赖，并在 `rtmp://` 场景下使用 `RtmpDataSource` 发起拉流。
+
 ## [1.9.5] - 2026-04-14
 
 - **回看地址优先级调整**：回看时优先使用源内 `catchup-source` 原始地址发起请求，不再在首请求阶段强制改写 `PLTV -> TVOD`。
