@@ -224,6 +224,7 @@ private fun LeanbackClassicPanelIptvItem(
                     .pointerInput(iptv, itemKeyTokenProvider()) {
                         detectTapGestures(
                             onTap = { onSelected() },
+                            onLongPress = { onFavoriteToggle() },
                         )
                     },
                 colors = ListItemDefaults.colors(
