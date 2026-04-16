@@ -99,7 +99,7 @@ fun LeanbackPanelIptvItem(
                     if (isFocused) onShowEpg()
                     else focusRequester.requestFocus()
                 },
-            ),
+            )
             .pointerInput(iptv) {
                 detectTapGestures(
                     onLongPress = { onIptvFavoriteToggle() },
