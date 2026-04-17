@@ -10,10 +10,10 @@ class M3uIptvParser : IptvParser {
     private val extinfSplitRegex = Regex("""\s+(?=#EXTINF)""")
 
     private val streamUrlPrefix =
-        Regex("""^(rtsp|rtmp|https?|udp)://""", RegexOption.IGNORE_CASE)
+        Regex("""^(rtsp|rtmp|rtp|https?|udp)://""", RegexOption.IGNORE_CASE)
 
     private val streamUrlInExtinf =
-        Regex("""\b(rtsp|rtmp|https?|udp)://[^\s#]+""", RegexOption.IGNORE_CASE)
+        Regex("""\b(rtsp|rtmp|rtp|https?|udp)://[^\s#]+""", RegexOption.IGNORE_CASE)
 
     override fun isSupport(url: String, data: String): Boolean {
         val normalized = data.trimStart('\uFEFF')

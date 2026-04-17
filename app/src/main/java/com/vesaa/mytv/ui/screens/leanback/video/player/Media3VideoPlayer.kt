@@ -99,12 +99,19 @@ class LeanbackMedia3VideoPlayer(
         val dataSourceFactory =
             DefaultDataSource.Factory(context, httpDataSourceFactory(uri, headers))
         val isRtmp = uri.scheme.equals("rtmp", ignoreCase = true)
+        // rtp:// 与 udp:// 在 IPTV 场景下传输层相同，ExoPlayer UdpDataSource 可直接处理；
+        // 仅重写 scheme，端口/地址保持不变。
+        val effectiveUri = if (uri.scheme.equals("rtp", ignoreCase = true)) {
+            uri.buildUpon().scheme("udp").build()
+        } else {
+            uri
+        }
 
-        val mediaItem = MediaItem.fromUri(uri)
+        val mediaItem = MediaItem.fromUri(effectiveUri)
 
         val mediaSource = if (isRtmp) {
             ProgressiveMediaSource.Factory(RtmpDataSource.Factory()).createMediaSource(mediaItem)
-        } else when (val type = contentType ?: Util.inferContentType(uri)) {
+        } else when (val type = contentType ?: Util.inferContentType(effectiveUri)) {
             C.CONTENT_TYPE_HLS -> {
                 HlsMediaSource.Factory(dataSourceFactory).createMediaSource(mediaItem)
             }
@@ -141,7 +148,7 @@ class LeanbackMedia3VideoPlayer(
             lastRenderedFpsElapsedMs = 0L
             metadata = metadata.copy(zapLatencyMs = null, videoRenderedFps = 0f)
             triggerMetadata(metadata)
-            contentTypeAttempts[contentType ?: Util.inferContentType(uri)] = true
+            contentTypeAttempts[contentType ?: Util.inferContentType(effectiveUri)] = true
             videoPlayer.setMediaSource(mediaSource)
             videoPlayer.prepare()
             triggerPrepared()
