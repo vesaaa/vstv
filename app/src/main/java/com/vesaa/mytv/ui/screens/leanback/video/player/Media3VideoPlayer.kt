@@ -17,6 +17,7 @@ import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.datasource.rtmp.RtmpDataSource
 import androidx.media3.exoplayer.DecoderReuseEvaluation
+import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON
 import androidx.media3.exoplayer.ExoPlayer
@@ -43,12 +44,30 @@ class LeanbackMedia3VideoPlayer(
     private val context: Context,
     private val coroutineScope: CoroutineScope,
 ) : LeanbackVideoPlayer(coroutineScope) {
+    // IPTV 场景优化的缓冲策略：
+    // - min 60s / max 120s：允许更积极地持续下载，扩大后续缓冲，抵御网络抖动
+    // - bufferForPlayback 保持 2.5s：不影响首次启动速度
+    // - prioritizeTimeOverSizeThresholds=true：高码率流不会因字节上限提前停止下载
+    // - backBuffer=0：直播无需保留历史回看缓冲，节省内存
+    private val loadControl = DefaultLoadControl.Builder()
+        .setBufferDurationsMs(
+            60_000,
+            120_000,
+            DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_MS,
+            DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS,
+        )
+        .setPrioritizeTimeOverSizeThresholds(true)
+        .setBackBuffer(0, false)
+        .build()
+
     private val videoPlayer = ExoPlayer.Builder(
         context,
         DefaultRenderersFactory(context).setExtensionRendererMode(EXTENSION_RENDERER_MODE_ON)
-    ).build().apply {
-        playWhenReady = true
-    }
+    )
+        .setLoadControl(loadControl)
+        .build().apply {
+            playWhenReady = true
+        }
 
     private val contentTypeAttempts = mutableMapOf<Int, Boolean>()
     private var updatePositionJob: Job? = null

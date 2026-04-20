@@ -4,6 +4,11 @@
 
 > **说明**：本文件仍由人编写条目，**不会由机器人自动撰写内容**。推送 **Release 标签**（`v*.*.*`）时，GitHub Actions 会检查 `CHANGELOG.md` 中是否已有对应章节 **`## [x.y.z]`**（`x.y.z` 为标签去掉 `v`/`tv-` 及预发布后缀 `-…` 的核心版本）；**未写入则 Release 构建失败**，避免发版记录遗漏。**GitHub Release 页面上的版本说明**会**自动截取并发布本文件中该版本章节全文**（不再使用仅含提交列表与「Full Changelog」链接的自动生成说明）。若需对照历史，见 [GitHub Releases](https://github.com/vesaaa/vstv/releases)。
 
+## [1.9.9] - 2026-04-20
+
+- **播放器缓冲策略优化**：针对 IPTV 场景自定义 `LoadControl`，将 Media3 默认的 `max 50s` 缓冲上限提升到 `min 60s / max 120s`，允许播放器更积极地持续下载数据，扩大后续缓冲，以抵御网络抖动造成的短时卡顿。
+- **字节阈值优先级调整**：启用 `prioritizeTimeOverSizeThresholds`，高码率流不再因字节上限提前停止下载；同时关闭 back buffer，直播场景下节省内存。首次启动缓冲保持默认，切台速度不受影响。
+
 ## [1.9.8] - 2026-04-17
 
 - **RTP 直播源解析**：M3U 解析器新增 `rtp://` 协议识别，电信 IPTV 等 RTP 组播地址不再被过滤。
