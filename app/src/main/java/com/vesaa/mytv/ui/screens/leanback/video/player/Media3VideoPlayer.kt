@@ -126,7 +126,22 @@ class LeanbackMedia3VideoPlayer(
             uri
         }
 
-        val mediaItem = MediaItem.fromUri(effectiveUri)
+        // 针对直播 HLS/DASH 的起播位置优化：
+        // 将目标延迟设为 24s 后于 live edge（窗口通常 30s），换取开播时就有 ~24s 的可下载余量；
+        // 配合 0.97x~1.03x 的动态变速，自动稳住与 live edge 的距离，降低网络抖动造成的卡顿。
+        // 非直播或短直播窗口场景下，LiveConfiguration 会被 MediaSource 按 min/max 自动收敛。
+        val mediaItem = MediaItem.Builder()
+            .setUri(effectiveUri)
+            .setLiveConfiguration(
+                MediaItem.LiveConfiguration.Builder()
+                    .setTargetOffsetMs(24_000L)
+                    .setMinOffsetMs(12_000L)
+                    .setMaxOffsetMs(28_000L)
+                    .setMinPlaybackSpeed(0.97f)
+                    .setMaxPlaybackSpeed(1.03f)
+                    .build()
+            )
+            .build()
 
         val mediaSource = if (isRtmp) {
             ProgressiveMediaSource.Factory(RtmpDataSource.Factory()).createMediaSource(mediaItem)
