@@ -8,7 +8,6 @@ import coil.Coil
 import coil.ImageLoader
 import coil.disk.DiskCache
 import coil.memory.MemoryCache
-import com.vesaa.mytv.BuildConfig
 import com.vesaa.mytv.data.work.EpgRefreshWorkScheduler
 import com.vesaa.mytv.ui.utils.SP
 
@@ -21,9 +20,7 @@ class MyTVApplication : Application() {
         AppGlobal.cacheDir = applicationContext.cacheDir
         SP.init(applicationContext)
 
-        if (BuildConfig.CHANNEL_LOGOS_ENABLED) {
-            initCoilImageLoader()
-        }
+        initCoilImageLoader()
 
         EpgRefreshWorkScheduler.schedule(this)
     }

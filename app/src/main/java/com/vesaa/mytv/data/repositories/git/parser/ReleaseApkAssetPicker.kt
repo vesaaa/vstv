@@ -5,22 +5,19 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 
 /**
- * Release 含多个 APK 时，自动更新应下载与当前安装类型一致的包：
- * - 常规：`vstv-x.y.z-all-sdk21.apk`（不以 `-HarmonyOS` / `-lite` 结尾）
- * - lite（无台标）：`vstv-x.y.z-all-sdk21-lite.apk`
+ * Release 含多个 APK 时，自动更新默认下载 **常规 vstv** 包：`vstv-x.y.z-all-sdk21.apk`
+ *（不以 `-HarmonyOS`、`-disguised` 等变体后缀结尾）。HarmonyOS 变体需用户手动选择下载。
+ *
+ * 历史上还有 `-lite.apk`（已在 1.9.14 移除编译），和 `-original.apk`（更早命名，仍兼容）。
+ * 这些旧附件名不再匹配常规包，用户仍可从 Release 页手动下载。
  */
-fun JsonArray.pickVstvDefaultApkBrowserUrl(preferLiteApk: Boolean = false): String? {
+fun JsonArray.pickVstvDefaultApkBrowserUrl(): String? {
     val apkPairs = mapNotNull { el ->
         val o = el.jsonObject
         val name = o["name"]?.jsonPrimitive?.content ?: return@mapNotNull null
         val url = o["browser_download_url"]?.jsonPrimitive?.content ?: return@mapNotNull null
         if (!name.endsWith(".apk", ignoreCase = true)) return@mapNotNull null
         name to url
-    }
-    if (preferLiteApk) {
-        apkPairs.firstOrNull { (name, _) ->
-            name.endsWith("-all-sdk21-lite.apk", ignoreCase = true)
-        }?.second?.let { return it }
     }
     apkPairs.firstOrNull { (name, _) ->
         name.endsWith("-all-sdk21.apk", ignoreCase = true) &&

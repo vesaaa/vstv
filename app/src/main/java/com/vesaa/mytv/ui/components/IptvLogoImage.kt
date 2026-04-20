@@ -15,7 +15,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil.compose.SubcomposeAsyncImage
 import coil.request.ImageRequest
-import com.vesaa.mytv.BuildConfig
 
 /**
  * 频道台标：依赖 M3U `tvg-logo` 写入 [com.vesaa.mytv.data.entities.Iptv.logoUrl]。
@@ -31,7 +30,7 @@ fun IptvLogoImage(
     modifier: Modifier = Modifier,
     size: Dp = 40.dp,
 ) {
-    if (!BuildConfig.CHANNEL_LOGOS_ENABLED || logoUrl.isBlank()) return
+    if (logoUrl.isBlank()) return
     val context = LocalContext.current
     val density = LocalDensity.current
     val decodeSidePx = remember(size, density) {

@@ -4,6 +4,13 @@
 
 > **说明**：本文件仍由人编写条目，**不会由机器人自动撰写内容**。推送 **Release 标签**（`v*.*.*`）时，GitHub Actions 会检查 `CHANGELOG.md` 中是否已有对应章节 **`## [x.y.z]`**（`x.y.z` 为标签去掉 `v`/`tv-` 及预发布后缀 `-…` 的核心版本）；**未写入则 Release 构建失败**，避免发版记录遗漏。**GitHub Release 页面上的版本说明**会**自动截取并发布本文件中该版本章节全文**（不再使用仅含提交列表与「Full Changelog」链接的自动生成说明）。若需对照历史，见 [GitHub Releases](https://github.com/vesaaa/vstv/releases)。
 
+## [1.9.14] - 2026-04-20
+
+- **移除 lite 编译变体**：Gradle 端删除 `logo` flavor 维度与 `withLogo` / `lite` 两个产品，仅保留 `dist` 维度的 `original`、`disguised`。所有编译产物默认开启频道台标（Coil）。发布产物由 3 个 APK 精简为 2 个（常规 + HarmonyOS）。
+- **代码清理**：移除 `BuildConfig.CHANNEL_LOGOS_ENABLED` 及其所有条件分支（`MyTVApplication`、`IptvLogoImage`、`PanelIptvItem`、`ClassicPanelIptvList` 等）；`ReleaseApkAssetPicker` 去除 `preferLiteApk` 参数；两个 Git 仓库解析器不再按 lite 区分更新附件。
+- **CI 工作流同步**：`.github/workflows/release.yml` 改为 `copy_flavor "original"` / `copy_flavor "disguised"`，不再打包 lite APK。
+- **兼容性提示**：已安装 lite 包的用户，检查更新时会自动拉取常规版 APK 覆盖升级；包名不变，设置/频道数据不丢失。
+
 ## [1.9.13] - 2026-04-20
 
 - **回滚直播起播干预**：撤销 1.9.11、1.9.12 引入的 `MediaItem.LiveConfiguration` 自定义目标延迟、变速微调，以及 HLS m3u8 窗口探测/缓存逻辑。实测发现对带宽接近码率的源并无改善，反而增加了复杂度；改回 Media3 原生默认的直播起播行为（`3 × targetDuration`，约 18s 延迟），让播放器自己处理直播窗口。

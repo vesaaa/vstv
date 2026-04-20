@@ -52,7 +52,6 @@ import com.vesaa.mytv.data.entities.EpgProgrammeCurrent
 import com.vesaa.mytv.data.entities.Iptv
 import com.vesaa.mytv.data.entities.IptvGroup
 import com.vesaa.mytv.data.entities.IptvList
-import com.vesaa.mytv.BuildConfig
 import com.vesaa.mytv.ui.components.IptvLogoImage
 import com.vesaa.mytv.ui.theme.LeanbackTheme
 import com.vesaa.mytv.ui.utils.handleLeanbackKeyEvents
@@ -236,7 +235,7 @@ private fun LeanbackClassicPanelIptvItem(
                 selected = isSelectedProvider(),
                 // 触摸由 ListItem 消费，避免与 ClassicPanel 外层「点空白关闭」手势冲突导致闪退
                 onClick = { onSelected() },
-                leadingContent = if (BuildConfig.CHANNEL_LOGOS_ENABLED && iptv.logoUrl.isNotBlank()) {
+                leadingContent = if (iptv.logoUrl.isNotBlank()) {
                     {
                         IptvLogoImage(
                             logoUrl = iptv.logoUrl,
