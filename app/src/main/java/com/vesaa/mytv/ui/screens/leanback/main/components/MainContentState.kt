@@ -171,9 +171,15 @@ class LeanbackMainContentState(
         videoPlayerState.onCutoff {
             val now = SystemClock.elapsedRealtime()
             val suppressAutoRetry = now < suppressAutoRetryUntilElapsedMs
-            if (_currentIptv.urlList.isNotEmpty() && !suppressAutoRetry) {
-                changeCurrentIptv(_currentIptv, _currentIptvUrlIdx, reason = ChangeReason.CUTOFF_RETRY)
+            if (_currentIptv.urlList.isEmpty() || suppressAutoRetry) return@onCutoff
+
+            // 有下一条线路 → 切下一条；已是最后一条（或单线路）→ 重新 prepare 同线路重连
+            val nextIdx = if (_currentIptvUrlIdx < _currentIptv.urlList.size - 1) {
+                _currentIptvUrlIdx + 1
+            } else {
+                _currentIptvUrlIdx
             }
+            changeCurrentIptv(_currentIptv, nextIdx, reason = ChangeReason.CUTOFF_RETRY)
         }
     }
 

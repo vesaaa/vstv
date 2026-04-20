@@ -15,7 +15,6 @@ abstract class LeanbackVideoPlayer(
 ) : Loggable() {
     private var loadTimeoutJob: Job? = null
     private var cutoffTimeoutJob: Job? = null
-    private var currentPosition = -1L
 
     protected var metadata = Metadata()
 
@@ -82,8 +81,25 @@ abstract class LeanbackVideoPlayer(
         loadTimeoutJob?.cancel()
     }
 
+    /**
+     * 事件驱动的「持续缓冲超时」检测：进入 STATE_BUFFERING 时启动倒计时，
+     * 离开时取消；到期视作频道持续拉不到数据，触发 cutoff 由上层决定切换/提示。
+     *
+     * 取代了此前按 1Hz 轮询 `currentPosition` 的推断式实现 —— 该实现既无法区分
+     * "真正卡顿"与"正在缓冲"，且 cutoff 只会重新 prepare 同线路，实际意义有限。
+     */
     protected fun triggerBuffering(buffering: Boolean) {
         onBufferingListeners.forEach { it(buffering) }
+        if (buffering) {
+            cutoffTimeoutJob?.cancel()
+            cutoffTimeoutJob = coroutineScope.launch {
+                delay(SP.videoPlayerLoadTimeout)
+                triggerCutoff()
+            }
+        } else {
+            cutoffTimeoutJob?.cancel()
+            cutoffTimeoutJob = null
+        }
     }
 
     protected fun triggerPrepared() {
@@ -99,17 +115,6 @@ abstract class LeanbackVideoPlayer(
 
     protected fun triggerMetadata(metadata: Metadata) {
         onMetadataListeners.forEach { it(metadata) }
-    }
-
-    protected fun triggerCurrentPosition(newPosition: Long) {
-        if (currentPosition != newPosition) {
-            cutoffTimeoutJob?.cancel()
-            cutoffTimeoutJob = coroutineScope.launch {
-                delay(SP.videoPlayerLoadTimeout)
-                triggerCutoff()
-            }
-        }
-        currentPosition = newPosition
     }
 
     protected fun triggerCutoff() {

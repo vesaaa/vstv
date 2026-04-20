@@ -46,14 +46,15 @@ class LeanbackMedia3VideoPlayer(
 ) : LeanbackVideoPlayer(coroutineScope) {
     // IPTV 场景优化的缓冲策略：
     // - min 60s / max 120s：允许更积极地持续下载，扩大后续缓冲，抵御网络抖动
-    // - bufferForPlayback 保持 2.5s：不影响首次启动速度
+    // - bufferForPlayback 1.5s：更快出画，换台体验更好（默认 2.5s）
+    // - bufferForPlaybackAfterRebuffer 保持 5s：rebuffer 后稳一些再播
     // - prioritizeTimeOverSizeThresholds=true：高码率流不会因字节上限提前停止下载
     // - backBuffer=0：直播无需保留历史回看缓冲，节省内存
     private val loadControl = DefaultLoadControl.Builder()
         .setBufferDurationsMs(
             60_000,
             120_000,
-            DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_MS,
+            1_500,
             DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS,
         )
         .setPrioritizeTimeOverSizeThresholds(true)
@@ -70,7 +71,6 @@ class LeanbackMedia3VideoPlayer(
         }
 
     private val contentTypeAttempts = mutableMapOf<Int, Boolean>()
-    private var updatePositionJob: Job? = null
     private var parseRetryJob: Job? = null
     private var boundSurfaceView: SurfaceView? = null
     private var boundTextureView: TextureView? = null
@@ -172,8 +172,6 @@ class LeanbackMedia3VideoPlayer(
             videoPlayer.prepare()
             triggerPrepared()
         }
-        updatePositionJob?.cancel()
-        updatePositionJob = null
     }
 
     private val playerListener = object : Player.Listener {
@@ -236,15 +234,6 @@ class LeanbackMedia3VideoPlayer(
                     awaitingFirstReadyAfterPrepare = false
                 }
                 triggerReady()
-
-                updatePositionJob?.cancel()
-                updatePositionJob = coroutineScope.launch {
-                    triggerCurrentPosition(-1)
-                    while (true) {
-                        triggerCurrentPosition(videoPlayer.currentPosition)
-                        delay(1000)
-                    }
-                }
             }
 
             if (playbackState != Player.STATE_BUFFERING) {
@@ -386,8 +375,6 @@ class LeanbackMedia3VideoPlayer(
     override fun onDeactivate() {
         parseRetryJob?.cancel()
         parseRetryJob = null
-        updatePositionJob?.cancel()
-        updatePositionJob = null
         videoPlayer.stop()
         videoPlayer.clearMediaItems()
         triggerBuffering(false)
