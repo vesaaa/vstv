@@ -4,6 +4,12 @@
 
 > **说明**：本文件仍由人编写条目，**不会由机器人自动撰写内容**。推送 **Release 标签**（`v*.*.*`）时，GitHub Actions 会检查 `CHANGELOG.md` 中是否已有对应章节 **`## [x.y.z]`**（`x.y.z` 为标签去掉 `v`/`tv-` 及预发布后缀 `-…` 的核心版本）；**未写入则 Release 构建失败**，避免发版记录遗漏。**GitHub Release 页面上的版本说明**会**自动截取并发布本文件中该版本章节全文**（不再使用仅含提交列表与「Full Changelog」链接的自动生成说明）。若需对照历史，见 [GitHub Releases](https://github.com/vesaaa/vstv/releases)。
 
+## [1.9.13] - 2026-04-20
+
+- **回滚直播起播干预**：撤销 1.9.11、1.9.12 引入的 `MediaItem.LiveConfiguration` 自定义目标延迟、变速微调，以及 HLS m3u8 窗口探测/缓存逻辑。实测发现对带宽接近码率的源并无改善，反而增加了复杂度；改回 Media3 原生默认的直播起播行为（`3 × targetDuration`，约 18s 延迟），让播放器自己处理直播窗口。
+- **保留的参数微调**：仍维持 1.9.10 的 `LoadControl` 调整（min 60s / max 120s、`bufferForPlayback` 1.5s、`prioritizeTimeOverSizeThresholds=true`、`backBuffer=0`），以及事件驱动的持续缓冲超时换线路逻辑。这些是轻量的参数级微调，不改变直播起播语义。
+- **代码清理**：删除 `HlsWindowCache.kt`、`HlsWindowProbe.kt`，`Media3VideoPlayer` 的 prepare 流程回到 1.9.10 的简洁形态。
+
 ## [1.9.12] - 2026-04-20
 
 - **按源自适应的直播起播位置**：切台时先查缓存拿到该频道实际的 HLS 滑动窗口尺寸，再计算出最优 `LiveConfiguration`（目标延迟 ≈ 窗口末端回撤 3s）。3 分片的短窗口源、5 分片的 30s 窗口源、10 分片以上的长窗口源都能拿到各自最适合的起播点，不再被全局 24s 硬编码"将就"。

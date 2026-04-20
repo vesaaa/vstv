@@ -30,11 +30,9 @@ import androidx.media3.exoplayer.source.ProgressiveMediaSource
 import androidx.media3.exoplayer.util.EventLogger
 import androidx.media3.exoplayer.video.VideoFrameMetadataListener
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import com.vesaa.mytv.ui.utils.SP
 import com.vesaa.mytv.utils.IptvOutboundHeaderPolicy
 import com.vesaa.mytv.utils.normalizeIptvRequestHeadersInput
@@ -74,7 +72,6 @@ class LeanbackMedia3VideoPlayer(
 
     private val contentTypeAttempts = mutableMapOf<Int, Boolean>()
     private var parseRetryJob: Job? = null
-    private var prepareFetchJob: Job? = null
     private var boundSurfaceView: SurfaceView? = null
     private var boundTextureView: TextureView? = null
     private var latestZapStartElapsedMs: Long = 0L
@@ -86,12 +83,6 @@ class LeanbackMedia3VideoPlayer(
     /** 同一次播放会话内重试容器类型时沿用（收藏夹 per-entry 头等） */
     private var activeStreamRequestHeaders: String? = null
     private var parseErrorRetryUsed = false
-
-    /**
-     * 当前会话使用的直播起播配置。公共 prepare 根据源类型与缓存决定；容器类型/解析重试
-     * 会沿用该值（同一 URL 的窗口尺寸不会变）。
-     */
-    private var activeLiveConfig: MediaItem.LiveConfiguration = DEFAULT_LIVE_CONFIG
 
     @OptIn(UnstableApi::class)
     private fun httpDataSourceFactory(uri: Uri, streamRequestHeaders: String?): DefaultHttpDataSource.Factory =
@@ -135,12 +126,7 @@ class LeanbackMedia3VideoPlayer(
             uri
         }
 
-        // activeLiveConfig 由公共 prepare 根据 URL 缓存计算；容器类型/解析重试
-        // 沿用该值（同一 URL 的窗口尺寸不会变）。详见 computeLiveConfig。
-        val mediaItem = MediaItem.Builder()
-            .setUri(effectiveUri)
-            .setLiveConfiguration(activeLiveConfig)
-            .build()
+        val mediaItem = MediaItem.fromUri(effectiveUri)
 
         val mediaSource = if (isRtmp) {
             ProgressiveMediaSource.Factory(RtmpDataSource.Factory()).createMediaSource(mediaItem)
@@ -356,7 +342,6 @@ class LeanbackMedia3VideoPlayer(
 
     override fun release() {
         parseRetryJob?.cancel()
-        prepareFetchJob?.cancel()
         videoPlayer.removeListener(playerListener)
         videoPlayer.removeAnalyticsListener(metadataListener)
         videoPlayer.removeAnalyticsListener(eventLogger)
@@ -372,32 +357,7 @@ class LeanbackMedia3VideoPlayer(
         parseErrorRetryUsed = false
         activeStreamRequestHeaders = streamRequestHeaders
         contentTypeAttempts.clear()
-        prepareFetchJob?.cancel()
-        prepareFetchJob = null
-
-        val uri = Uri.parse(url)
-        val inferredType = Util.inferContentType(uri)
-
-        // HLS：优先用之前缓存的窗口尺寸算出最优 LiveConfiguration；未命中则用默认（24s，
-        // 对常见 ~30s 窗口已经够用），同时在后台抓取 m3u8 更新缓存以优化下一次切台。
-        activeLiveConfig = if (inferredType == C.CONTENT_TYPE_HLS) {
-            HlsWindowCache.get(context, url)?.let(::computeLiveConfig) ?: DEFAULT_LIVE_CONFIG
-        } else {
-            DEFAULT_LIVE_CONFIG
-        }
-
-        prepare(uri, null, streamRequestHeaders)
-
-        if (inferredType == C.CONTENT_TYPE_HLS) {
-            prepareFetchJob = coroutineScope.launch {
-                val windowMs = withContext(Dispatchers.IO) {
-                    HlsWindowProbe.fetchWindowMs(url, streamRequestHeaders)
-                }
-                if (windowMs != null) {
-                    HlsWindowCache.put(context, url, windowMs)
-                }
-            }
-        }
+        prepare(Uri.parse(url), null, streamRequestHeaders)
     }
 
     override fun play() {
@@ -415,8 +375,6 @@ class LeanbackMedia3VideoPlayer(
     override fun onDeactivate() {
         parseRetryJob?.cancel()
         parseRetryJob = null
-        prepareFetchJob?.cancel()
-        prepareFetchJob = null
         videoPlayer.stop()
         videoPlayer.clearMediaItems()
         triggerBuffering(false)
@@ -440,40 +398,5 @@ class LeanbackMedia3VideoPlayer(
         if (boundTextureView === textureView) return
         boundTextureView = textureView
         videoPlayer.setVideoTextureView(textureView)
-    }
-
-    companion object {
-        /**
-         * 兜底直播起播配置：目标延迟 24s、允许 12s~28s 漂移、±3% 变速。
-         * 适配常见 ~30s 滑动窗口的 IPTV 源；非直播源会被 MediaSource 自动忽略；
-         * 窗口远大于 30s 的源会在缓存建立后由 [computeLiveConfig] 计算出更优值替换。
-         */
-        private val DEFAULT_LIVE_CONFIG: MediaItem.LiveConfiguration =
-            MediaItem.LiveConfiguration.Builder()
-                .setTargetOffsetMs(24_000L)
-                .setMinOffsetMs(12_000L)
-                .setMaxOffsetMs(28_000L)
-                .setMinPlaybackSpeed(0.97f)
-                .setMaxPlaybackSpeed(1.03f)
-                .build()
-
-        /**
-         * 根据探测到的 HLS 滑动窗口 [windowMs] 计算最优 LiveConfiguration：
-         * - 目标延迟：窗口末端再回撤 3s（留出抓包/seek 容错），并限制在 12s~60s 区间
-         * - 最小延迟：目标的一半，并不低于 6s（避免贴 live edge）
-         * - 最大延迟：窗口末端再回撤 1.5s，但不低于目标 +0.5s（保证 min ≤ target ≤ max）
-         */
-        private fun computeLiveConfig(windowMs: Long): MediaItem.LiveConfiguration {
-            val target = (windowMs - 3_000L).coerceIn(12_000L, 60_000L)
-            val min = (target / 2).coerceAtLeast(6_000L).coerceAtMost(target)
-            val max = (windowMs - 1_500L).coerceAtLeast(target + 500L)
-            return MediaItem.LiveConfiguration.Builder()
-                .setTargetOffsetMs(target)
-                .setMinOffsetMs(min)
-                .setMaxOffsetMs(max)
-                .setMinPlaybackSpeed(0.97f)
-                .setMaxPlaybackSpeed(1.03f)
-                .build()
-        }
     }
 }
