@@ -4,6 +4,12 @@
 
 > **说明**：本文件仍由人编写条目，**不会由机器人自动撰写内容**。推送 **Release 标签**（`v*.*.*`）时，GitHub Actions 会检查 `CHANGELOG.md` 中是否已有对应章节 **`## [x.y.z]`**（`x.y.z` 为标签去掉 `v`/`tv-` 及预发布后缀 `-…` 的核心版本）；**未写入则 Release 构建失败**，避免发版记录遗漏。**GitHub Release 页面上的版本说明**会**自动截取并发布本文件中该版本章节全文**（不再使用仅含提交列表与「Full Changelog」链接的自动生成说明）。若需对照历史，见 [GitHub Releases](https://github.com/vesaaa/vstv/releases)。
 
+## [1.9.12] - 2026-04-20
+
+- **按源自适应的直播起播位置**：切台时先查缓存拿到该频道实际的 HLS 滑动窗口尺寸，再计算出最优 `LiveConfiguration`（目标延迟 ≈ 窗口末端回撤 3s）。3 分片的短窗口源、5 分片的 30s 窗口源、10 分片以上的长窗口源都能拿到各自最适合的起播点，不再被全局 24s 硬编码"将就"。
+- **后台异步探测 + 持久化缓存**：首次切到新频道时用默认 24s 兜底（不阻塞切台），同时后台抓取 m3u8 解析 `#EXTINF` 之和得到真实窗口并写入本地缓存；下次切回同一频道即可用最优配置即刻起播，零额外延迟。
+- **探测器与缓存隔离**：缓存使用独立 `SharedPreferences` 文件（`player_hls_window_cache`），容量上限 500 条，超出时 FIFO 淘汰；探测流程过滤主清单（`#EXT-X-STREAM-INF`）与 VOD（`#EXT-X-ENDLIST` / `PLAYLIST-TYPE:VOD`），只对直播 media playlist 生效。
+
 ## [1.9.11] - 2026-04-20
 
 - **HLS 直播抗抖动**：通过 `MediaItem.LiveConfiguration` 把直播起播点从默认的「live edge 后 ~18s」推到「live edge 后 24s」（min 12s / max 28s），充分利用服务器常见的 ~30s 滑动窗口，让开播时就有 24s 左右的缓冲余量，抵御网络抖动。
