@@ -15,7 +15,12 @@ data class CatchupWindow(
 )
 
 object IptvCatchup {
-    private const val MaxCatchupHours = 24
+    /**
+     * 全局最大回看上限（小时）。仅在源内没有声明 catchup-days 时作为默认值使用。
+     * 注意：不再用于截断源内声明的 catchup-days，避免运营商 7 天回看被错误截成 24 小时。
+     */
+    private const val DefaultMaxCatchupHours = 24
+    private const val AbsoluteMaxCatchupHours = 7 * 24  // 平台允许的绝对上限：7 天
     private const val DefaultAppendTemplate = "?playseek=\${(b)yyyyMMddHHmmss}-\${(e)yyyyMMddHHmmss}"
 
     enum class Capability {
@@ -25,15 +30,19 @@ object IptvCatchup {
     }
 
     fun maxCatchupHours(iptv: Iptv): Int {
-        val bySource = if (iptv.catchupDays > 0) iptv.catchupDays * 24 else MaxCatchupHours
-        return max(1, minOf(MaxCatchupHours, bySource))
+        // Bug fix: 之前用 minOf(MaxCatchupHours, bySource) 导致 catchup-days="7" 被截成 24 小时。
+        // 现在：有源内声明则尊重源内值（上限 7 天），无声明则用默认 24 小时。
+        val bySource = if (iptv.catchupDays > 0) iptv.catchupDays * 24 else DefaultMaxCatchupHours
+        return max(1, minOf(AbsoluteMaxCatchupHours, bySource))
     }
 
     fun capabilityOf(iptv: Iptv): Capability {
         if (iptv.catchupSource.trim().isNotEmpty()) return Capability.SUPPORTED_BY_TEMPLATE
         val hasDvrUrl = iptv.urlList.any { isLikelyDvrUrl(it) }
         if (hasDvrUrl) return Capability.SUPPORTED_BY_DVR_URL
-        if (iptv.catchup.trim().equals("append", ignoreCase = true)) {
+        // 与 pickTemplate 保持一致："default"/"flussonic"/"xc"/"append" 均视为支持模板
+        val catchupType = iptv.catchup.trim().lowercase()
+        if (catchupType in setOf("append", "default", "flussonic", "xc")) {
             return Capability.SUPPORTED_BY_TEMPLATE
         }
         return Capability.UNSUPPORTED
@@ -130,7 +139,12 @@ object IptvCatchup {
     private fun pickTemplate(iptv: Iptv): String {
         val explicit = iptv.catchupSource.trim()
         if (explicit.isNotEmpty()) return explicit
-        if (iptv.catchup.trim().equals("append", ignoreCase = true)) return DefaultAppendTemplate
+        // "append" / "default" / "flussonic" / "xc" 均使用 ?playseek= 模板追加方式，
+        // 与 Televizo、MyTV2、酷9 等主流播放器行为保持一致。
+        val catchupType = iptv.catchup.trim().lowercase()
+        if (catchupType in setOf("append", "default", "flussonic", "xc")) {
+            return DefaultAppendTemplate
+        }
         if (iptv.urlList.any { isLikelyDvrUrl(it) }) return DefaultAppendTemplate
         return ""
     }
