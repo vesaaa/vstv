@@ -2,6 +2,7 @@ package com.vesaa.mytv.ui.screens.leanback.video.player
 
 import android.content.Context
 import android.net.Uri
+import android.net.wifi.WifiManager
 import android.os.SystemClock
 import android.view.SurfaceView
 import android.view.TextureView
@@ -13,6 +14,7 @@ import androidx.media3.common.Player
 import androidx.media3.common.VideoSize
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.common.util.Util
+import androidx.media3.datasource.DataSource
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.datasource.rtmp.RtmpDataSource
@@ -44,12 +46,7 @@ class LeanbackMedia3VideoPlayer(
     private val context: Context,
     private val coroutineScope: CoroutineScope,
 ) : LeanbackVideoPlayer(coroutineScope) {
-    // IPTV 场景优化的缓冲策略：
-    // - min 60s / max 120s：允许更积极地持续下载，扩大后续缓冲，抵御网络抖动
-    // - bufferForPlayback 1.5s：更快出画，换台体验更好（默认 2.5s）
-    // - bufferForPlaybackAfterRebuffer 保持 5s：rebuffer 后稳一些再播
-    // - prioritizeTimeOverSizeThresholds=true：高码率流不会因字节上限提前停止下载
-    // - backBuffer=0：直播无需保留历史回看缓冲，节省内存
+    // IPTV 场景优化的缓冲策略（HTTP/HLS 等）
     private val loadControl = DefaultLoadControl.Builder()
         .setBufferDurationsMs(
             60_000,
@@ -61,14 +58,25 @@ class LeanbackMedia3VideoPlayer(
         .setBackBuffer(0, false)
         .build()
 
-    private val videoPlayer = ExoPlayer.Builder(
-        context,
+    // UDP/RTP 组播流专用缓冲策略：裸 UDP 无重传，起播需多缓冲
+    private val udpLoadControl = DefaultLoadControl.Builder()
+        .setBufferDurationsMs(60_000, 120_000, 3_000, 5_000)
+        .setPrioritizeTimeOverSizeThresholds(true)
+        .setBackBuffer(0, false)
+        .build()
+
+    private val renderersFactory =
         DefaultRenderersFactory(context).setExtensionRendererMode(EXTENSION_RENDERER_MODE_ON)
-    )
+
+    private var videoPlayer = ExoPlayer.Builder(context, renderersFactory)
         .setLoadControl(loadControl)
-        .build().apply {
-            playWhenReady = true
-        }
+        .build().apply { playWhenReady = true }
+
+    /** 当前是否使用 UDP 专用播放器（更大的起播缓冲） */
+    private var isUdpPlayer = false
+
+    /** 组播锁：Android 默认丢弃 Wi-Fi 组播包，播放 UDP/RTP 时必须持有 */
+    private var multicastLock: WifiManager.MulticastLock? = null
 
     private val contentTypeAttempts = mutableMapOf<Int, Boolean>()
     private var parseRetryJob: Job? = null
@@ -83,6 +91,48 @@ class LeanbackMedia3VideoPlayer(
     /** 同一次播放会话内重试容器类型时沿用（收藏夹 per-entry 头等） */
     private var activeStreamRequestHeaders: String? = null
     private var parseErrorRetryUsed = false
+
+    // ── MulticastLock 管理 ─────────────────────────────────────────
+
+    private fun acquireMulticastLock() {
+        if (multicastLock?.isHeld == true) return
+        try {
+            val wm = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
+            multicastLock = wm.createMulticastLock("iptv_udp").apply {
+                setReferenceCounted(false)
+                acquire()
+            }
+        } catch (_: Exception) { /* 部分有线盒子无 Wi-Fi 服务 */ }
+    }
+
+    private fun releaseMulticastLock() {
+        try { multicastLock?.let { if (it.isHeld) it.release() } } catch (_: Exception) { }
+        multicastLock = null
+    }
+
+    // ── 播放器实例切换（HTTP ⇆ UDP） ──────────────────────────────
+
+    private fun ensurePlayerForUdp(needUdp: Boolean) {
+        if (needUdp == isUdpPlayer) return
+        videoPlayer.removeListener(playerListener)
+        videoPlayer.removeAnalyticsListener(metadataListener)
+        videoPlayer.removeAnalyticsListener(eventLogger)
+        videoPlayer.setVideoFrameMetadataListener(noopVideoFrameMetadataListener)
+        videoPlayer.release()
+
+        videoPlayer = ExoPlayer.Builder(context, renderersFactory)
+            .setLoadControl(if (needUdp) udpLoadControl else loadControl)
+            .build().apply { playWhenReady = true }
+        videoPlayer.addListener(playerListener)
+        videoPlayer.addAnalyticsListener(metadataListener)
+        videoPlayer.addAnalyticsListener(eventLogger)
+        videoPlayer.setVideoFrameMetadataListener(videoFrameMetadataListener)
+        boundSurfaceView?.let { videoPlayer.setVideoSurfaceView(it) }
+        boundTextureView?.let { videoPlayer.setVideoTextureView(it) }
+        isUdpPlayer = needUdp
+    }
+
+    // ── DataSource 工厂 ───────────────────────────────────────────
 
     @OptIn(UnstableApi::class)
     private fun httpDataSourceFactory(uri: Uri, streamRequestHeaders: String?): DefaultHttpDataSource.Factory =
@@ -112,14 +162,22 @@ class LeanbackMedia3VideoPlayer(
             setAllowCrossProtocolRedirects(true)
         }
 
+    private fun isUdpOrRtp(uri: Uri): Boolean =
+        uri.scheme.equals("udp", ignoreCase = true) || uri.scheme.equals("rtp", ignoreCase = true)
+
+    // ── prepare ───────────────────────────────────────────────────
+
     @OptIn(UnstableApi::class)
     private fun prepare(uri: Uri, contentType: Int? = null, streamRequestHeaders: String? = null) {
         val headers = streamRequestHeaders ?: activeStreamRequestHeaders
-        val dataSourceFactory =
-            DefaultDataSource.Factory(context, httpDataSourceFactory(uri, headers))
         val isRtmp = uri.scheme.equals("rtmp", ignoreCase = true)
-        // rtp:// 与 udp:// 在 IPTV 场景下传输层相同，ExoPlayer UdpDataSource 可直接处理；
-        // 仅重写 scheme，端口/地址保持不变。
+        val isUdpRtp = isUdpOrRtp(uri)
+
+        // UDP/RTP 组播：切换到专用播放器 + 获取 MulticastLock
+        ensurePlayerForUdp(isUdpRtp)
+        if (isUdpRtp) acquireMulticastLock() else releaseMulticastLock()
+
+        // rtp:// → udp://（端口/地址保持不变）
         val effectiveUri = if (uri.scheme.equals("rtp", ignoreCase = true)) {
             uri.buildUpon().scheme("udp").build()
         } else {
@@ -130,17 +188,24 @@ class LeanbackMedia3VideoPlayer(
 
         val mediaSource = if (isRtmp) {
             ProgressiveMediaSource.Factory(RtmpDataSource.Factory()).createMediaSource(mediaItem)
+        } else if (isUdpRtp) {
+            // 自定义 MulticastUdpDataSource（2MB 接收缓冲区）
+            val udpFactory = DataSource.Factory { MulticastUdpDataSource() }
+            ProgressiveMediaSource.Factory(udpFactory).createMediaSource(mediaItem)
         } else when (val type = contentType ?: Util.inferContentType(effectiveUri)) {
             C.CONTENT_TYPE_HLS -> {
-                HlsMediaSource.Factory(dataSourceFactory).createMediaSource(mediaItem)
+                val dsf = DefaultDataSource.Factory(context, httpDataSourceFactory(uri, headers))
+                HlsMediaSource.Factory(dsf).createMediaSource(mediaItem)
             }
 
             C.CONTENT_TYPE_DASH -> {
-                DashMediaSource.Factory(dataSourceFactory).createMediaSource(mediaItem)
+                val dsf = DefaultDataSource.Factory(context, httpDataSourceFactory(uri, headers))
+                DashMediaSource.Factory(dsf).createMediaSource(mediaItem)
             }
 
             C.CONTENT_TYPE_SS -> {
-                SsMediaSource.Factory(dataSourceFactory).createMediaSource(mediaItem)
+                val dsf = DefaultDataSource.Factory(context, httpDataSourceFactory(uri, headers))
+                SsMediaSource.Factory(dsf).createMediaSource(mediaItem)
             }
 
             C.CONTENT_TYPE_RTSP -> {
@@ -148,7 +213,8 @@ class LeanbackMedia3VideoPlayer(
             }
 
             C.CONTENT_TYPE_OTHER -> {
-                ProgressiveMediaSource.Factory(dataSourceFactory).createMediaSource(mediaItem)
+                val dsf = DefaultDataSource.Factory(context, httpDataSourceFactory(uri, headers))
+                ProgressiveMediaSource.Factory(dsf).createMediaSource(mediaItem)
             }
 
             else -> {
@@ -173,6 +239,8 @@ class LeanbackMedia3VideoPlayer(
             triggerPrepared()
         }
     }
+
+    // ── Player 事件监听 ───────────────────────────────────────────
 
     private val playerListener = object : Player.Listener {
         override fun onVideoSizeChanged(videoSize: VideoSize) {
@@ -242,6 +310,8 @@ class LeanbackMedia3VideoPlayer(
         }
     }
 
+    // ── 元数据监听 ────────────────────────────────────────────────
+
     private val metadataListener = @UnstableApi object : AnalyticsListener {
         override fun onVideoInputFormatChanged(
             eventTime: AnalyticsListener.EventTime,
@@ -294,8 +364,9 @@ class LeanbackMedia3VideoPlayer(
             metadata = metadata.copy(audioDecoder = decoderName)
             triggerMetadata(metadata)
         }
-
     }
+
+    // ── FPS 统计 ──────────────────────────────────────────────────
 
     private val videoFrameMetadataListener = VideoFrameMetadataListener { presentationTimeUs, releaseTimeNs, format, mediaFormat ->
         val nowMs = SystemClock.elapsedRealtime()
@@ -332,6 +403,8 @@ class LeanbackMedia3VideoPlayer(
 
     private val eventLogger = EventLogger()
 
+    // ── 生命周期 ──────────────────────────────────────────────────
+
     override fun initialize() {
         super.initialize()
         videoPlayer.addListener(playerListener)
@@ -342,6 +415,7 @@ class LeanbackMedia3VideoPlayer(
 
     override fun release() {
         parseRetryJob?.cancel()
+        releaseMulticastLock()
         videoPlayer.removeListener(playerListener)
         videoPlayer.removeAnalyticsListener(metadataListener)
         videoPlayer.removeAnalyticsListener(eventLogger)
@@ -375,6 +449,7 @@ class LeanbackMedia3VideoPlayer(
     override fun onDeactivate() {
         parseRetryJob?.cancel()
         parseRetryJob = null
+        releaseMulticastLock()
         videoPlayer.stop()
         videoPlayer.clearMediaItems()
         triggerBuffering(false)

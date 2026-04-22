@@ -4,6 +4,13 @@
 
 > **说明**：本文件仍由人编写条目，**不会由机器人自动撰写内容**。推送 **Release 标签**（`v*.*.*`）时，GitHub Actions 会检查 `CHANGELOG.md` 中是否已有对应章节 **`## [x.y.z]`**（`x.y.z` 为标签去掉 `v`/`tv-` 及预发布后缀 `-…` 的核心版本）；**未写入则 Release 构建失败**，避免发版记录遗漏。**GitHub Release 页面上的版本说明**会**自动截取并发布本文件中该版本章节全文**（不再使用仅含提交列表与「Full Changelog」链接的自动生成说明）。若需对照历史，见 [GitHub Releases](https://github.com/vesaaa/vstv/releases)。
 
+## [1.9.17] - 2026-04-22
+
+- **优化 RTP/UDP 组播播放**：针对电信/联通运营商 IPTV 源（`rtp://`、`udp://`）的严重卡顿问题，做了三项核心修复：
+  - **MulticastLock 组播锁**：新增 `CHANGE_WIFI_MULTICAST_STATE` 权限，播放 UDP/RTP 流时自动获取组播锁，防止 Android 系统静默丢弃组播数据包。
+  - **自定义 MulticastUdpDataSource**：替代 ExoPlayer 默认的 `UdpDataSource`，socket 接收缓冲区从系统默认 128-256KB 提升至 2MB，使用 `MulticastSocket` 显式加入组播组，大幅降低高码率 TS 流的丢包率。
+  - **UDP 专用缓冲策略**：为 UDP/RTP 流使用独立的 `LoadControl`，起播缓冲从 1.5 秒提升到 3 秒，rebuffer 后缓冲 5 秒，适配无重传的裸 UDP 传输特性。
+
 ## [1.9.16] - 2026-04-22
 
 - **修复 S905/魔百盒闪退**：针对 Amlogic S905 系列芯片（含魔百盒）在 Android 5/9 上的启动闪退问题，做了三项防御性修复：
