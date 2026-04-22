@@ -93,6 +93,7 @@ fun LeanbackQuickPanelIptvChannelsDialog(
                         LeanbackQuickPanelIptvChannelItem(
                             url = url,
                             urlIndex = index,
+                            resolution = iptv.urlResolutionList.getOrNull(index),
                             isSelected = index == iptvUrlIdx,
                             focusRequester = focusRequester,
                             onSelect = {
@@ -112,6 +113,7 @@ private fun LeanbackQuickPanelIptvChannelItem(
     modifier: Modifier = Modifier,
     url: String,
     urlIndex: Int,
+    resolution: String? = null,
     isSelected: Boolean = false,
     focusRequester: FocusRequester = remember { FocusRequester() },
     onSelect: () -> Unit = {},
@@ -173,6 +175,13 @@ private fun LeanbackQuickPanelIptvChannelItem(
                         if (urlDelay != 0L) {
                             androidx.tv.material3.Text(
                                 text = "$urlDelay ms",
+                                modifier = textModifier,
+                            )
+                        }
+
+                        if (!resolution.isNullOrBlank()) {
+                            androidx.tv.material3.Text(
+                                text = resolution.uppercase(),
                                 modifier = textModifier,
                             )
                         }

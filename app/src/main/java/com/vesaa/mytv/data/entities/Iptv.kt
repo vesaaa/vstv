@@ -46,6 +46,11 @@ data class Iptv(
      * 最大回看天数（M3U catchup-days）
      */
     val catchupDays: Int = 0,
+
+    /**
+     * 各线路的分辨率（与 urlList 一一对应）
+     */
+    val urlResolutionList: List<String> = emptyList(),
 ) {
     companion object {
         val EXAMPLE = Iptv(
@@ -56,6 +61,7 @@ data class Iptv(
                 "http://dbiptv.sn.chinamobile.com/PLTV/88888890/224/3221226231/index.m3u8",
                 "http://[2409:8087:5e01:34::20]:6610/ZTE_CMS/00000001000000060000000000000131/index.m3u8?IAS",
             ),
+            urlResolutionList = listOf("1080P", "4K"),
         )
     }
 }

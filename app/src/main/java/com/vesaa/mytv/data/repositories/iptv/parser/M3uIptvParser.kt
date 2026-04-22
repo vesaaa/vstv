@@ -61,6 +61,7 @@ class M3uIptvParser : IptvParser {
             val catchup = Regex("""catchup="(.+?)"""").find(line)?.groupValues?.get(1)?.trim().orEmpty()
             val catchupSource = Regex("""catchup-source="(.+?)"""").find(line)?.groupValues?.get(1)?.trim().orEmpty()
             val catchupDays = Regex("""catchup-days="(.+?)"""").find(line)?.groupValues?.get(1)?.trim()?.toIntOrNull() ?: 0
+            val resolution = Regex("""x-resolution="(.+?)"""").find(line)?.groupValues?.get(1)?.trim().orEmpty()
 
             iptvList.add(
                 IptvResponseItem(
@@ -73,6 +74,7 @@ class M3uIptvParser : IptvParser {
                     catchup = catchup,
                     catchupSource = catchupSource,
                     catchupDays = catchupDays,
+                    resolution = resolution,
                 )
             )
 
@@ -93,6 +95,7 @@ class M3uIptvParser : IptvParser {
                         catchupSource = rows.firstOrNull { it.catchupSource.isNotBlank() }?.catchupSource.orEmpty(),
                         catchupDays = rows.maxOfOrNull { it.catchupDays } ?: 0,
                         urlList = rows.map { it.url },
+                        urlResolutionList = rows.map { it.resolution },
                     )
                 })
             )
@@ -127,5 +130,6 @@ class M3uIptvParser : IptvParser {
         val catchup: String,
         val catchupSource: String,
         val catchupDays: Int,
+        val resolution: String,
     )
 }
