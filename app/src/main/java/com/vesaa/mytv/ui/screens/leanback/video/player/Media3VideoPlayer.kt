@@ -40,6 +40,7 @@ import com.vesaa.mytv.utils.IptvOutboundHeaderPolicy
 import com.vesaa.mytv.utils.normalizeIptvRequestHeadersInput
 import com.vesaa.mytv.utils.parseHttpHeaderLines
 import androidx.media3.common.PlaybackException as Media3PlaybackException
+import kotlin.math.max
 
 @OptIn(UnstableApi::class)
 class LeanbackMedia3VideoPlayer(
@@ -486,10 +487,10 @@ class LeanbackMedia3VideoPlayer(
     override fun seekBack(offsetMs: Long) {
         val duration = videoPlayer.duration
         if (duration > 0 && duration != C.TIME_UNSET) {
-            videoPlayer.seekTo(max(0, duration - offsetMs))
+            videoPlayer.seekTo(max(0L, duration - offsetMs))
         } else {
             val current = videoPlayer.currentPosition
-            videoPlayer.seekTo(max(0, current - offsetMs))
+            videoPlayer.seekTo(max(0L, current - offsetMs))
         }
     }
 }
