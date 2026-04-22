@@ -39,9 +39,7 @@ object IptvCatchup {
 
     fun capabilityOf(iptv: Iptv): Capability {
         if (iptv.catchupSource.trim().isNotEmpty()) return Capability.SUPPORTED_BY_TEMPLATE
-        val hasDvrUrl = iptv.urlList.any { isLikelyDvrUrl(it) }
-        if (hasDvrUrl) return Capability.SUPPORTED_BY_DVR_URL
-        // 与 pickTemplate 保持一致："default"/"flussonic"/"xc"/"append" 均视为支持模板
+        val catchupType = iptv.catchup.trim().lowercase()
         if (catchupType in setOf("append", "default", "flussonic", "xc")) {
             return Capability.SUPPORTED_BY_TEMPLATE
         }
