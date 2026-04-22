@@ -46,6 +46,15 @@ abstract class LeanbackVideoPlayer(
     /** 分屏模式可改用 TextureView，避免部分电视上 SurfaceView 覆盖 UI 角标。 */
     abstract fun setVideoTextureView(textureView: TextureView)
 
+    /** 跳转到指定位置（毫秒） */
+    abstract fun seekTo(positionMs: Long)
+
+    /** 跳转到直播默认位置（通常为直播边缘） */
+    abstract fun seekToDefaultPosition()
+
+    /** 从当前边缘往回跳（毫秒） */
+    abstract fun seekBack(offsetMs: Long)
+
     private val onResolutionListeners = mutableListOf<(width: Int, height: Int) -> Unit>()
     private val onErrorListeners = mutableListOf<(error: PlaybackException?) -> Unit>()
     private val onReadyListeners = mutableListOf<() -> Unit>()

@@ -26,6 +26,7 @@ object IptvCatchup {
     enum class Capability {
         SUPPORTED_BY_TEMPLATE,
         SUPPORTED_BY_DVR_URL,
+        SUPPORTED_BY_DVR_SEEK,
         UNSUPPORTED,
     }
 
@@ -41,9 +42,12 @@ object IptvCatchup {
         val hasDvrUrl = iptv.urlList.any { isLikelyDvrUrl(it) }
         if (hasDvrUrl) return Capability.SUPPORTED_BY_DVR_URL
         // 与 pickTemplate 保持一致："default"/"flussonic"/"xc"/"append" 均视为支持模板
-        val catchupType = iptv.catchup.trim().lowercase()
         if (catchupType in setOf("append", "default", "flussonic", "xc")) {
             return Capability.SUPPORTED_BY_TEMPLATE
+        }
+        if (iptv.urlList.any { isLikelyDvrUrl(it) }) {
+            return if (pickTemplate(iptv) == "[DVR_SEEK]") Capability.SUPPORTED_BY_DVR_SEEK
+            else Capability.SUPPORTED_BY_DVR_URL
         }
         return Capability.UNSUPPORTED
     }
@@ -56,6 +60,7 @@ object IptvCatchup {
         return when (capabilityOf(iptv)) {
             Capability.SUPPORTED_BY_TEMPLATE -> "模板命中"
             Capability.SUPPORTED_BY_DVR_URL -> "DVR命中"
+            Capability.SUPPORTED_BY_DVR_SEEK -> "DVR时移(Seek)"
             Capability.UNSUPPORTED -> "不支持"
         }
     }
@@ -120,6 +125,7 @@ object IptvCatchup {
     }
 
     private fun renderCatchupTemplate(template: String, b: Long, e: Long, baseUrl: String): String {
+        if (template == "[DVR_SEEK]") return baseUrl
         val replaced = catchupTokenRegex.replace(template) { m ->
             val symbol = m.groupValues[1]
             val formatRaw = m.groupValues[2].ifBlank { "yyyyMMddHHmmss" }
@@ -145,7 +151,16 @@ object IptvCatchup {
         if (catchupType in setOf("append", "default", "flussonic", "xc")) {
             return DefaultAppendTemplate
         }
-        if (iptv.urlList.any { isLikelyDvrUrl(it) }) return DefaultAppendTemplate
+        if (iptv.urlList.any { isLikelyDvrUrl(it) }) {
+            val url = iptv.urlList.first { isLikelyDvrUrl(it) }.lowercase()
+            // 针对 rt-doc.rttv.com 等含有 /dvr/ 但不是中国运营商 pltv/tvod 风格的源，
+            // 默认优先尝试原生 HLS Seek 模式（[DVR_SEEK]），避免盲目追加 ?playseek= 导致 404。
+            return if ("/dvr/" in url && "pltv" !in url && "tvod" !in url) {
+                "[DVR_SEEK]"
+            } else {
+                DefaultAppendTemplate
+            }
+        }
         return ""
     }
 

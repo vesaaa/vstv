@@ -92,6 +92,18 @@ class LeanbackVideoPlayerState(
         instance.setVideoTextureView(textureView)
     }
 
+    fun seekTo(positionMs: Long) {
+        instance.seekTo(positionMs)
+    }
+
+    fun seekToDefaultPosition() {
+        instance.seekToDefaultPosition()
+    }
+
+    fun seekBack(offsetMs: Long) {
+        instance.seekBack(offsetMs)
+    }
+
     private val onReadyListeners = mutableListOf<() -> Unit>()
     private val onErrorListeners = mutableListOf<() -> Unit>()
     private val onCutoffListeners = mutableListOf<() -> Unit>()

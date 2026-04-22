@@ -55,6 +55,9 @@ class LeanbackMainContentState(
     private var _replayHint by mutableStateOf("")
     val replayHint get() = _replayHint
 
+    /** 待处理的回看跳转偏移量（毫秒）；用于 [IptvCatchup.Capability.SUPPORTED_BY_DVR_SEEK] 模式 */
+    private var pendingReplaySeekMs: Long? = null
+
     private var _isPanelVisible by mutableStateOf(false)
     var isPanelVisible
         get() = _isPanelVisible
@@ -142,6 +145,16 @@ class LeanbackMainContentState(
             if (_currentIptv.urlList.isNotEmpty()) {
                 val idx = _currentIptvUrlIdx.coerceIn(_currentIptv.urlList.indices)
                 SP.iptvPlayableHostList += getUrlHost(_currentIptv.urlList[idx])
+            }
+
+            // 处理 DVR Seek 逻辑：如果当前处于回看模式且有待跳转的偏移
+            pendingReplaySeekMs?.let { seekBackMs ->
+                log.d("检测到 DVR Seek 待处理，尝试跳转: -$seekBackMs ms")
+                coroutineScope.launch {
+                    delay(300) // 稍作延迟确保 HLS Timeline 已加载完毕并计算出有效时长
+                    videoPlayerState.seekBack(seekBackMs)
+                    pendingReplaySeekMs = null
+                }
             }
         }
 
@@ -299,13 +312,15 @@ class LeanbackMainContentState(
         overrideUrl: String,
         streamRequestHeaders: String? = null,
         replayHint: String = "回看中",
+        seekBackMs: Long? = null,
     ) {
         if (overrideUrl.isBlank()) return
         _isTempPanelVisible = true
         streamRequestHeadersForPlayback = streamRequestHeaders
         _playbackMode = PlaybackMode.REPLAY
         _replayHint = replayHint
-        log.d("回看播放${_currentIptv.name}: $overrideUrl")
+        pendingReplaySeekMs = seekBackMs
+        log.d("回看播放${_currentIptv.name} (seek: $seekBackMs): $overrideUrl")
         videoPlayerState.prepare(
             overrideUrl,
             streamRequestHeadersForPlayback?.trim()?.takeIf { it.isNotEmpty() },

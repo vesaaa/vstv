@@ -297,7 +297,7 @@ fun LeanbackQuickPanelReplayLeftSheet(
     val iptv = iptvProvider()
     val maxH = maxHoursProvider()
     val options = remember(maxH) {
-        listOf(15, 30, 60, 120, 1440).filter { it <= maxH * 60 }
+        listOf(1, 5, 10, 30, 60, 120, 240, 480, 1440).filter { it <= maxH * 60 }
     }
     val listState = remember(maxH) {
         TvLazyListState()

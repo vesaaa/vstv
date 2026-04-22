@@ -199,10 +199,17 @@ fun LeanbackMainContent(
                         streamRequestHeaders = resolveExtraStreamHeaders(iptv),
                     )
                 }
+                val capability = IptvCatchup.capabilityOf(iptv)
+                val seekBackMs = if (capability == IptvCatchup.Capability.SUPPORTED_BY_DVR_SEEK) {
+                    System.currentTimeMillis() - window.startMs
+                } else {
+                    null
+                }
                 mainContentState.playCurrentIptvWithOverrideUrl(
                     overrideUrl = replayUrl,
                     streamRequestHeaders = resolveExtraStreamHeaders(iptv),
                     replayHint = replayHint,
+                    seekBackMs = seekBackMs,
                 )
                 LeanbackToastState.I.showToast("已开始回看")
             }.onFailure {
@@ -221,7 +228,9 @@ fun LeanbackMainContent(
         IptvCatchup.Capability.SUPPORTED_BY_TEMPLATE ->
             "模板命中：catchup/catchup-source"
         IptvCatchup.Capability.SUPPORTED_BY_DVR_URL ->
-            "DVR命中：URL包含 /dvr/ 或时移参数"
+            "DVR命中：URL包含时移参数，使用playseek模板"
+        IptvCatchup.Capability.SUPPORTED_BY_DVR_SEEK ->
+            "DVR时移：URL包含/dvr/，使用原生HLS Seek模式"
         IptvCatchup.Capability.UNSUPPORTED ->
             "未命中模板或DVR规则"
     }

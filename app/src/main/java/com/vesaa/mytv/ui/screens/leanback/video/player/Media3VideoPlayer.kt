@@ -474,4 +474,22 @@ class LeanbackMedia3VideoPlayer(
         boundTextureView = textureView
         videoPlayer.setVideoTextureView(textureView)
     }
+
+    override fun seekTo(positionMs: Long) {
+        videoPlayer.seekTo(positionMs)
+    }
+
+    override fun seekToDefaultPosition() {
+        videoPlayer.seekToDefaultPosition()
+    }
+
+    override fun seekBack(offsetMs: Long) {
+        val duration = videoPlayer.duration
+        if (duration > 0 && duration != C.TIME_UNSET) {
+            videoPlayer.seekTo(max(0, duration - offsetMs))
+        } else {
+            val current = videoPlayer.currentPosition
+            videoPlayer.seekTo(max(0, current - offsetMs))
+        }
+    }
 }
