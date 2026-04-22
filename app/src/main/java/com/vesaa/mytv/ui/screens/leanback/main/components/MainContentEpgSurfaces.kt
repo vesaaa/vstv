@@ -120,6 +120,7 @@ internal fun LeanbackMainEpgSurfaces(
                 when (IptvCatchup.capabilityOf(mainContentState.currentIptv)) {
                     IptvCatchup.Capability.SUPPORTED_BY_TEMPLATE -> "模板命中"
                     IptvCatchup.Capability.SUPPORTED_BY_DVR_URL -> "DVR命中"
+                    IptvCatchup.Capability.SUPPORTED_BY_DVR_SEEK -> "DVR时移"
                     IptvCatchup.Capability.UNSUPPORTED -> "不支持"
                 }
             },
