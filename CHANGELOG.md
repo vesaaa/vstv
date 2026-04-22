@@ -4,6 +4,13 @@
 
 > **说明**：本文件仍由人编写条目，**不会由机器人自动撰写内容**。推送 **Release 标签**（`v*.*.*`）时，GitHub Actions 会检查 `CHANGELOG.md` 中是否已有对应章节 **`## [x.y.z]`**（`x.y.z` 为标签去掉 `v`/`tv-` 及预发布后缀 `-…` 的核心版本）；**未写入则 Release 构建失败**，避免发版记录遗漏。**GitHub Release 页面上的版本说明**会**自动截取并发布本文件中该版本章节全文**（不再使用仅含提交列表与「Full Changelog」链接的自动生成说明）。若需对照历史，见 [GitHub Releases](https://github.com/vesaaa/vstv/releases)。
 
+## [1.9.16] - 2026-04-22
+
+- **修复 S905/魔百盒闪退**：针对 Amlogic S905 系列芯片（含魔百盒）在 Android 5/9 上的启动闪退问题，做了三项防御性修复：
+  - **Coil 台标内存策略优化**：改用设备实际总 RAM 综合判断低端设备（绕过运营商 ROM 中 `isLowRamDevice` 误报 `false` 的问题），512MB-1GB 设备的台标内存池从 20% 降至 5%，磁盘缓存从 50MB 降至 20MB，大幅降低 OOM 概率。
+  - **WorkManager 初始化保护**：后台 EPG 定时刷新的 WorkManager 初始化增加 try-catch，防止部分低端 ROM 缺少 JobScheduler 服务或 SQLite 环境时启动即崩。
+  - **enableEdgeToEdge 兼容保护**：所有 Activity 的 `enableEdgeToEdge()` 调用增加异常捕获，防止系统 UI 服务残缺的 ROM 上崩溃。
+
 ## [1.9.15] - 2026-04-22
 
 - **优化播放器切线逻辑**：将 `VIDEO_PLAYER_LOAD_TIMEOUT` 从 15 秒缩短至 10 秒，在提升无效线路切换响应速度的同时，兼顾了高清源的首屏加载成功率。

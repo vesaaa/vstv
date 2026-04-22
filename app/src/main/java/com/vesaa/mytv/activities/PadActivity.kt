@@ -16,7 +16,7 @@ import com.vesaa.mytv.ui.theme.PadTheme
 class PadActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
+        try { enableEdgeToEdge() } catch (_: Exception) { /* 部分低端 ROM 不支持 */ }
         setContent {
             PadTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->

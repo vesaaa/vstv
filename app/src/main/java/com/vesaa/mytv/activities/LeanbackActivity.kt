@@ -37,7 +37,7 @@ class LeanbackActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
+        try { enableEdgeToEdge() } catch (_: Exception) { /* 部分低端 ROM 不支持 */ }
         setContent {
             // 隐藏状态栏、导航栏
             WindowCompat.setDecorFitsSystemWindows(window, false)
