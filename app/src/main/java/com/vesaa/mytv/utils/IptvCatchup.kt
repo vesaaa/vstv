@@ -22,6 +22,7 @@ object IptvCatchup {
     private const val DefaultMaxCatchupHours = 24
     private const val AbsoluteMaxCatchupHours = 7 * 24  // 平台允许的绝对上限：7 天
     private const val DefaultAppendTemplate = "?playseek=\${(b)yyyyMMddHHmmss}-\${(e)yyyyMMddHHmmss}"
+    private val absoluteSchemeRegex = Regex("""^[a-zA-Z][a-zA-Z0-9+.-]*://""")
 
     enum class Capability {
         SUPPORTED_BY_TEMPLATE,
@@ -131,7 +132,7 @@ object IptvCatchup {
             formatTs(ts, formatRaw)
         }.replace("\${url}", baseUrl)
 
-        return if (replaced.startsWith("http://", true) || replaced.startsWith("https://", true)) {
+        return if (absoluteSchemeRegex.containsMatchIn(replaced)) {
             replaced
         } else if (replaced.startsWith("?") && "?" in baseUrl) {
             baseUrl + "&" + replaced.removePrefix("?")

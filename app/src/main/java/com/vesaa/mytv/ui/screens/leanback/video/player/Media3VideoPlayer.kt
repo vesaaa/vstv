@@ -11,6 +11,7 @@ import androidx.media3.common.C
 import androidx.media3.common.Format
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
+import androidx.media3.common.TrackSelectionOverride
 import androidx.media3.common.VideoSize
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.common.util.Util
@@ -81,6 +82,7 @@ class LeanbackMedia3VideoPlayer(
 
     private val contentTypeAttempts = mutableMapOf<Int, Boolean>()
     private var parseRetryJob: Job? = null
+    private var noVideoFrameWatchdogJob: Job? = null
     private var boundSurfaceView: SurfaceView? = null
     private var boundTextureView: TextureView? = null
     private var latestZapStartElapsedMs: Long = 0L
@@ -92,6 +94,7 @@ class LeanbackMedia3VideoPlayer(
     /** 同一次播放会话内重试容器类型时沿用（收藏夹 per-entry 头等） */
     private var activeStreamRequestHeaders: String? = null
     private var parseErrorRetryUsed = false
+    private val attemptedVideoTrackFallbackKeys = mutableSetOf<String>()
 
     // ── MulticastLock 管理 ─────────────────────────────────────────
 
@@ -232,9 +235,14 @@ class LeanbackMedia3VideoPlayer(
             latestZapStartElapsedMs = SystemClock.elapsedRealtime()
             awaitingFirstReadyAfterPrepare = true
             lastRenderedFpsElapsedMs = 0L
+            attemptedVideoTrackFallbackKeys.clear()
             metadata = metadata.copy(zapLatencyMs = null, videoRenderedFps = 0f)
             triggerMetadata(metadata)
             contentTypeAttempts[contentType ?: Util.inferContentType(effectiveUri)] = true
+            videoPlayer.trackSelectionParameters = videoPlayer.trackSelectionParameters
+                .buildUpon()
+                .clearOverridesOfType(C.TRACK_TYPE_VIDEO)
+                .build()
             videoPlayer.setMediaSource(mediaSource)
             videoPlayer.prepare()
             triggerPrepared()
@@ -303,12 +311,68 @@ class LeanbackMedia3VideoPlayer(
                     awaitingFirstReadyAfterPrepare = false
                 }
                 triggerReady()
+                startNoVideoFrameWatchdog()
+            } else {
+                stopNoVideoFrameWatchdog()
             }
 
             if (playbackState != Player.STATE_BUFFERING) {
                 triggerBuffering(false)
             }
         }
+    }
+
+    /**
+     * 多视频轨场景（例如 AVC+HEVC）下，部分设备会默认选中无法解码的视频轨，表现为“有声音无画面”。
+     * READY 后若持续无视频帧渲染，则自动切到同组下一个可用视频轨；每个候选仅尝试一次。
+     */
+    private fun startNoVideoFrameWatchdog() {
+        noVideoFrameWatchdogJob?.cancel()
+        noVideoFrameWatchdogJob = coroutineScope.launch {
+            delay(4000)
+            while (true) {
+                delay(1200)
+                val sinceLastFrameMs = SystemClock.elapsedRealtime() - lastRenderedFpsElapsedMs
+                val noVideoFrameForLongTime =
+                    lastRenderedFpsElapsedMs <= 0L || sinceLastFrameMs > 4500L
+                if (!videoPlayer.isPlaying || !noVideoFrameForLongTime) continue
+                if (tryFallbackToNextVideoTrack()) {
+                    lastRenderedFpsElapsedMs = SystemClock.elapsedRealtime()
+                }
+            }
+        }
+    }
+
+    private fun stopNoVideoFrameWatchdog() {
+        noVideoFrameWatchdogJob?.cancel()
+        noVideoFrameWatchdogJob = null
+    }
+
+    private fun tryFallbackToNextVideoTrack(): Boolean {
+        val videoGroups = videoPlayer.currentTracks.groups.filter { it.type == C.TRACK_TYPE_VIDEO }
+        for (group in videoGroups) {
+            val supported = mutableListOf<Int>()
+            for (i in 0 until group.length) {
+                if (group.isTrackSupported(i)) supported += i
+            }
+            if (supported.size <= 1) continue
+
+            val selectedPos = supported.indexOfFirst { idx -> group.isTrackSelected(idx) }
+            val nextPos = if (selectedPos >= 0 && selectedPos < supported.lastIndex) selectedPos + 1 else -1
+            if (nextPos < 0) continue
+
+            val nextTrackIndex = supported[nextPos]
+            val key = "${group.mediaTrackGroup.id ?: "unknown"}#$nextTrackIndex"
+            if (!attemptedVideoTrackFallbackKeys.add(key)) continue
+
+            videoPlayer.trackSelectionParameters = videoPlayer.trackSelectionParameters
+                .buildUpon()
+                .clearOverridesOfType(C.TRACK_TYPE_VIDEO)
+                .addOverride(TrackSelectionOverride(group.mediaTrackGroup, listOf(nextTrackIndex)))
+                .build()
+            return true
+        }
+        return false
     }
 
     // ── 元数据监听 ────────────────────────────────────────────────
@@ -416,6 +480,7 @@ class LeanbackMedia3VideoPlayer(
 
     override fun release() {
         parseRetryJob?.cancel()
+        stopNoVideoFrameWatchdog()
         releaseMulticastLock()
         videoPlayer.removeListener(playerListener)
         videoPlayer.removeAnalyticsListener(metadataListener)
@@ -450,6 +515,7 @@ class LeanbackMedia3VideoPlayer(
     override fun onDeactivate() {
         parseRetryJob?.cancel()
         parseRetryJob = null
+        stopNoVideoFrameWatchdog()
         releaseMulticastLock()
         videoPlayer.stop()
         videoPlayer.clearMediaItems()
