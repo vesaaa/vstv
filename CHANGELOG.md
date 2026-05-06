@@ -4,6 +4,10 @@
 
 > **说明**：本文件仍由人编写条目，**不会由机器人自动撰写内容**。推送 **Release 标签**（`v*.*.*`）时，GitHub Actions 会检查 `CHANGELOG.md` 中是否已有对应章节 **`## [x.y.z]`**（`x.y.z` 为标签去掉 `v`/`tv-` 及预发布后缀 `-…` 的核心版本）；**未写入则 Release 构建失败**，避免发版记录遗漏。**GitHub Release 页面上的版本说明**会**自动截取并发布本文件中该版本章节全文**（不再使用仅含提交列表与「Full Changelog」链接的自动生成说明）。若需对照历史，见 [GitHub Releases](https://github.com/vesaaa/vstv/releases)。
 
+## [1.9.26] - 2026-05-06
+
+- **修复 RTSP fallback 编译错误**：在 RTSP 失败后回退重试逻辑中，显式对可空 URI 做非空处理后再调用 `prepare(Uri, ...)`，消除 Kotlin 对重载候选的不匹配报错（`Media3VideoPlayer.kt` 第 283 行）。
+
 ## [1.9.25] - 2026-05-06
 
 - **RTSP 兼容性增强**：播放器对 RTSP 链路改为优先使用 RTP over TCP；若首轮失败则自动回退 RTP over UDP 再试一次，提升山东运营商等内网场景下“HTTP 可播但 RTSP 不可播”的命中率。

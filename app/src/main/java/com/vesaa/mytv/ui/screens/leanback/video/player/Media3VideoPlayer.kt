@@ -280,7 +280,7 @@ class LeanbackMedia3VideoPlayer(
             if (curUri?.scheme.equals("rtsp", ignoreCase = true) && lastRtspForceTcp && !rtspTriedUdpFallback) {
                 rtspTriedUdpFallback = true
                 lastRtspForceTcp = false
-                prepare(curUri, C.CONTENT_TYPE_RTSP, streamRequestHeaders = null)
+                curUri?.let { prepare(it, C.CONTENT_TYPE_RTSP, streamRequestHeaders = null) }
                 return
             }
 
