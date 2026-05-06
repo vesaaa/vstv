@@ -203,5 +203,7 @@ abstract class LeanbackVideoPlayer(
         val audioSampleRate: Int = 0,
         /** 音频解码器 */
         val audioDecoder: String = "",
+        /** 正在播放但无视频帧时的 UI 提示（用于“仅音频”可视反馈） */
+        val audioOnlyModeHint: Boolean = false,
     )
 }

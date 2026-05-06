@@ -253,7 +253,11 @@ class LeanbackMedia3VideoPlayer(
             awaitingFirstReadyAfterPrepare = true
             lastRenderedFpsElapsedMs = 0L
             attemptedVideoTrackFallbackKeys.clear()
-            metadata = metadata.copy(zapLatencyMs = null, videoRenderedFps = 0f)
+            metadata = metadata.copy(
+                zapLatencyMs = null,
+                videoRenderedFps = 0f,
+                audioOnlyModeHint = false,
+            )
             triggerMetadata(metadata)
             contentTypeAttempts[contentType ?: Util.inferContentType(effectiveUri)] = true
             // 每次切台先按偏好设置选轨（优先 AVC/AAC），并清掉历史手动视频轨覆盖。
@@ -363,6 +367,10 @@ class LeanbackMedia3VideoPlayer(
                 val noVideoFrameForLongTime =
                     lastRenderedFpsElapsedMs <= 0L || sinceLastFrameMs > 4500L
                 if (!videoPlayer.isPlaying || !noVideoFrameForLongTime) continue
+                if (!metadata.audioOnlyModeHint) {
+                    metadata = metadata.copy(audioOnlyModeHint = true)
+                    triggerMetadata(metadata)
+                }
                 if (tryFallbackToNextVideoTrack()) {
                     lastRenderedFpsElapsedMs = SystemClock.elapsedRealtime()
                 }
@@ -373,6 +381,10 @@ class LeanbackMedia3VideoPlayer(
     private fun stopNoVideoFrameWatchdog() {
         noVideoFrameWatchdogJob?.cancel()
         noVideoFrameWatchdogJob = null
+        if (metadata.audioOnlyModeHint) {
+            metadata = metadata.copy(audioOnlyModeHint = false)
+            triggerMetadata(metadata)
+        }
     }
 
     private fun tryFallbackToNextVideoTrack(): Boolean {
@@ -483,6 +495,10 @@ class LeanbackMedia3VideoPlayer(
         val nowMs = SystemClock.elapsedRealtime()
         val lastMs = lastRenderedFpsElapsedMs
         lastRenderedFpsElapsedMs = nowMs
+        if (metadata.audioOnlyModeHint) {
+            metadata = metadata.copy(audioOnlyModeHint = false)
+            triggerMetadata(metadata)
+        }
 
         if (fpsWindowStartNs <= 0L) {
             fpsWindowStartNs = releaseTimeNs
