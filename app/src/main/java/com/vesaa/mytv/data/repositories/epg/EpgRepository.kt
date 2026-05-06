@@ -122,10 +122,15 @@ class EpgRepository : FileCacheRepository("epg.json") {
                             (channelId.isNotEmpty() && idCandidates.contains(channelId))
 
                         if (include) {
+                            val aliasList = displayNames
+                                .map { it.trim() }
+                                .filter { it.isNotEmpty() }
+                                .distinct()
                             epgMap[channelId] = Epg(
                                 channel = channelName.ifBlank { channelId },
                                 programmes = EpgProgrammeList(),
                                 channelId = channelId,
+                                channelAliases = aliasList,
                             )
                         }
                     } else if (parser.name == "programme") {

@@ -4,6 +4,11 @@
 
 > **说明**：本文件仍由人编写条目，**不会由机器人自动撰写内容**。推送 **Release 标签**（`v*.*.*`）时，GitHub Actions 会检查 `CHANGELOG.md` 中是否已有对应章节 **`## [x.y.z]`**（`x.y.z` 为标签去掉 `v`/`tv-` 及预发布后缀 `-…` 的核心版本）；**未写入则 Release 构建失败**，避免发版记录遗漏。**GitHub Release 页面上的版本说明**会**自动截取并发布本文件中该版本章节全文**（不再使用仅含提交列表与「Full Changelog」链接的自动生成说明）。若需对照历史，见 [GitHub Releases](https://github.com/vesaaa/vstv/releases)。
 
+## [1.9.24] - 2026-05-06
+
+- **EPG 运行时匹配修复**：`Epg` 新增 `channelAliases`，保存 XMLTV `channel` 下全部 `display-name` 别名，避免仅用首个名称匹配导致的漏命中。
+- **两类源兼容增强**：运行时匹配同时比对 `channel / channelAliases / channelId`，并结合名称归一化，修复 `CCTV1综合 / CCTV2财经 / CCTV3综艺 / CCTV4中文国际` 等与 `CCTV1/2/3/4` 节目单别名不一致时无法命中的问题。
+
 ## [1.9.23] - 2026-05-06
 
 - **EPG 匹配兼容性增强**：解析 XMLTV `channel` 时不再只取单个 `display-name`，改为收集同频道下全部别名参与匹配，提升 `sggc.xml.gz` 等多别名节目单的命中率。

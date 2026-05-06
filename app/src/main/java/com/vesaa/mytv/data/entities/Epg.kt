@@ -22,6 +22,10 @@ data class Epg(
      * XMLTV channel 的 id，与 M3U 的 tvg-id 对应
      */
     val channelId: String = "",
+    /**
+     * XMLTV channel 的 display-name 别名（含主名）
+     */
+    val channelAliases: List<String> = emptyList(),
 ) {
     private fun normalizeChannelName(raw: String): String {
         return raw
@@ -43,12 +47,20 @@ data class Epg(
         if (channel.isNotEmpty() && cn.isNotEmpty() && channel.equals(cn, ignoreCase = true)) return true
         val nm = iptv.name.trim()
         if (channel.isNotEmpty() && nm.isNotEmpty() && channel.equals(nm, ignoreCase = true)) return true
+        val aliases = buildList {
+            if (channel.isNotBlank()) add(channel)
+            channelAliases.filter { it.isNotBlank() }.forEach { add(it) }
+            if (id.isNotBlank()) add(id)
+        }
+        if (aliases.any { a -> cn.isNotEmpty() && a.equals(cn, ignoreCase = true) }) return true
+        if (aliases.any { a -> nm.isNotEmpty() && a.equals(nm, ignoreCase = true) }) return true
         val normChannel = normalizeChannelName(channel)
-        if (normChannel.isNotEmpty()) {
+        val normAliases = aliases.map(::normalizeChannelName).filter { it.isNotEmpty() }
+        if (normChannel.isNotEmpty() || normAliases.isNotEmpty()) {
             val normCn = normalizeChannelName(cn)
-            if (normCn.isNotEmpty() && normChannel == normCn) return true
+            if (normCn.isNotEmpty() && (normChannel == normCn || normAliases.any { it == normCn })) return true
             val normNm = normalizeChannelName(nm)
-            if (normNm.isNotEmpty() && normChannel == normNm) return true
+            if (normNm.isNotEmpty() && (normChannel == normNm || normAliases.any { it == normNm })) return true
         }
         return false
     }
