@@ -39,7 +39,22 @@ class EpgRepository : FileCacheRepository("epg.json") {
         xmlString: String,
         iptvChannels: List<Iptv> = emptyList(),
     ) = withContext(Dispatchers.Default) {
-        val nameCandidates = iptvChannels.map { it.channelName.trim() }.filter { it.isNotEmpty() }.toSet()
+        fun normalizeChannelName(raw: String): String {
+            return raw
+                .trim()
+                .lowercase(Locale.ROOT)
+                .replace("超高清", "")
+                .replace("高清", "")
+                .replace("标清", "")
+                .replace("频道", "")
+                .replace(Regex("""[\s\-_/()（）【】\[\]·•]+"""), "")
+        }
+
+        val nameCandidates = iptvChannels
+            .map { it.channelName.trim() }
+            .filter { it.isNotEmpty() }
+            .toSet()
+        val normalizedNameCandidates = nameCandidates.map(::normalizeChannelName).filter { it.isNotEmpty() }.toSet()
         val idCandidates = iptvChannels.map { it.tvgId.trim() }.filter { it.isNotEmpty() }.toSet()
         val restrict = nameCandidates.isNotEmpty() || idCandidates.isNotEmpty()
 
@@ -75,16 +90,40 @@ class EpgRepository : FileCacheRepository("epg.json") {
                 XmlPullParser.START_TAG -> {
                     if (parser.name == "channel") {
                         val channelId = parser.getAttributeValue(null, "id")?.trim().orEmpty()
-                        parser.nextTag()
-                        val channelName = parser.nextText().trim()
+                        var channelName = ""
+                        val displayNames = mutableListOf<String>()
+                        val channelDepth = parser.depth
+
+                        while (true) {
+                            val next = parser.next()
+                            if (next == XmlPullParser.END_DOCUMENT) break
+                            if (next == XmlPullParser.END_TAG && parser.depth == channelDepth && parser.name == "channel") {
+                                break
+                            }
+                            if (next == XmlPullParser.START_TAG && parser.name == "display-name") {
+                                val displayName = parser.nextText().trim()
+                                if (displayName.isNotEmpty()) {
+                                    if (channelName.isEmpty()) channelName = displayName
+                                    displayNames += displayName
+                                }
+                            }
+                        }
+
+                        val normalizedDisplayNames = displayNames
+                            .map(::normalizeChannelName)
+                            .filter { it.isNotEmpty() }
+                            .toSet()
 
                         val include = !restrict ||
-                            nameCandidates.any { it.equals(channelName, ignoreCase = true) } ||
+                            nameCandidates.any { candidate ->
+                                displayNames.any { it.equals(candidate, ignoreCase = true) }
+                            } ||
+                            normalizedNameCandidates.any { it in normalizedDisplayNames } ||
                             (channelId.isNotEmpty() && idCandidates.contains(channelId))
 
                         if (include) {
                             epgMap[channelId] = Epg(
-                                channel = channelName,
+                                channel = channelName.ifBlank { channelId },
                                 programmes = EpgProgrammeList(),
                                 channelId = channelId,
                             )

@@ -1,6 +1,7 @@
 package com.vesaa.mytv.data.entities
 
 import kotlinx.serialization.Serializable
+import java.util.Locale
 
 /**
  * 频道节目单
@@ -22,6 +23,17 @@ data class Epg(
      */
     val channelId: String = "",
 ) {
+    private fun normalizeChannelName(raw: String): String {
+        return raw
+            .trim()
+            .lowercase(Locale.ROOT)
+            .replace("超高清", "")
+            .replace("高清", "")
+            .replace("标清", "")
+            .replace("频道", "")
+            .replace(Regex("""[\s\-_/()（）【】\[\]·•]+"""), "")
+    }
+
     /** 是否与该直播频道为同一套节目单（名称忽略大小写，或 tvg-id 与 channel id 一致） */
     fun matchesIptv(iptv: Iptv): Boolean {
         val id = channelId.trim()
@@ -31,6 +43,13 @@ data class Epg(
         if (channel.isNotEmpty() && cn.isNotEmpty() && channel.equals(cn, ignoreCase = true)) return true
         val nm = iptv.name.trim()
         if (channel.isNotEmpty() && nm.isNotEmpty() && channel.equals(nm, ignoreCase = true)) return true
+        val normChannel = normalizeChannelName(channel)
+        if (normChannel.isNotEmpty()) {
+            val normCn = normalizeChannelName(cn)
+            if (normCn.isNotEmpty() && normChannel == normCn) return true
+            val normNm = normalizeChannelName(nm)
+            if (normNm.isNotEmpty() && normChannel == normNm) return true
+        }
         return false
     }
 
