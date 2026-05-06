@@ -96,6 +96,8 @@ class LeanbackMedia3VideoPlayer(
     private var activeStreamRequestHeaders: String? = null
     private var parseErrorRetryUsed = false
     private val attemptedVideoTrackFallbackKeys = mutableSetOf<String>()
+    private var rtspTriedUdpFallback = false
+    private var lastRtspForceTcp = true
 
     private val preferredTrackParams: TrackSelectionParameters by lazy {
         // 优先选更兼容的编解码，提升老盒子/运营商定制 ROM 的可播率：
@@ -187,6 +189,7 @@ class LeanbackMedia3VideoPlayer(
         val headers = streamRequestHeaders ?: activeStreamRequestHeaders
         val isRtmp = uri.scheme.equals("rtmp", ignoreCase = true)
         val isUdpRtp = isUdpOrRtp(uri)
+        val isRtsp = uri.scheme.equals("rtsp", ignoreCase = true)
 
         // UDP/RTP 组播：切换到专用播放器 + 获取 MulticastLock
         ensurePlayerForUdp(isUdpRtp)
@@ -224,7 +227,10 @@ class LeanbackMedia3VideoPlayer(
             }
 
             C.CONTENT_TYPE_RTSP -> {
-                RtspMediaSource.Factory().createMediaSource(mediaItem)
+                val forceTcp = if (isRtsp) lastRtspForceTcp else true
+                RtspMediaSource.Factory()
+                    .setForceUseRtpTcp(forceTcp)
+                    .createMediaSource(mediaItem)
             }
 
             C.CONTENT_TYPE_OTHER -> {
@@ -268,10 +274,20 @@ class LeanbackMedia3VideoPlayer(
         }
 
         override fun onPlayerError(ex: Media3PlaybackException) {
+            // 运营商 RTSP 常见“UDP 不通、TCP 可播”场景：
+            // 先按 TCP 拉流；若失败且还未尝试 UDP，则自动回退 UDP 再试一次。
+            val curUri = videoPlayer.currentMediaItem?.localConfiguration?.uri
+            if (curUri?.scheme.equals("rtsp", ignoreCase = true) && lastRtspForceTcp && !rtspTriedUdpFallback) {
+                rtspTriedUdpFallback = true
+                lastRtspForceTcp = false
+                prepare(curUri, C.CONTENT_TYPE_RTSP, streamRequestHeaders = null)
+                return
+            }
+
             // 某些源会短时返回损坏分片/清单，先做一次短延迟原线路重连，避免立刻误切线路。
             if ((ex.errorCode == 3001 || ex.errorCode == 3002) && !parseErrorRetryUsed) {
                 parseErrorRetryUsed = true
-                val uri = videoPlayer.currentMediaItem?.localConfiguration?.uri
+                val uri = curUri
                 if (uri != null) {
                     parseRetryJob?.cancel()
                     parseRetryJob = coroutineScope.launch {
@@ -525,6 +541,8 @@ class LeanbackMedia3VideoPlayer(
         parseRetryJob?.cancel()
         parseRetryJob = null
         parseErrorRetryUsed = false
+        rtspTriedUdpFallback = false
+        lastRtspForceTcp = true
         activeStreamRequestHeaders = streamRequestHeaders
         contentTypeAttempts.clear()
         prepare(Uri.parse(url), null, streamRequestHeaders)
