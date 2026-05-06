@@ -36,6 +36,7 @@ import androidx.tv.foundation.lazy.list.itemsIndexed
 import androidx.tv.foundation.lazy.list.rememberTvLazyListState
 import androidx.tv.material3.ListItem
 import androidx.tv.material3.ListItemDefaults
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
 import com.vesaa.mytv.data.entities.EpgList
 import com.vesaa.mytv.data.entities.Iptv
@@ -161,9 +162,14 @@ private fun GroupActionDialog(
 ) {
     val focusHide = remember { FocusRequester() }
     var selectedIdx by remember { mutableStateOf(0) } // 0: 隐藏分组, 1: 添加到精选
+    var canActivate by remember { mutableStateOf(false) }
+    var skipFirstSelect by remember { mutableStateOf(true) }
 
     LaunchedEffect(Unit) {
         focusHide.requestFocus()
+        // 避免“长按抬起”被弹窗立即消费导致默认项误执行。
+        delay(260)
+        canActivate = true
     }
 
     Dialog(onDismissRequest = onDismissRequest) {
@@ -188,7 +194,14 @@ private fun GroupActionDialog(
                         .handleLeanbackKeyEvents(
                             onUp = { selectedIdx = 0 },
                             onDown = { selectedIdx = 1 },
-                            onSelect = { if (selectedIdx == 0) onHide() else onAddToFavorite() },
+                            onSelect = {
+                                if (!canActivate) return@handleLeanbackKeyEvents
+                                if (skipFirstSelect) {
+                                    skipFirstSelect = false
+                                    return@handleLeanbackKeyEvents
+                                }
+                                if (selectedIdx == 0) onHide() else onAddToFavorite()
+                            },
                         ),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
@@ -196,7 +209,10 @@ private fun GroupActionDialog(
                         ListItem(
                             modifier = Modifier.focusRequester(focusHide),
                             selected = selectedIdx == 0,
-                            onClick = { onHide() },
+                            onClick = {
+                                if (!canActivate) return@ListItem
+                                onHide()
+                            },
                             headlineContent = {
                                 Text(
                                     "隐藏分组",
@@ -209,7 +225,10 @@ private fun GroupActionDialog(
                     item {
                         ListItem(
                             selected = selectedIdx == 1,
-                            onClick = { onAddToFavorite() },
+                            onClick = {
+                                if (!canActivate) return@ListItem
+                                onAddToFavorite()
+                            },
                             headlineContent = {
                                 Text(
                                     "添加到精选频道",

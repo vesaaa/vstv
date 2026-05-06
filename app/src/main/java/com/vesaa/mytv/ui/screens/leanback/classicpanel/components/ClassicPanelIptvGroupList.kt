@@ -220,6 +220,7 @@ private fun GroupActionDialog(
     val focusHide = remember { FocusRequester() }
     var selectedIdx by remember { mutableStateOf(0) }
     var canActivate by remember { mutableStateOf(false) }
+    var skipFirstSelect by remember { mutableStateOf(true) }
 
     LaunchedEffect(Unit) {
         focusHide.requestFocus()
@@ -248,6 +249,10 @@ private fun GroupActionDialog(
                         onDown = { selectedIdx = 1 },
                         onSelect = {
                             if (!canActivate) return@handleLeanbackKeyEvents
+                            if (skipFirstSelect) {
+                                skipFirstSelect = false
+                                return@handleLeanbackKeyEvents
+                            }
                             if (selectedIdx == 0) onHide() else onAddToFavorite()
                         },
                     ),
