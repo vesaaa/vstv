@@ -12,6 +12,7 @@ import androidx.media3.common.Format
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.common.TrackSelectionOverride
+import androidx.media3.common.TrackSelectionParameters
 import androidx.media3.common.VideoSize
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.common.util.Util
@@ -95,6 +96,16 @@ class LeanbackMedia3VideoPlayer(
     private var activeStreamRequestHeaders: String? = null
     private var parseErrorRetryUsed = false
     private val attemptedVideoTrackFallbackKeys = mutableSetOf<String>()
+
+    private val preferredTrackParams: TrackSelectionParameters by lazy {
+        // 优先选更兼容的编解码，提升老盒子/运营商定制 ROM 的可播率：
+        // - 视频：优先 AVC(H.264)，其次 HEVC(H.265)
+        // - 音频：优先 AAC，其次 AC3/EAC3
+        TrackSelectionParameters.Builder(context)
+            .setPreferredVideoMimeTypes("video/avc", "video/hevc")
+            .setPreferredAudioMimeTypes("audio/mp4a-latm", "audio/ac3", "audio/eac3")
+            .build()
+    }
 
     // ── MulticastLock 管理 ─────────────────────────────────────────
 
@@ -239,8 +250,8 @@ class LeanbackMedia3VideoPlayer(
             metadata = metadata.copy(zapLatencyMs = null, videoRenderedFps = 0f)
             triggerMetadata(metadata)
             contentTypeAttempts[contentType ?: Util.inferContentType(effectiveUri)] = true
-            videoPlayer.trackSelectionParameters = videoPlayer.trackSelectionParameters
-                .buildUpon()
+            // 每次切台先按偏好设置选轨（优先 AVC/AAC），并清掉历史手动视频轨覆盖。
+            videoPlayer.trackSelectionParameters = preferredTrackParams.buildUpon()
                 .clearOverridesOfType(C.TRACK_TYPE_VIDEO)
                 .build()
             videoPlayer.setMediaSource(mediaSource)
@@ -351,28 +362,47 @@ class LeanbackMedia3VideoPlayer(
     private fun tryFallbackToNextVideoTrack(): Boolean {
         val videoGroups = videoPlayer.currentTracks.groups.filter { it.type == C.TRACK_TYPE_VIDEO }
         for (group in videoGroups) {
-            val supported = mutableListOf<Int>()
-            for (i in 0 until group.length) {
-                if (group.isTrackSupported(i)) supported += i
+            val supported = buildList {
+                for (i in 0 until group.length) {
+                    if (group.isTrackSupported(i)) add(i)
+                }
             }
             if (supported.size <= 1) continue
 
-            val selectedPos = supported.indexOfFirst { idx -> group.isTrackSelected(idx) }
-            val nextPos = if (selectedPos >= 0 && selectedPos < supported.lastIndex) selectedPos + 1 else -1
-            if (nextPos < 0) continue
+            val selected = supported.firstOrNull { idx -> group.isTrackSelected(idx) }
+            val ranked = supported
+                .filter { it != selected }
+                .sortedBy { idx -> videoTrackScore(group.mediaTrackGroup.getFormat(idx)) }
 
-            val nextTrackIndex = supported[nextPos]
-            val key = "${group.mediaTrackGroup.id ?: "unknown"}#$nextTrackIndex"
-            if (!attemptedVideoTrackFallbackKeys.add(key)) continue
-
-            videoPlayer.trackSelectionParameters = videoPlayer.trackSelectionParameters
-                .buildUpon()
-                .clearOverridesOfType(C.TRACK_TYPE_VIDEO)
-                .addOverride(TrackSelectionOverride(group.mediaTrackGroup, listOf(nextTrackIndex)))
-                .build()
-            return true
+            for (idx in ranked) {
+                val key = "${group.mediaTrackGroup.id ?: "unknown"}#$idx"
+                if (!attemptedVideoTrackFallbackKeys.add(key)) continue
+                videoPlayer.trackSelectionParameters = videoPlayer.trackSelectionParameters
+                    .buildUpon()
+                    .clearOverridesOfType(C.TRACK_TYPE_VIDEO)
+                    .addOverride(TrackSelectionOverride(group.mediaTrackGroup, listOf(idx)))
+                    .build()
+                return true
+            }
         }
         return false
+    }
+
+    private fun videoTrackScore(format: Format): Int {
+        // 分数越低越优先：尽量选 AVC + 低分辨率/低码率，提升兼容性。
+        val mime = format.sampleMimeType.orEmpty().lowercase()
+        val codecs = format.codecs.orEmpty().lowercase()
+        val codecScore = when {
+            mime.contains("avc") || codecs.startsWith("avc1") -> 0
+            mime.contains("hevc") || codecs.startsWith("hvc1") || codecs.startsWith("hev1") -> 10
+            mime.contains("dolby") || codecs.startsWith("dvhe") || codecs.startsWith("dvh1") -> 100
+            else -> 50
+        }
+        val w = if (format.width > 0) format.width else 0
+        val h = if (format.height > 0) format.height else 0
+        val resScore = (w * h) / 10_000 // 1080p≈207, 4K≈829
+        val brScore = (if (format.bitrate > 0) format.bitrate else 0) / 1_000_000
+        return codecScore + resScore + brScore
     }
 
     // ── 元数据监听 ────────────────────────────────────────────────
