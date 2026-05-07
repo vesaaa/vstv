@@ -66,6 +66,10 @@
 
 - **修复快捷面板轨道菜单编译错误**：补齐 `QuickPanelSideOverlays.kt` 对 `Arrangement` 的缺失导入，解决 `:app:compileOriginalArmReleaseKotlin` 失败问题。
 
+## [2.0.13] - 2026-05-07
+
+- **修复轨道菜单的 Compose 权重导入冲突**：移除 `QuickPanelSideOverlays.kt` 中不兼容的 `weight` 显式导入，避免在当前 Compose 版本下命中内部符号导致 `compile*ReleaseKotlin` 失败。
+
 ## [1.9.30] - 2026-05-07
 
 - **修正 4001 错误提示分类**：将 `4001`（以及 `4000~4099` 解码相关错误）优先映射为“解码失败/编码参数不兼容”，避免被误提示为网络异常，便于用户快速判断为设备解码能力问题。
