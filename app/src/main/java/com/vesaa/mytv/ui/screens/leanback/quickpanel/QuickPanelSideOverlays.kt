@@ -693,6 +693,14 @@ private fun QuickPanelTrackOptionRow(
             selected = selected,
             onClick = onSelect,
             headlineContent = { Text(title) },
+            trailingContent = {
+                if (selected) {
+                    Text(
+                        text = "✓",
+                        color = if (isFocused) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onBackground,
+                    )
+                }
+            },
         )
     }
 }
@@ -707,6 +715,12 @@ fun LeanbackQuickPanelTrackSelectorSheet(
     autoCloseState: PanelAutoCloseState,
 ) {
     val onBg = MaterialTheme.colorScheme.onBackground
+    val effectiveVideoTracks = if (videoTracks.any { it.selected }) videoTracks else videoTracks.mapIndexed { idx, t ->
+        t.copy(selected = idx == 0)
+    }
+    val effectiveAudioTracks = if (audioTracks.any { it.selected }) audioTracks else audioTracks.mapIndexed { idx, t ->
+        t.copy(selected = idx == 0)
+    }
     QuickPanelEpgSurfacePanel(modifier = modifier) {
         Column(Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
             Text(
@@ -726,7 +740,7 @@ fun LeanbackQuickPanelTrackSelectorSheet(
                         modifier = Modifier.padding(start = 8.dp, top = 6.dp, bottom = 4.dp),
                     )
                 }
-                if (videoTracks.isEmpty()) {
+                if (effectiveVideoTracks.isEmpty()) {
                     item("video_none") {
                         Text(
                             text = "  (无)",
@@ -735,7 +749,7 @@ fun LeanbackQuickPanelTrackSelectorSheet(
                         )
                     }
                 } else {
-                    videoTracks.forEachIndexed { idx, track ->
+                    effectiveVideoTracks.forEachIndexed { idx, track ->
                         item("video_track_${track.id}_$idx") {
                             QuickPanelTrackOptionRow(
                                 title = "  ${track.label}",
@@ -756,7 +770,7 @@ fun LeanbackQuickPanelTrackSelectorSheet(
                         modifier = Modifier.padding(start = 8.dp, top = 8.dp, bottom = 4.dp),
                     )
                 }
-                if (audioTracks.isEmpty()) {
+                if (effectiveAudioTracks.isEmpty()) {
                     item("audio_none") {
                         Text(
                             text = "  (无)",
@@ -765,12 +779,12 @@ fun LeanbackQuickPanelTrackSelectorSheet(
                         )
                     }
                 } else {
-                    audioTracks.forEachIndexed { idx, track ->
+                    effectiveAudioTracks.forEachIndexed { idx, track ->
                         item("audio_track_${track.id}_$idx") {
                             QuickPanelTrackOptionRow(
                                 title = "  ${track.label}",
                                 selected = track.selected,
-                                requestInitialFocus = videoTracks.isEmpty() && idx == 0,
+                                requestInitialFocus = effectiveVideoTracks.isEmpty() && idx == 0,
                                 onSelect = { onSelectAudioTrack(track.id) },
                                 autoCloseState = autoCloseState,
                             )
