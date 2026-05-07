@@ -79,6 +79,11 @@
 
 - **修复轨道弹出菜单键盘事件编译错误**：补齐 `QuickPanelSideOverlays.kt` 中 `onPreviewKeyEvent` 对 `key/type` 扩展属性导入，解决 `Unresolved reference 'key'/'type'` 导致的 `compile*ReleaseKotlin` 失败。
 
+## [2.0.16] - 2026-05-07
+
+- **轨道选择菜单体验修复**：将轨道选择改为紧贴“轨道选择”按钮的级联弹出样式，并修复二级轨道列表焦点接管，支持进入后直接选中轨道。
+- **HLS 误标音频清单兼容**：HLS 工厂禁用 chunkless 预准备（`setAllowChunklessPreparation(false)`），提升“master 标音频但分片实际含视频”源的出画兼容性。
+
 ## [1.9.30] - 2026-05-07
 
 - **修正 4001 错误提示分类**：将 `4001`（以及 `4000~4099` 解码相关错误）优先映射为“解码失败/编码参数不兼容”，避免被误提示为网络异常，便于用户快速判断为设备解码能力问题。

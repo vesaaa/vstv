@@ -611,11 +611,17 @@ private fun QuickPanelTrackCategoryRow(
     title: String,
     enabled: Boolean,
     selected: Boolean,
+    requestInitialFocus: Boolean = false,
     onSelect: () -> Unit,
     autoCloseState: PanelAutoCloseState,
 ) {
     var isFocused by remember { mutableStateOf(false) }
     val focusRequester = remember { FocusRequester() }
+    LaunchedEffect(title, requestInitialFocus) {
+        if (requestInitialFocus) {
+            focusRequester.requestFocus()
+        }
+    }
     CompositionLocalProvider(
         LocalContentColor provides if (isFocused) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onBackground,
     ) {
@@ -651,11 +657,17 @@ private fun QuickPanelTrackCategoryRow(
 private fun QuickPanelTrackOptionRow(
     title: String,
     selected: Boolean,
+    requestInitialFocus: Boolean = false,
     onSelect: () -> Unit,
     autoCloseState: PanelAutoCloseState,
 ) {
     var isFocused by remember { mutableStateOf(false) }
     val focusRequester = remember { FocusRequester() }
+    LaunchedEffect(title, requestInitialFocus) {
+        if (requestInitialFocus) {
+            focusRequester.requestFocus()
+        }
+    }
     CompositionLocalProvider(
         LocalContentColor provides if (isFocused) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onSurface,
     ) {
@@ -697,44 +709,49 @@ fun LeanbackQuickPanelTrackPopupMenu(
 ) {
     val onBg = MaterialTheme.colorScheme.onBackground
     var selectedCategory by remember { mutableStateOf<LeanbackVideoPlayer.TrackType?>(null) }
+    var optionFocusToken by remember { mutableStateOf(0) }
     val focusRequester = remember { FocusRequester() }
 
     LaunchedEffect(Unit) { focusRequester.requestFocus() }
 
-    QuickPanelEpgSurfacePanel(
-        modifier = modifier
-            .focusRequester(focusRequester)
-            .focusable()
-            .onPreviewKeyEvent { event ->
-                if (event.type != KeyEventType.KeyUp) return@onPreviewKeyEvent false
-                val isBack = event.key == Key.Back || event.key == Key.DirectionLeft
-                if (!isBack) return@onPreviewKeyEvent false
-                if (selectedCategory != null) {
-                    selectedCategory = null
-                } else {
-                    onDismiss()
-                }
-                true
-            },
-    ) {
-        Column(Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
-            Text(
-                text = if (selectedCategory == null) "轨道选择" else if (selectedCategory == LeanbackVideoPlayer.TrackType.Audio) "音频轨道" else "视频轨道",
-                style = MaterialTheme.typography.titleMedium,
-                color = onBg,
-            )
-            TvLazyColumn(
-                contentPadding = PaddingValues(vertical = 6.dp),
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                if (selectedCategory == null) {
+    Row(modifier = modifier) {
+        QuickPanelEpgSurfacePanel(
+            modifier = Modifier.fillMaxWidth(0.5f)
+                .focusRequester(focusRequester)
+                .focusable()
+                .onPreviewKeyEvent { event ->
+                    if (event.type != KeyEventType.KeyUp) return@onPreviewKeyEvent false
+                    val isBack = event.key == Key.Back || event.key == Key.DirectionLeft
+                    if (!isBack) return@onPreviewKeyEvent false
+                    if (selectedCategory != null) {
+                        selectedCategory = null
+                    } else {
+                        onDismiss()
+                    }
+                    true
+                },
+        ) {
+            Column(Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
+                Text(
+                    text = "轨道选择",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = onBg,
+                )
+                TvLazyColumn(
+                    contentPadding = PaddingValues(vertical = 6.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
                     if (audioTracks.size > 1) {
                         item("audio_category") {
                             QuickPanelTrackCategoryRow(
                                 title = "音频轨道",
                                 enabled = true,
-                                selected = false,
-                                onSelect = { selectedCategory = LeanbackVideoPlayer.TrackType.Audio },
+                                selected = selectedCategory == LeanbackVideoPlayer.TrackType.Audio,
+                                requestInitialFocus = selectedCategory == null,
+                                onSelect = {
+                                    selectedCategory = LeanbackVideoPlayer.TrackType.Audio
+                                    optionFocusToken++
+                                },
                                 autoCloseState = autoCloseState,
                             )
                         }
@@ -744,24 +761,49 @@ fun LeanbackQuickPanelTrackPopupMenu(
                             QuickPanelTrackCategoryRow(
                                 title = "视频轨道",
                                 enabled = true,
-                                selected = false,
-                                onSelect = { selectedCategory = LeanbackVideoPlayer.TrackType.Video },
+                                selected = selectedCategory == LeanbackVideoPlayer.TrackType.Video,
+                                requestInitialFocus = selectedCategory == null && audioTracks.size <= 1,
+                                onSelect = {
+                                    selectedCategory = LeanbackVideoPlayer.TrackType.Video
+                                    optionFocusToken++
+                                },
                                 autoCloseState = autoCloseState,
                             )
                         }
                     }
-                } else {
-                    val tracks = if (selectedCategory == LeanbackVideoPlayer.TrackType.Audio) audioTracks else videoTracks
-                    items(tracks, key = { it.id }) { track ->
-                        QuickPanelTrackOptionRow(
-                            title = track.label,
-                            selected = track.selected,
-                            onSelect = {
-                                if (selectedCategory == LeanbackVideoPlayer.TrackType.Audio) onSelectAudioTrack(track.id)
-                                else onSelectVideoTrack(track.id)
-                            },
-                            autoCloseState = autoCloseState,
-                        )
+                }
+            }
+        }
+
+        if (selectedCategory != null) {
+            val tracks = if (selectedCategory == LeanbackVideoPlayer.TrackType.Audio) audioTracks else videoTracks
+            QuickPanelGlassPanelRight(
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Column(Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
+                    Text(
+                        text = if (selectedCategory == LeanbackVideoPlayer.TrackType.Audio) "音频轨道" else "视频轨道",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    TvLazyColumn(
+                        contentPadding = PaddingValues(vertical = 6.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        tracks.forEachIndexed { idx, track ->
+                            item("track_${track.id}_$idx") {
+                                QuickPanelTrackOptionRow(
+                                    title = track.label,
+                                    selected = track.selected,
+                                    requestInitialFocus = idx == 0 && optionFocusToken > 0,
+                                    onSelect = {
+                                        if (selectedCategory == LeanbackVideoPlayer.TrackType.Audio) onSelectAudioTrack(track.id)
+                                        else onSelectVideoTrack(track.id)
+                                    },
+                                    autoCloseState = autoCloseState,
+                                )
+                            }
+                        }
                     }
                 }
             }

@@ -238,7 +238,10 @@ class LeanbackMedia3VideoPlayer(
         } else when (val type = contentType ?: Util.inferContentType(effectiveUri)) {
             C.CONTENT_TYPE_HLS -> {
                 val dsf = DefaultDataSource.Factory(context, httpDataSourceFactory(uri, headers))
-                HlsMediaSource.Factory(dsf).createMediaSource(mediaItem)
+                HlsMediaSource.Factory(dsf)
+                    // 兼容“master 标注仅音频，但分片实际含视频”的非规范 HLS 源。
+                    .setAllowChunklessPreparation(false)
+                    .createMediaSource(mediaItem)
             }
 
             C.CONTENT_TYPE_DASH -> {

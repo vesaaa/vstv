@@ -436,15 +436,37 @@ fun LeanbackQuickPanelScreen(
                                     )
 
                                 QuickPanelBottomMenuSlot.Track ->
-                                    LeanbackQuickPanelButton(
-                                        buttonFocusRequester = focusMenuTrack,
-                                        leadingIcon = Icons.Filled.QueueMusic,
-                                        titleProvider = { "轨道选择" },
-                                        onSelect = {
-                                            showTrackPopup = !showTrackPopup
-                                            autoCloseState.active()
-                                        },
-                                    )
+                                    Box {
+                                        LeanbackQuickPanelButton(
+                                            buttonFocusRequester = focusMenuTrack,
+                                            leadingIcon = Icons.Filled.QueueMusic,
+                                            titleProvider = { "轨道选择" },
+                                            onSelect = {
+                                                showTrackPopup = !showTrackPopup
+                                                autoCloseState.active()
+                                            },
+                                        )
+                                        if (showTrackPopup) {
+                                            LeanbackQuickPanelTrackPopupMenu(
+                                                modifier = Modifier
+                                                    .align(Alignment.TopStart)
+                                                    .padding(top = (-208).dp)
+                                                    .fillMaxWidth(0.95f),
+                                                audioTracks = audioTracksProvider(),
+                                                videoTracks = videoTracksProvider(),
+                                                onSelectAudioTrack = {
+                                                    onSelectAudioTrack(it)
+                                                    showTrackPopup = false
+                                                },
+                                                onSelectVideoTrack = {
+                                                    onSelectVideoTrack(it)
+                                                    showTrackPopup = false
+                                                },
+                                                autoCloseState = autoCloseState,
+                                                onDismiss = { showTrackPopup = false },
+                                            )
+                                        }
+                                    }
 
                                 QuickPanelBottomMenuSlot.Epg ->
                                     LeanbackQuickPanelButton(
@@ -550,29 +572,6 @@ fun LeanbackQuickPanelScreen(
             }
         }
 
-        if (showBottomChrome && showTrackPopup) {
-            LeanbackQuickPanelTrackPopupMenu(
-                modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .padding(
-                        start = childPadding.start + 80.dp,
-                        bottom = childPadding.bottom + 114.dp,
-                    )
-                    .fillMaxWidth(0.34f),
-                audioTracks = audioTracksProvider(),
-                videoTracks = videoTracksProvider(),
-                onSelectAudioTrack = {
-                    onSelectAudioTrack(it)
-                    showTrackPopup = false
-                },
-                onSelectVideoTrack = {
-                    onSelectVideoTrack(it)
-                    showTrackPopup = false
-                },
-                autoCloseState = autoCloseState,
-                onDismiss = { showTrackPopup = false },
-            )
-        }
     }
 }
 
