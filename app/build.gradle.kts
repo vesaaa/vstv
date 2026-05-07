@@ -27,7 +27,7 @@ fun semverToVersionCode(versionName: String): Int {
         parts[2].coerceIn(0, 999)
 }
 
-    val defaultVersionName = "2.0.5"
+    val defaultVersionName = "2.0.6"
 val resolvedVersionName = releaseVersion.ifEmpty { defaultVersionName }
 val resolvedVersionCode =
     (project.findProperty("versionCode") as String?)?.toIntOrNull()
@@ -145,6 +145,13 @@ android {
             }
         }
     }
+}
+
+configurations.configureEach {
+    // Jellyfin 的 media3-ffmpeg-decoder 已自带 libffmpegJNI.so。
+    // 若依赖树里同时引入 AndroidX 的 ffmpeg decoder/底层 lib，会在 mergeNativeLibs 阶段报重复 so。
+    exclude(group = "androidx.media3", module = "media3-decoder-ffmpeg")
+    exclude(group = "androidx.media3", module = "lib-decoder-ffmpeg")
 }
 
 dependencies {

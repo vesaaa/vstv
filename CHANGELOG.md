@@ -34,6 +34,10 @@
 - **正式接入 Jellyfin FFmpeg 扩展**：默认引入 `org.jellyfin.media3:media3-ffmpeg-decoder:1.8.0+1`，不再依赖手动放置本地 AAR，软解兜底能力可直接随主工程构建。
 - **发版校验升级为强制**：Release CI 改为始终校验 `arm` / `x86_64` / `HarmonyOS` 三个 APK 均包含 `*ffmpeg*.so`，避免“代码已接入但产物未带扩展库”的隐性回归。
 
+## [2.0.6] - 2026-05-07
+
+- **修复 Jellyfin/AndroidX FFmpeg so 重复冲突**：显式排除 `androidx.media3:media3-decoder-ffmpeg` / `androidx.media3:lib-decoder-ffmpeg`，避免与 Jellyfin 扩展重复打包导致 `merge*NativeLibs` 失败。
+
 ## [1.9.30] - 2026-05-07
 
 - **修正 4001 错误提示分类**：将 `4001`（以及 `4000~4099` 解码相关错误）优先映射为“解码失败/编码参数不兼容”，避免被误提示为网络异常，便于用户快速判断为设备解码能力问题。
