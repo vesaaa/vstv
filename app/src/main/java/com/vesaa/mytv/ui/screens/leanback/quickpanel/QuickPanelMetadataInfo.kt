@@ -140,6 +140,7 @@ internal fun formatQuickPanelVideoDetailBody(
     }
     if (m.videoDecoder.isNotBlank()) {
         appendLine("视频解码：${m.videoDecoder}")
+        appendLine("解码路径：${videoDecoderPathHint(m.videoDecoder)}")
     }
     if (m.videoColor.isNotBlank()) {
         appendLine("色彩：${m.videoColor}")
@@ -266,6 +267,9 @@ internal fun formatQuickPanelStreamExtraLine(m: LeanbackVideoPlayer.Metadata): S
     } else {
         "视频解码：未知"
     }
+    if (m.videoDecoder.isNotBlank()) {
+        lines += "解码路径 ${videoDecoderPathHint(m.videoDecoder)}"
+    }
     lines += if (m.audioDecoder.isNotBlank()) {
         "音频解码 ${m.audioDecoder}"
     } else {
@@ -277,6 +281,15 @@ internal fun formatQuickPanelStreamExtraLine(m: LeanbackVideoPlayer.Metadata): S
     videoDynamicRangeLabel(m)?.let { lines += "动态范围 $it" }
     audioDolbyLabel(m)?.let { lines += "杜比 $it" }
     return lines.joinToString("\n")
+}
+
+private fun videoDecoderPathHint(decoderName: String): String {
+    val d = decoderName.lowercase(Locale.ROOT)
+    return when {
+        "ffmpeg" in d -> "扩展软解（FFmpeg）"
+        d.isBlank() -> "未知"
+        else -> "系统解码（优先硬解，必要时系统软解）"
+    }
 }
 
 private fun videoDynamicRangeLabel(m: LeanbackVideoPlayer.Metadata): String? {
