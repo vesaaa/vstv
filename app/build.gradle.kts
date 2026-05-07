@@ -27,7 +27,7 @@ fun semverToVersionCode(versionName: String): Int {
         parts[2].coerceIn(0, 999)
 }
 
-    val defaultVersionName = "2.0.7"
+    val defaultVersionName = "2.0.8"
 val resolvedVersionName = releaseVersion.ifEmpty { defaultVersionName }
 val resolvedVersionCode =
     (project.findProperty("versionCode") as String?)?.toIntOrNull()
@@ -198,7 +198,16 @@ dependencies {
     // 后台定时拉取节目单
     implementation(libs.androidx.work.runtime.ktx)
 
-    implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.aar"))))
+    implementation(
+        fileTree(
+            mapOf(
+                "dir" to "libs",
+                "include" to listOf("*.aar"),
+                // CI 恢复的私有包里可能包含历史 ffmpeg 扩展，需排除以避免与 Jellyfin 版本重复。
+                "exclude" to listOf("lib-decoder-ffmpeg*.aar", "media3-decoder-ffmpeg*.aar"),
+            ),
+        ),
+    )
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
