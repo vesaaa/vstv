@@ -55,6 +55,18 @@ abstract class LeanbackVideoPlayer(
     /** 从当前边缘往回跳（毫秒） */
     abstract fun seekBack(offsetMs: Long)
 
+    enum class TrackType { Audio, Video }
+
+    data class TrackOption(
+        val id: String,
+        val label: String,
+        val selected: Boolean = false,
+    )
+
+    open fun getTrackOptions(type: TrackType): List<TrackOption> = emptyList()
+
+    open fun selectTrack(type: TrackType, trackId: String) = Unit
+
     private val onResolutionListeners = mutableListOf<(width: Int, height: Int) -> Unit>()
     private val onErrorListeners = mutableListOf<(error: PlaybackException?) -> Unit>()
     private val onReadyListeners = mutableListOf<() -> Unit>()

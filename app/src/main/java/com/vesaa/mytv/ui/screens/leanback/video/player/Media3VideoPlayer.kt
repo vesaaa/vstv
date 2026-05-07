@@ -13,6 +13,7 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.common.TrackSelectionOverride
 import androidx.media3.common.TrackSelectionParameters
+import androidx.media3.common.Tracks
 import androidx.media3.common.VideoSize
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.common.util.Util
@@ -24,6 +25,7 @@ import androidx.media3.exoplayer.DecoderReuseEvaluation
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON
+import androidx.media3.exoplayer.DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.analytics.AnalyticsListener
 import androidx.media3.exoplayer.dash.DashMediaSource
@@ -73,14 +75,19 @@ class LeanbackMedia3VideoPlayer(
         .setBackBuffer(0, false)
         .build()
 
-    private val renderersFactory by lazy {
-        // 硬解优先；若扩展解码可用，则在硬解失败时参与兜底。
-        DefaultRenderersFactory(context)
-            .setExtensionRendererMode(EXTENSION_RENDERER_MODE_ON)
+    private var forcePreferExtensionDecoders = false
+    private var hevcSoftFallbackTried = false
+    private var lastPreparedUri: Uri? = null
+    private var lastPreparedContentType: Int? = null
+
+    private fun newRenderersFactory(): DefaultRenderersFactory {
+        val mode = if (forcePreferExtensionDecoders) EXTENSION_RENDERER_MODE_PREFER else EXTENSION_RENDERER_MODE_ON
+        return DefaultRenderersFactory(context)
+            .setExtensionRendererMode(mode)
             .setEnableDecoderFallback(true)
     }
 
-    private var videoPlayer = ExoPlayer.Builder(context, renderersFactory)
+    private var videoPlayer = ExoPlayer.Builder(context, newRenderersFactory())
         .setLoadControl(loadControl)
         .build().apply { playWhenReady = true }
 
@@ -141,15 +148,14 @@ class LeanbackMedia3VideoPlayer(
 
     // ── 播放器实例切换（HTTP ⇆ UDP） ──────────────────────────────
 
-    private fun ensurePlayerForUdp(needUdp: Boolean) {
-        if (needUdp == isUdpPlayer) return
+    private fun recreatePlayer(needUdp: Boolean) {
         videoPlayer.removeListener(playerListener)
         videoPlayer.removeAnalyticsListener(metadataListener)
         videoPlayer.removeAnalyticsListener(eventLogger)
         videoPlayer.setVideoFrameMetadataListener(noopVideoFrameMetadataListener)
         videoPlayer.release()
 
-        videoPlayer = ExoPlayer.Builder(context, renderersFactory)
+        videoPlayer = ExoPlayer.Builder(context, newRenderersFactory())
             .setLoadControl(if (needUdp) udpLoadControl else loadControl)
             .build().apply { playWhenReady = true }
         videoPlayer.addListener(playerListener)
@@ -159,6 +165,11 @@ class LeanbackMedia3VideoPlayer(
         boundSurfaceView?.let { videoPlayer.setVideoSurfaceView(it) }
         boundTextureView?.let { videoPlayer.setVideoTextureView(it) }
         isUdpPlayer = needUdp
+    }
+
+    private fun ensurePlayerForUdp(needUdp: Boolean) {
+        if (needUdp == isUdpPlayer) return
+        recreatePlayer(needUdp)
     }
 
     // ── DataSource 工厂 ───────────────────────────────────────────
@@ -202,6 +213,8 @@ class LeanbackMedia3VideoPlayer(
         val isRtmp = uri.scheme.equals("rtmp", ignoreCase = true)
         val isUdpRtp = isUdpOrRtp(uri)
         val isRtsp = uri.scheme.equals("rtsp", ignoreCase = true)
+        lastPreparedUri = uri
+        lastPreparedContentType = contentType
 
         // UDP/RTP 组播：切换到专用播放器 + 获取 MulticastLock
         ensurePlayerForUdp(isUdpRtp)
@@ -590,6 +603,9 @@ class LeanbackMedia3VideoPlayer(
                     lastRenderedFpsElapsedMs <= 0L || sinceLastFrameMs > 4500L
                 if (!videoPlayer.isPlaying || !noVideoFrameForLongTime) continue
                 if (metadata.imageSequenceModeHint) continue
+                if (tryHevcSoftDecodeFallback()) {
+                    continue
+                }
                 if (!metadata.audioOnlyModeHint) {
                     metadata = metadata.copy(audioOnlyModeHint = true)
                     triggerMetadata(metadata)
@@ -599,6 +615,24 @@ class LeanbackMedia3VideoPlayer(
                 }
             }
         }
+    }
+
+    private fun tryHevcSoftDecodeFallback(): Boolean {
+        if (hevcSoftFallbackTried || forcePreferExtensionDecoders) return false
+        val mime = metadata.videoMimeType.lowercase()
+        val codecs = metadata.videoCodecs.lowercase()
+        val decoder = metadata.videoDecoder.lowercase()
+        val isHevc = mime.contains("hevc") || codecs.contains("hev1") || codecs.contains("hvc1")
+        val alreadyFfmpeg = decoder.contains("ffmpeg")
+        if (!isHevc || alreadyFfmpeg) return false
+        val uri = lastPreparedUri ?: return false
+
+        hevcSoftFallbackTried = true
+        forcePreferExtensionDecoders = true
+        val needUdp = isUdpOrRtp(uri)
+        recreatePlayer(needUdp)
+        prepare(uri, lastPreparedContentType, activeStreamRequestHeaders)
+        return true
     }
 
     private fun stopNoVideoFrameWatchdog() {
@@ -657,6 +691,67 @@ class LeanbackMedia3VideoPlayer(
         val resScore = (w * h) / 10_000 // 1080p≈207, 4K≈829
         val brScore = (if (format.bitrate > 0) format.bitrate else 0) / 1_000_000
         return codecScore + resScore + brScore
+    }
+
+    override fun getTrackOptions(type: TrackType): List<TrackOption> {
+        val targetType = when (type) {
+            TrackType.Audio -> C.TRACK_TYPE_AUDIO
+            TrackType.Video -> C.TRACK_TYPE_VIDEO
+        }
+        return videoPlayer.currentTracks.groups
+            .filter { it.type == targetType }
+            .flatMap { group ->
+                buildList {
+                    for (i in 0 until group.length) {
+                        if (!group.isTrackSupported(i)) continue
+                        add(
+                            TrackOption(
+                                id = "${group.mediaTrackGroup.id ?: "group"}#$i",
+                                label = trackLabel(type, group, i),
+                                selected = group.isTrackSelected(i),
+                            ),
+                        )
+                    }
+                }
+            }
+    }
+
+    override fun selectTrack(type: TrackType, trackId: String) {
+        val targetType = when (type) {
+            TrackType.Audio -> C.TRACK_TYPE_AUDIO
+            TrackType.Video -> C.TRACK_TYPE_VIDEO
+        }
+        val groups = videoPlayer.currentTracks.groups.filter { it.type == targetType }
+        for (group in groups) {
+            for (i in 0 until group.length) {
+                val id = "${group.mediaTrackGroup.id ?: "group"}#$i"
+                if (id != trackId) continue
+                videoPlayer.trackSelectionParameters = videoPlayer.trackSelectionParameters
+                    .buildUpon()
+                    .clearOverridesOfType(targetType)
+                    .addOverride(TrackSelectionOverride(group.mediaTrackGroup, listOf(i)))
+                    .build()
+                return
+            }
+        }
+    }
+
+    private fun trackLabel(type: TrackType, group: Tracks.Group, index: Int): String {
+        val f = group.mediaTrackGroup.getFormat(index)
+        return when (type) {
+            TrackType.Audio -> {
+                val lang = f.language?.takeIf { it.isNotBlank() && it != "und" } ?: "音轨${index + 1}"
+                val codec = f.sampleMimeType?.removePrefix("audio/").orEmpty().ifBlank { "unknown" }
+                val ch = if (f.channelCount > 0) "·${f.channelCount}ch" else ""
+                "$lang · $codec$ch"
+            }
+
+            TrackType.Video -> {
+                val res = if (f.width > 0 && f.height > 0) "${f.width}x${f.height}" else "视频轨${index + 1}"
+                val codec = f.sampleMimeType?.removePrefix("video/").orEmpty().ifBlank { "unknown" }
+                "$res · $codec"
+            }
+        }
     }
 
     // ── 元数据监听 ────────────────────────────────────────────────
@@ -784,6 +879,10 @@ class LeanbackMedia3VideoPlayer(
         parseRetryJob?.cancel()
         parseRetryJob = null
         stopImageSequenceMode()
+        forcePreferExtensionDecoders = false
+        hevcSoftFallbackTried = false
+        lastPreparedUri = null
+        lastPreparedContentType = null
         parseErrorRetryUsed = false
         rtspTriedUdpFallback = false
         lastRtspForceTcp = true
@@ -811,6 +910,10 @@ class LeanbackMedia3VideoPlayer(
         parseRetryJob = null
         stopNoVideoFrameWatchdog()
         stopImageSequenceMode()
+        forcePreferExtensionDecoders = false
+        hevcSoftFallbackTried = false
+        lastPreparedUri = null
+        lastPreparedContentType = null
         releaseMulticastLock()
         videoPlayer.stop()
         videoPlayer.clearMediaItems()

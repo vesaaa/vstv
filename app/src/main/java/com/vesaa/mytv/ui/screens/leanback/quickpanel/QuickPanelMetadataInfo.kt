@@ -286,9 +286,9 @@ internal fun formatQuickPanelStreamExtraLine(m: LeanbackVideoPlayer.Metadata): S
 private fun videoDecoderPathHint(decoderName: String): String {
     val d = decoderName.lowercase(Locale.ROOT)
     return when {
-        "ffmpeg" in d -> "扩展软解（FFmpeg）"
+        "ffmpeg" in d -> "软解($decoderName)"
         d.isBlank() -> "未知"
-        else -> "系统解码（优先硬解，必要时系统软解）"
+        else -> "硬解($decoderName)"
     }
 }
 

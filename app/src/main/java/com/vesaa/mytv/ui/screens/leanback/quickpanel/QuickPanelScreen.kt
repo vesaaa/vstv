@@ -27,6 +27,7 @@ import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.LiveTv
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Memory
+import androidx.compose.material.icons.filled.QueueMusic
 import androidx.compose.material.icons.filled.ViewModule
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -108,6 +109,7 @@ private val QuickPanelMenuIconTextGap = (4f * QuickPanelMenuLayoutFactor).dp
 /** 底部快捷栏横向列表槽位（用 [items] DSL，避免依赖部分 tv-foundation 版本不存在的 [item] 导入） */
 private enum class QuickPanelBottomMenuSlot {
     Split,
+    Track,
     Epg,
     Replay,
     BackLive,
@@ -140,6 +142,10 @@ fun LeanbackQuickPanelScreen(
     catchupMaxHoursProvider: () -> Int = { 24 },
     onReplayByBackMinutes: (Int) -> Unit = {},
     onReplayByProgramme: (Long, Long) -> Unit = { _, _ -> },
+    audioTracksProvider: () -> List<LeanbackVideoPlayer.TrackOption> = { emptyList() },
+    videoTracksProvider: () -> List<LeanbackVideoPlayer.TrackOption> = { emptyList() },
+    onSelectAudioTrack: (String) -> Unit = {},
+    onSelectVideoTrack: (String) -> Unit = {},
     splitModeProvider: () -> QuickPanelSplitMode = { QuickPanelSplitMode.Off },
     onSplitModeChange: (QuickPanelSplitMode) -> Unit = {},
     onSplitExit: () -> Unit = {},
@@ -157,6 +163,7 @@ fun LeanbackQuickPanelScreen(
     val focusMenuEpg = remember { FocusRequester() }
     val focusMenuSplit = remember { FocusRequester() }
     val focusMenuReplay = remember { FocusRequester() }
+    val focusMenuTrack = remember { FocusRequester() }
     val focusMenuStream = remember { FocusRequester() }
     val focusMenuHome = remember { FocusRequester() }
     var lastSubPanel by remember { mutableStateOf(LeanbackQuickPanelSubPanel.None) }
@@ -184,6 +191,8 @@ fun LeanbackQuickPanelScreen(
                 LeanbackQuickPanelSubPanel.Epg -> focusMenuEpg.requestFocus()
                 LeanbackQuickPanelSubPanel.SplitDetail ->
                     runCatching { focusMenuSplit.requestFocus() }
+                LeanbackQuickPanelSubPanel.TrackDetail ->
+                    runCatching { focusMenuTrack.requestFocus() }
                 LeanbackQuickPanelSubPanel.ReplayDetail ->
                     runCatching { focusMenuReplay.requestFocus() }
                 LeanbackQuickPanelSubPanel.StreamDetail -> focusMenuStream.requestFocus()
@@ -323,6 +332,25 @@ fun LeanbackQuickPanelScreen(
                         autoCloseState = autoCloseState,
                     )
 
+                LeanbackQuickPanelSubPanel.TrackDetail ->
+                    LeanbackQuickPanelTrackSelectorSheet(
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .padding(
+                                start = sideStartPad,
+                                end = sideStartPad,
+                                top = sideTopPad,
+                                bottom = leftSheetBottom,
+                            )
+                            .fillMaxHeight()
+                            .fillMaxWidth(0.68f),
+                        audioTracks = audioTracksProvider(),
+                        videoTracks = videoTracksProvider(),
+                        onSelectAudioTrack = onSelectAudioTrack,
+                        onSelectVideoTrack = onSelectVideoTrack,
+                        autoCloseState = autoCloseState,
+                    )
+
                 LeanbackQuickPanelSubPanel.None -> Unit
             }
         }
@@ -360,9 +388,11 @@ fun LeanbackQuickPanelScreen(
                     )
 
                     val showMultiLineMenuItem = currentIptvProvider().urlList.size > 1
+                    val showTrackMenuItem = audioTracksProvider().size > 1 || videoTracksProvider().size > 1
                     val isSplitMode = splitModeProvider() != QuickPanelSplitMode.Off
                     val menuSlots = remember(
                         showMultiLineMenuItem,
+                        showTrackMenuItem,
                         isReplayActiveProvider(),
                         catchupSupportedProvider(),
                         isSplitMode,
@@ -370,6 +400,7 @@ fun LeanbackQuickPanelScreen(
                         buildList {
                             add(QuickPanelBottomMenuSlot.Epg)
                             add(QuickPanelBottomMenuSlot.Split)
+                            if (showTrackMenuItem) add(QuickPanelBottomMenuSlot.Track)
                             add(QuickPanelBottomMenuSlot.Replay)
                             if (isReplayActiveProvider()) add(QuickPanelBottomMenuSlot.BackLive)
                             if (showMultiLineMenuItem) add(QuickPanelBottomMenuSlot.MultiLine)
@@ -407,6 +438,23 @@ fun LeanbackQuickPanelScreen(
                                                     LeanbackQuickPanelSubPanel.None
                                                 } else {
                                                     LeanbackQuickPanelSubPanel.SplitDetail
+                                                },
+                                            )
+                                            autoCloseState.active()
+                                        },
+                                    )
+
+                                QuickPanelBottomMenuSlot.Track ->
+                                    LeanbackQuickPanelButton(
+                                        buttonFocusRequester = focusMenuTrack,
+                                        leadingIcon = Icons.Filled.QueueMusic,
+                                        titleProvider = { "轨道选择" },
+                                        onSelect = {
+                                            onSubPanelChange(
+                                                if (subPanel == LeanbackQuickPanelSubPanel.TrackDetail) {
+                                                    LeanbackQuickPanelSubPanel.None
+                                                } else {
+                                                    LeanbackQuickPanelSubPanel.TrackDetail
                                                 },
                                             )
                                             autoCloseState.active()
@@ -702,7 +750,7 @@ private fun LeanbackQuickPanelActionVideoAspectRatio(
     LeanbackQuickPanelButton(
         leadingIcon = Icons.Filled.AspectRatio,
         titleProvider = {
-            "画面比例 " + when (videoPlayerAspectRatioProvider()) {
+            "画面 " + when (videoPlayerAspectRatioProvider()) {
                 16f / 9f -> "16:9"
                 4f / 3f -> "4:3"
                 screenAspectRatio -> "自动拉伸"

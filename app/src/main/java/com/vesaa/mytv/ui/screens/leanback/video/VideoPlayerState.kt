@@ -68,9 +68,12 @@ class LeanbackVideoPlayerState(
 
     /** 当前正在拉流的地址（含回看/多线路切换后的实际 URL），供 UI 展示 */
     var currentMediaUrl by mutableStateOf("")
+    /** 切台后在首帧到来前强制黑场，避免显示上一频道最后一帧 */
+    var holdBlackScreen by mutableStateOf(false)
 
     fun prepare(url: String, streamRequestHeaders: String? = null) {
         error = null
+        holdBlackScreen = true
         currentMediaUrl = url.trim()
         // 新播放请求前先停掉旧会话，降低旧错误回调串扰到新频道的概率。
         instance.onDeactivate()
@@ -81,6 +84,7 @@ class LeanbackVideoPlayerState(
     fun stop() {
         instance.onDeactivate()
         error = null
+        holdBlackScreen = false
         currentMediaUrl = ""
         metadata = LeanbackVideoPlayer.Metadata()
     }
@@ -118,6 +122,13 @@ class LeanbackVideoPlayerState(
         instance.seekBack(offsetMs)
     }
 
+    fun getTrackOptions(type: LeanbackVideoPlayer.TrackType): List<LeanbackVideoPlayer.TrackOption> =
+        instance.getTrackOptions(type)
+
+    fun selectTrack(type: LeanbackVideoPlayer.TrackType, trackId: String) {
+        instance.selectTrack(type, trackId)
+    }
+
     private val onReadyListeners = mutableListOf<() -> Unit>()
     private val onErrorListeners = mutableListOf<() -> Unit>()
     private val onCutoffListeners = mutableListOf<() -> Unit>()
@@ -148,6 +159,7 @@ class LeanbackVideoPlayerState(
         instance.onError { ex ->
             error = if (ex != null) friendlyErrorText(ex)
             else null
+            if (error != null) holdBlackScreen = false
 
             if (error != null) onErrorListeners.forEach { it.invoke() }
 
@@ -155,7 +167,13 @@ class LeanbackVideoPlayerState(
         instance.onReady { onReadyListeners.forEach { it.invoke() } }
         instance.onBuffering { if (it) error = null }
         instance.onPrepared { }
-        instance.onMetadata { metadata = it }
+        instance.onMetadata {
+            metadata = it
+            // 一旦真正有视频帧，或进入图片轮播模式，就解除首帧黑场保护。
+            if (it.videoRenderedFps > 0f || it.imageSequenceModeHint) {
+                holdBlackScreen = false
+            }
+        }
         instance.onCutoff { onCutoffListeners.forEach { it.invoke() } }
     }
 

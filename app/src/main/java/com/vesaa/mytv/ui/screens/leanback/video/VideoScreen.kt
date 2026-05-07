@@ -83,12 +83,15 @@ fun LeanbackVideoScreen(
             )
         }
 
-        if (state.error == null && !state.metadata.imageSequenceModeHint && state.metadata.audioOnlyModeHint) {
+        if (state.error == null && !state.metadata.imageSequenceModeHint && (state.holdBlackScreen || state.metadata.audioOnlyModeHint)) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(Color.Black),
             )
+        }
+
+        if (state.error == null && !state.metadata.imageSequenceModeHint && state.metadata.audioOnlyModeHint) {
             AudioOnlyVisualizer(
                 modifier = Modifier.align(Alignment.Center),
             )

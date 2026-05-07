@@ -54,8 +54,8 @@ fun LeanbackVideoPlayerMetadata(
                     if (metadata.videoCodecs.isNotBlank()) Text("codecs: ${metadata.videoCodecs}")
                     Text("解码器: ${metadata.videoDecoder}")
                     val decoderPath = when {
-                        metadata.videoDecoder.contains("ffmpeg", ignoreCase = true) -> "扩展软解（FFmpeg）"
-                        metadata.videoDecoder.isNotBlank() -> "系统解码（优先硬解）"
+                        metadata.videoDecoder.contains("ffmpeg", ignoreCase = true) -> "软解(${metadata.videoDecoder})"
+                        metadata.videoDecoder.isNotBlank() -> "硬解(${metadata.videoDecoder})"
                         else -> "未知"
                     }
                     Text("解码路径: $decoderPath")
