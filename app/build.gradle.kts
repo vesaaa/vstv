@@ -27,7 +27,7 @@ fun semverToVersionCode(versionName: String): Int {
         parts[2].coerceIn(0, 999)
 }
 
-    val defaultVersionName = "1.9.19"
+    val defaultVersionName = "2.0.0"
 val resolvedVersionName = releaseVersion.ifEmpty { defaultVersionName }
 val resolvedVersionCode =
     (project.findProperty("versionCode") as String?)?.toIntOrNull()
@@ -57,24 +57,38 @@ android {
         }
     }
 
-    // dist：包名/应用名。例：assembleOriginalRelease、assembleDisguisedRelease
-    flavorDimensions += listOf("dist")
+    // dist：包名/应用名；abiPack：按架构拆包（保留 3 个变体）
+    flavorDimensions += listOf("dist", "abiPack")
     productFlavors {
         create("original") {
             dimension = "dist"
-            ndk {
-                abiFilters.clear()
-                abiFilters.addAll(listOf("armeabi-v7a", "arm64-v8a", "x86_64"))
-            }
         }
         create("disguised") {
             dimension = "dist"
             applicationId = "com.chinablue.tv"
             resValue("string", "app_name", "Z视介")
+        }
+        create("arm") {
+            dimension = "abiPack"
             ndk {
                 abiFilters.clear()
-                abiFilters.addAll(listOf("armeabi-v7a", "arm64-v8a", "x86_64"))
+                abiFilters.addAll(listOf("armeabi-v7a", "arm64-v8a"))
             }
+        }
+        create("x86") {
+            dimension = "abiPack"
+            ndk {
+                abiFilters.clear()
+                abiFilters.addAll(listOf("x86_64"))
+            }
+        }
+    }
+    variantFilter {
+        val distFlavor = flavors.find { it.dimension == "dist" }?.name
+        val abiFlavor = flavors.find { it.dimension == "abiPack" }?.name
+        // 仅保留 3 个发布包：originalArm / originalX86 / disguisedArm
+        if (distFlavor == "disguised" && abiFlavor == "x86") {
+            ignore = true
         }
     }
 
