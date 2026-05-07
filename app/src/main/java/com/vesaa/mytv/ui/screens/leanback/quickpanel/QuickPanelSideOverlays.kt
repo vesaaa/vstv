@@ -547,6 +547,11 @@ private fun QuickPanelSplitModeRow(
             selected = selected,
             onClick = onSelect,
             headlineContent = { Text(title) },
+            trailingContent = {
+                if (selected) {
+                    Text("✓")
+                }
+            },
         )
     }
 }

@@ -342,7 +342,7 @@ fun LeanbackQuickPanelScreen(
                                 bottom = leftSheetBottom,
                             )
                             .fillMaxHeight()
-                            .fillMaxWidth(0.44f),
+                            .fillMaxWidth(0.40f),
                         audioTracks = audioTracksProvider(),
                         videoTracks = videoTracksProvider(),
                         onSelectAudioTrack = onSelectAudioTrack,
