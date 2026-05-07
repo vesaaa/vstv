@@ -47,6 +47,8 @@ class LeanbackVideoPlayerState(
             code in 3000..3999 && (upper.contains("AUTH") || upper.contains("401") || upper.contains("403")) ->
                 "源鉴权可能过期或被拒绝，请检查订阅/请求头($code)"
             code in 3000..3999 -> "源端抖动或解析异常，请稍后重试或切换线路($code)"
+            code == 4001 || code in 4000..4099 || upper.contains("DECODING") || upper.contains("DECODER") || upper.contains("CODEC") ->
+                "解码失败，当前设备可能不支持该视频编码/参数($code)"
             code in 2000..2999 || upper.contains("DECODER") || upper.contains("CODEC") ->
                 "解码初始化失败，可能是设备不支持该音视频编码($code)"
             code in 4000..4999 || upper.contains("NETWORK") || upper.contains("IO") || upper.contains("CONNECT") ->
