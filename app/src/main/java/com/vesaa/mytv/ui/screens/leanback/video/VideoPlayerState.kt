@@ -34,11 +34,23 @@ class LeanbackVideoPlayerState(
         val raw = ex.errorCodeName.trim()
         val upper = raw.uppercase()
         return when {
+            code == 10002 || upper.contains("UNSUPPORTED_TYPE") ->
+                "当前线路格式暂不支持，请切换线路或反馈源格式($code)"
+            code == 10003 || upper.contains("LOAD_TIMEOUT") ->
+                "加载超时，请检查网络或切换线路后重试($code)"
+            code == 10004 || upper.contains("HEVC_ONLY") ->
+                "该频道仅提供 HEVC/H.265 视频，当前设备可能不支持($code)"
+            code == 10005 || upper.contains("MASTER_INVALID") || upper.contains("SINGLE_AUDIO") ->
+                "该频道清单异常或仅音频轨，无法正常出画($code)"
             code == 3001 -> "源端分片/容器数据异常，请稍后重试或切换线路($code)"
             code == 3002 -> "源端清单异常或分片错误，请稍后重试或切换线路($code)"
             code in 3000..3999 && (upper.contains("AUTH") || upper.contains("401") || upper.contains("403")) ->
                 "源鉴权可能过期或被拒绝，请检查订阅/请求头($code)"
             code in 3000..3999 -> "源端抖动或解析异常，请稍后重试或切换线路($code)"
+            code in 2000..2999 || upper.contains("DECODER") || upper.contains("CODEC") ->
+                "解码初始化失败，可能是设备不支持该音视频编码($code)"
+            code in 4000..4999 || upper.contains("NETWORK") || upper.contains("IO") || upper.contains("CONNECT") ->
+                "网络连接异常，请检查网络或切换线路后重试($code)"
             else -> "$raw($code)"
         }
     }
