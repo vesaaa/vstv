@@ -167,10 +167,17 @@ fun LeanbackQuickPanelScreen(
     val focusMenuStream = remember { FocusRequester() }
     val focusMenuHome = remember { FocusRequester() }
     var lastSubPanel by remember { mutableStateOf(LeanbackQuickPanelSubPanel.None) }
+    var showTrackPopup by remember { mutableStateOf(false) }
     val showBottomChrome =
         subPanel != LeanbackQuickPanelSubPanel.Epg &&
             subPanel != LeanbackQuickPanelSubPanel.ReplayDetail &&
             subPanel != LeanbackQuickPanelSubPanel.SplitDetail
+
+    LaunchedEffect(audioTracksProvider().size, videoTracksProvider().size) {
+        if (audioTracksProvider().size <= 1 && videoTracksProvider().size <= 1) {
+            showTrackPopup = false
+        }
+    }
 
     LaunchedEffect(Unit) {
         autoCloseState.active()
@@ -191,8 +198,6 @@ fun LeanbackQuickPanelScreen(
                 LeanbackQuickPanelSubPanel.Epg -> focusMenuEpg.requestFocus()
                 LeanbackQuickPanelSubPanel.SplitDetail ->
                     runCatching { focusMenuSplit.requestFocus() }
-                LeanbackQuickPanelSubPanel.TrackDetail ->
-                    runCatching { focusMenuTrack.requestFocus() }
                 LeanbackQuickPanelSubPanel.ReplayDetail ->
                     runCatching { focusMenuReplay.requestFocus() }
                 LeanbackQuickPanelSubPanel.StreamDetail -> focusMenuStream.requestFocus()
@@ -208,10 +213,12 @@ fun LeanbackQuickPanelScreen(
             .focusRequester(rootFocusRequester)
             .focusable()
             .handleLeanbackUserAction { autoCloseState.active() }
-            .pointerInput(subPanel) {
+            .pointerInput(subPanel, showTrackPopup) {
                 detectTapGestures(
                     onTap = {
-                        if (subPanel != LeanbackQuickPanelSubPanel.None) {
+                        if (showTrackPopup) {
+                            showTrackPopup = false
+                        } else if (subPanel != LeanbackQuickPanelSubPanel.None) {
                             onSubPanelChange(LeanbackQuickPanelSubPanel.None)
                         } else {
                             onClose()
@@ -225,7 +232,9 @@ fun LeanbackQuickPanelScreen(
                     it.key == Key.Back ||
                         it.nativeKeyEvent.keyCode == AndroidKeyEvent.KEYCODE_BACK
                 if (!isBack) return@onPreviewKeyEvent false
-                if (subPanel != LeanbackQuickPanelSubPanel.None) {
+                if (showTrackPopup) {
+                    showTrackPopup = false
+                } else if (subPanel != LeanbackQuickPanelSubPanel.None) {
                     onSubPanelChange(LeanbackQuickPanelSubPanel.None)
                 } else {
                     onClose()
@@ -332,25 +341,6 @@ fun LeanbackQuickPanelScreen(
                         autoCloseState = autoCloseState,
                     )
 
-                LeanbackQuickPanelSubPanel.TrackDetail ->
-                    LeanbackQuickPanelTrackSelectorSheet(
-                        modifier = Modifier
-                            .align(Alignment.TopStart)
-                            .padding(
-                                start = sideStartPad,
-                                end = sideStartPad,
-                                top = sideTopPad,
-                                bottom = leftSheetBottom,
-                            )
-                            .fillMaxHeight()
-                            .fillMaxWidth(0.68f),
-                        audioTracks = audioTracksProvider(),
-                        videoTracks = videoTracksProvider(),
-                        onSelectAudioTrack = onSelectAudioTrack,
-                        onSelectVideoTrack = onSelectVideoTrack,
-                        autoCloseState = autoCloseState,
-                    )
-
                 LeanbackQuickPanelSubPanel.None -> Unit
             }
         }
@@ -433,6 +423,7 @@ fun LeanbackQuickPanelScreen(
                                         dPadLeftWrapTo = if (isSplitMode) focusMenuSplit else null,
                                         dPadRightWrapTo = if (isSplitMode) focusMenuSplit else null,
                                         onSelect = {
+                                            showTrackPopup = false
                                             onSubPanelChange(
                                                 if (subPanel == LeanbackQuickPanelSubPanel.SplitDetail) {
                                                     LeanbackQuickPanelSubPanel.None
@@ -450,13 +441,7 @@ fun LeanbackQuickPanelScreen(
                                         leadingIcon = Icons.Filled.QueueMusic,
                                         titleProvider = { "轨道选择" },
                                         onSelect = {
-                                            onSubPanelChange(
-                                                if (subPanel == LeanbackQuickPanelSubPanel.TrackDetail) {
-                                                    LeanbackQuickPanelSubPanel.None
-                                                } else {
-                                                    LeanbackQuickPanelSubPanel.TrackDetail
-                                                },
-                                            )
+                                            showTrackPopup = !showTrackPopup
                                             autoCloseState.active()
                                         },
                                     )
@@ -468,6 +453,7 @@ fun LeanbackQuickPanelScreen(
                                         leadingIcon = Icons.Filled.List,
                                         titleProvider = { "节目单" },
                                         onSelect = {
+                                            showTrackPopup = false
                                             onSubPanelChange(
                                                 if (subPanel == LeanbackQuickPanelSubPanel.Epg) {
                                                     LeanbackQuickPanelSubPanel.None
@@ -498,6 +484,7 @@ fun LeanbackQuickPanelScreen(
                                         titleMaxLines = 2,
                                         titleOverflow = TextOverflow.Clip,
                                         onSelect = {
+                                            showTrackPopup = false
                                             onSubPanelChange(
                                                 if (subPanel == LeanbackQuickPanelSubPanel.ReplayDetail) {
                                                     LeanbackQuickPanelSubPanel.None
@@ -513,7 +500,10 @@ fun LeanbackQuickPanelScreen(
                                     LeanbackQuickPanelButton(
                                         leadingIcon = Icons.Filled.LiveTv,
                                         titleProvider = { "返回直播" },
-                                        onSelect = onBackToLive,
+                                        onSelect = {
+                                            showTrackPopup = false
+                                            onBackToLive()
+                                        },
                                     )
 
                                 QuickPanelBottomMenuSlot.AspectRatio ->
@@ -528,6 +518,7 @@ fun LeanbackQuickPanelScreen(
                                         leadingIcon = Icons.Filled.Memory,
                                         titleProvider = { "解码与码流" },
                                         onSelect = {
+                                            showTrackPopup = false
                                             onSubPanelChange(
                                                 if (subPanel == LeanbackQuickPanelSubPanel.StreamDetail) {
                                                     LeanbackQuickPanelSubPanel.None
@@ -545,7 +536,10 @@ fun LeanbackQuickPanelScreen(
                                         dPadRightWrapTo = if (isSplitMode) focusMenuSplit else focusMenuEpg,
                                         leadingIcon = Icons.Filled.Home,
                                         titleProvider = { "主菜单" },
-                                        onSelect = onMoreSettings,
+                                        onSelect = {
+                                            showTrackPopup = false
+                                            onMoreSettings()
+                                        },
                                     )
                             }
                             }
@@ -554,6 +548,30 @@ fun LeanbackQuickPanelScreen(
                     }
                 }
             }
+        }
+
+        if (showBottomChrome && showTrackPopup) {
+            LeanbackQuickPanelTrackPopupMenu(
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(
+                        start = childPadding.start + 80.dp,
+                        bottom = childPadding.bottom + 114.dp,
+                    )
+                    .fillMaxWidth(0.34f),
+                audioTracks = audioTracksProvider(),
+                videoTracks = videoTracksProvider(),
+                onSelectAudioTrack = {
+                    onSelectAudioTrack(it)
+                    showTrackPopup = false
+                },
+                onSelectVideoTrack = {
+                    onSelectVideoTrack(it)
+                    showTrackPopup = false
+                },
+                autoCloseState = autoCloseState,
+                onDismiss = { showTrackPopup = false },
+            )
         }
     }
 }

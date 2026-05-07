@@ -7,5 +7,4 @@ enum class LeanbackQuickPanelSubPanel {
     ReplayDetail,
     SplitDetail,
     StreamDetail,
-    TrackDetail,
 }
