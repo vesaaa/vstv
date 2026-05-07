@@ -173,6 +173,39 @@ jobs:
           echo "=== 即将上传的 artifacts ==="
           ls -lh "$ROOT/artifacts/"
 
+      - name: Verify FFmpeg extension .so in packaged APKs (optional)
+        if: success()
+        run: |
+          set -euo pipefail
+          ROOT="$GITHUB_WORKSPACE"
+          VER="${{ steps.ver.outputs.version }}"
+          AAR_MATCHES=$(find "$ROOT/app/libs" -maxdepth 1 -type f -name "*.aar" 2>/dev/null | grep -Ei "ffmpeg|decoder" || true)
+          if [[ -z "$AAR_MATCHES" ]]; then
+            echo "::notice::未检测到 app/libs 下的 FFmpeg/decoder 扩展 AAR，跳过扩展 so 校验。"
+            exit 0
+          fi
+          echo "检测到扩展 AAR："
+          echo "$AAR_MATCHES"
+
+          require_ffmpeg_so() {
+            local apk="$1"
+            local tag="$2"
+            if [[ ! -f "$apk" ]]; then
+              echo "::error::缺少 APK: $apk"
+              exit 1
+            fi
+            if ! unzip -l "$apk" | grep -Eiq "lib/.*/.*ffmpeg.*\\.so$"; then
+              echo "::error::${tag} 未检测到 FFmpeg 扩展 so（期望 lib/*/*ffmpeg*.so）"
+              unzip -l "$apk" | grep -E "lib/.+\\.so$" | head -n 100 || true
+              exit 1
+            fi
+            echo "${tag} FFmpeg so 校验通过"
+          }
+
+          require_ffmpeg_so "$ROOT/artifacts/vstv-${VER}-arm.apk" "arm"
+          require_ffmpeg_so "$ROOT/artifacts/vstv-${VER}-x86_64.apk" "x86_64"
+          require_ffmpeg_so "$ROOT/artifacts/vstv-${VER}-HarmonyOS.apk" "HarmonyOS"
+
       # GitHub 自带的 generate_release_notes 多为提交列表 +「Full Changelog」链接，可读性差。
       # 正式说明以仓库根目录 CHANGELOG.md 中对应「## [x.y.z]」章节为准，写入 Release 正文。
       - name: Prepare release notes from CHANGELOG
