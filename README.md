@@ -118,7 +118,7 @@
 ### 可选：接入 FFmpeg 扩展软解（Jellyfin AAR）
 
 - 将 FFmpeg 扩展 AAR 放到 `app/libs/`（工程已包含 `implementation(fileTree(...*.aar))`）。
-- 播放器会自动检测扩展类；检测到后优先走扩展渲染器，并启用解码回退。
+- 播放器策略为 **硬解优先**；当硬解不可用或初始化失败时，若扩展可用则自动尝试软解兜底（同时启用解码回退）。
 - 建议同时提供 ARM 与 x86_64 对应 so（与本项目 `arm` / `x86_64` 三包策略一致）。
 - Release CI 会在检测到 `app/libs` 下存在 FFmpeg/decoder 扩展 AAR 时，校验 3 个发布 APK 中是否包含 `*ffmpeg*.so`；未检测到扩展 AAR 则自动跳过该项校验。
 
