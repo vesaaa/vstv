@@ -24,6 +24,7 @@ import androidx.media3.exoplayer.DecoderReuseEvaluation
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON
+import androidx.media3.exoplayer.DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.analytics.AnalyticsListener
 import androidx.media3.exoplayer.dash.DashMediaSource
@@ -73,8 +74,19 @@ class LeanbackMedia3VideoPlayer(
         .setBackBuffer(0, false)
         .build()
 
-    private val renderersFactory =
-        DefaultRenderersFactory(context).setExtensionRendererMode(EXTENSION_RENDERER_MODE_ON)
+    private val extensionRendererMode: Int by lazy {
+        val hasFfmpegExtension = runCatching {
+            Class.forName("androidx.media3.decoder.ffmpeg.FfmpegAudioRenderer")
+        }.isSuccess
+        if (hasFfmpegExtension) EXTENSION_RENDERER_MODE_PREFER else EXTENSION_RENDERER_MODE_ON
+    }
+
+    private val renderersFactory by lazy {
+        // 有 FFmpeg 扩展时优先扩展解码；无扩展时保持默认链路。
+        DefaultRenderersFactory(context)
+            .setExtensionRendererMode(extensionRendererMode)
+            .setEnableDecoderFallback(true)
+    }
 
     private var videoPlayer = ExoPlayer.Builder(context, renderersFactory)
         .setLoadControl(loadControl)

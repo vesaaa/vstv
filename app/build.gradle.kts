@@ -166,7 +166,8 @@ dependencies {
     implementation(libs.androidx.tv.foundation)
     implementation(libs.androidx.tv.material)
 
-    // 播放器（HLS / DASH / SmoothStreaming / RTSP / RTMP）。官方未在 Maven 发布 FFmpeg AAR，软解依赖设备 MediaCodec。
+    // 播放器（HLS / DASH / SmoothStreaming / RTSP / RTMP）。
+    // 若接入 Jellyfin/自编译 FFmpeg 扩展 AAR（放到 app/libs），播放器会自动优先启用扩展软解。
     implementation(libs.androidx.media3.exoplayer)
     implementation(libs.androidx.media3.exoplayer.hls)
     implementation(libs.androidx.media3.exoplayer.dash)
