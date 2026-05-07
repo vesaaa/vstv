@@ -1,6 +1,7 @@
 package com.vesaa.mytv.data.repositories.iptv
 
 import java.io.File
+import java.net.URI
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.Request
@@ -81,7 +82,8 @@ class IptvRepository : FileCacheRepository("iptv.txt") {
             // 大文件解析耗 CPU，避免在 viewModel 主线程上执行导致界面长期停在「加载中」
             return withContext(Dispatchers.Default) {
                 val parser = IptvParser.instances.first { it.isSupport(sourceUrl, sourceData) }
-                var groupList = parser.parse(sourceData)
+                val normalizedData = resolveRelativeStreamUrls(sourceUrl, sourceData)
+                var groupList = parser.parse(normalizedData)
                 log.i("解析直播源完成：${groupList.size}个分组，${groupList.flatMap { it.iptvList }.size}个频道")
 
                 groupList
@@ -108,11 +110,34 @@ class IptvRepository : FileCacheRepository("iptv.txt") {
             val parser = IptvParser.instances.firstOrNull { it.isSupport(url, data) }
                 ?: return@withContext IptvGroupList()
             try {
-                parser.parse(data)
+                parser.parse(resolveRelativeStreamUrls(url, data))
             } catch (e: Exception) {
                 log.e("解析本地 IPTV 缓存失败", e)
                 IptvGroupList()
             }
         }
+    }
+
+    /**
+     * 对 HTTP(S) 订阅中的相对频道地址做 URI.resolve 归一化，兼容 rtp2httpd 等网关输出的
+     * `/rtp/...`、`./xx.ts` 形式地址。
+     */
+    private fun resolveRelativeStreamUrls(sourceUrl: String, sourceData: String): String {
+        if (!sourceUrl.startsWith("http://", true) && !sourceUrl.startsWith("https://", true)) {
+            return sourceData
+        }
+        val base = runCatching { URI(sourceUrl) }.getOrNull() ?: return sourceData
+        val lines = sourceData.split("\r\n", "\n")
+        var changed = false
+        val rewritten = lines.map { raw ->
+            val line = raw.trim()
+            if (line.isBlank() || line.startsWith("#")) return@map raw
+            val hasScheme = Regex("""^[a-zA-Z][a-zA-Z0-9+\-.]*://""").containsMatchIn(line)
+            if (hasScheme) return@map raw
+            val resolved = runCatching { base.resolve(line).toString() }.getOrElse { line }
+            if (resolved != line) changed = true
+            raw.replace(line, resolved)
+        }
+        return if (changed) rewritten.joinToString("\n") else sourceData
     }
 }

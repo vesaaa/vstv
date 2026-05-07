@@ -46,6 +46,11 @@
 
 - **修复 CI 私有 AAR 与 Jellyfin FFmpeg 重复引入**：`app/libs` 的 `fileTree` 增加 `lib-decoder-ffmpeg*.aar` / `media3-decoder-ffmpeg*.aar` 排除规则，避免与 Maven 引入的 Jellyfin 扩展发生 JNI/类重复冲突。
 
+## [2.0.9] - 2026-05-07
+
+- **rtp2httpd 播放列表兼容增强**：对 HTTP(S) 订阅中的相对频道地址（如 `/rtp/...`、`./xx.ts`）做 `URI.resolve` 归一化，支持将 rtp2httpd 导出的 `playlist.m3u` 直接作为直播源导入播放。
+- **文档更新**：README 新增 rtp2httpd 直播源接入说明，并移除打赏内容。
+
 ## [1.9.30] - 2026-05-07
 
 - **修正 4001 错误提示分类**：将 `4001`（以及 `4000~4099` 解码相关错误）优先映射为“解码失败/编码参数不兼容”，避免被误提示为网络异常，便于用户快速判断为设备解码能力问题。
