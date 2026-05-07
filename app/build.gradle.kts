@@ -27,7 +27,7 @@ fun semverToVersionCode(versionName: String): Int {
         parts[2].coerceIn(0, 999)
 }
 
-    val defaultVersionName = "2.0.4"
+    val defaultVersionName = "2.0.5"
 val resolvedVersionName = releaseVersion.ifEmpty { defaultVersionName }
 val resolvedVersionCode =
     (project.findProperty("versionCode") as String?)?.toIntOrNull()
@@ -167,13 +167,14 @@ dependencies {
     implementation(libs.androidx.tv.material)
 
     // 播放器（HLS / DASH / SmoothStreaming / RTSP / RTMP）。
-    // 若接入 Jellyfin/自编译 FFmpeg 扩展 AAR（放到 app/libs），播放器会自动优先启用扩展软解。
+    // 默认集成 Jellyfin Media3 FFmpeg 扩展：硬解优先，硬解失败时软解兜底。
     implementation(libs.androidx.media3.exoplayer)
     implementation(libs.androidx.media3.exoplayer.hls)
     implementation(libs.androidx.media3.exoplayer.dash)
     implementation(libs.androidx.media3.exoplayer.smoothstreaming)
     implementation(libs.androidx.media3.exoplayer.rtsp)
     implementation(libs.androidx.media3.datasource.rtmp)
+    implementation(libs.jellyfin.media3.ffmpeg.decoder)
     // 序列化
     implementation(libs.kotlinx.serialization)
 

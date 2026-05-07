@@ -115,12 +115,11 @@
 
 **解码**：使用带 **扩展渲染器** 的工厂，便于在部分设备上启用 **软件解码** 兜底（例如部分 **H.265/HEVC** 场景），实际能否播放仍取决于 **片源编码** 与 **机型硬件/系统**。
 
-### 可选：接入 FFmpeg 扩展软解（Jellyfin AAR）
+### 内置：Jellyfin FFmpeg 扩展软解
 
-- 将 FFmpeg 扩展 AAR 放到 `app/libs/`（工程已包含 `implementation(fileTree(...*.aar))`）。
-- 播放器策略为 **硬解优先**；当硬解不可用或初始化失败时，若扩展可用则自动尝试软解兜底（同时启用解码回退）。
-- 建议同时提供 ARM 与 x86_64 对应 so（与本项目 `arm` / `x86_64` 三包策略一致）。
-- Release CI 会在检测到 `app/libs` 下存在 FFmpeg/decoder 扩展 AAR 时，校验 3 个发布 APK 中是否包含 `*ffmpeg*.so`；未检测到扩展 AAR 则自动跳过该项校验。
+- 项目已默认集成 `org.jellyfin.media3:media3-ffmpeg-decoder`（与当前 Media3 主版本对齐）。
+- 播放器策略为 **硬解优先**；当硬解不可用或初始化失败时，自动尝试 FFmpeg 软解兜底（并启用解码回退）。
+- Release CI 会强制校验 3 个发布 APK（`arm` / `x86_64` / `HarmonyOS`）是否包含 `*ffmpeg*.so`，确保发版包真实带上扩展软解能力。
 
 ---
 

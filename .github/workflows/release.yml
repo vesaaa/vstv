@@ -173,19 +173,12 @@ jobs:
           echo "=== 即将上传的 artifacts ==="
           ls -lh "$ROOT/artifacts/"
 
-      - name: Verify FFmpeg extension .so in packaged APKs (optional)
+      - name: Verify FFmpeg extension .so in packaged APKs
         if: success()
         run: |
           set -euo pipefail
           ROOT="$GITHUB_WORKSPACE"
           VER="${{ steps.ver.outputs.version }}"
-          AAR_MATCHES=$(find "$ROOT/app/libs" -maxdepth 1 -type f -name "*.aar" 2>/dev/null | grep -Ei "ffmpeg|decoder" || true)
-          if [[ -z "$AAR_MATCHES" ]]; then
-            echo "::notice::未检测到 app/libs 下的 FFmpeg/decoder 扩展 AAR，跳过扩展 so 校验。"
-            exit 0
-          fi
-          echo "检测到扩展 AAR："
-          echo "$AAR_MATCHES"
 
           require_ffmpeg_so() {
             local apk="$1"
