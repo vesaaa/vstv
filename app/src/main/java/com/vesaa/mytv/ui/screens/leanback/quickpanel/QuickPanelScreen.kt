@@ -451,7 +451,7 @@ fun LeanbackQuickPanelScreen(
                                                 modifier = Modifier
                                                     .align(Alignment.TopStart)
                                                     .padding(top = (-208).dp)
-                                                    .fillMaxWidth(0.95f),
+                                                    .width(560.dp),
                                                 audioTracks = audioTracksProvider(),
                                                 videoTracks = videoTracksProvider(),
                                                 onSelectAudioTrack = {

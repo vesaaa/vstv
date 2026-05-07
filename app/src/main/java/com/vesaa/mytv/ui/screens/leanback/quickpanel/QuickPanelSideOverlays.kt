@@ -50,6 +50,7 @@ import androidx.tv.foundation.lazy.list.TvLazyColumn
 import androidx.tv.foundation.lazy.list.TvLazyListState
 import androidx.tv.foundation.lazy.list.items
 import androidx.tv.material3.ListItemDefaults
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
 import com.vesaa.mytv.data.entities.Epg
 import com.vesaa.mytv.data.entities.EpgProgramme
@@ -619,7 +620,7 @@ private fun QuickPanelTrackCategoryRow(
     val focusRequester = remember { FocusRequester() }
     LaunchedEffect(title, requestInitialFocus) {
         if (requestInitialFocus) {
-            focusRequester.requestFocus()
+            runCatching { focusRequester.requestFocus() }
         }
     }
     CompositionLocalProvider(
@@ -665,7 +666,7 @@ private fun QuickPanelTrackOptionRow(
     val focusRequester = remember { FocusRequester() }
     LaunchedEffect(title, requestInitialFocus) {
         if (requestInitialFocus) {
-            focusRequester.requestFocus()
+            runCatching { focusRequester.requestFocus() }
         }
     }
     CompositionLocalProvider(
@@ -712,7 +713,10 @@ fun LeanbackQuickPanelTrackPopupMenu(
     var optionFocusToken by remember { mutableStateOf(0) }
     val focusRequester = remember { FocusRequester() }
 
-    LaunchedEffect(Unit) { focusRequester.requestFocus() }
+    LaunchedEffect(Unit) {
+        delay(16)
+        runCatching { focusRequester.requestFocus() }
+    }
 
     Row(modifier = modifier) {
         QuickPanelEpgSurfacePanel(
