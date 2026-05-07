@@ -38,6 +38,10 @@
 
 - **修复 Jellyfin/AndroidX FFmpeg so 重复冲突**：显式排除 `androidx.media3:media3-decoder-ffmpeg` / `androidx.media3:lib-decoder-ffmpeg`，避免与 Jellyfin 扩展重复打包导致 `merge*NativeLibs` 失败。
 
+## [2.0.7] - 2026-05-07
+
+- **CI 发版触发补丁**：仅用于重新触发 Release 构建，产物应包含 Jellyfin FFmpeg 扩展且不再出现 `libffmpegJNI.so`/`androidx.media3.decoder.ffmpeg.*` 重复冲突。
+
 ## [1.9.30] - 2026-05-07
 
 - **修正 4001 错误提示分类**：将 `4001`（以及 `4000~4099` 解码相关错误）优先映射为“解码失败/编码参数不兼容”，避免被误提示为网络异常，便于用户快速判断为设备解码能力问题。
