@@ -93,6 +93,7 @@ class LeanbackMedia3VideoPlayer(
     private val contentTypeAttempts = mutableMapOf<Int, Boolean>()
     private var parseRetryJob: Job? = null
     private var noVideoFrameWatchdogJob: Job? = null
+    private var imageSequenceJob: Job? = null
     private var boundSurfaceView: SurfaceView? = null
     private var boundTextureView: TextureView? = null
     private var latestZapStartElapsedMs: Long = 0L
@@ -108,6 +109,7 @@ class LeanbackMedia3VideoPlayer(
     private var rtspTriedUdpFallback = false
     private var lastRtspForceTcp = true
     private var hlsAvcFallbackTried = false
+    private var hlsImageSequenceFallbackTried = false
 
     private val preferredTrackParams: TrackSelectionParameters by lazy {
         // 优先选更兼容的编解码，提升老盒子/运营商定制 ROM 的可播率：
@@ -267,6 +269,8 @@ class LeanbackMedia3VideoPlayer(
                 zapLatencyMs = null,
                 videoRenderedFps = 0f,
                 audioOnlyModeHint = false,
+                imageSequenceModeHint = false,
+                imageSequenceImageUrl = "",
             )
             triggerMetadata(metadata)
             contentTypeAttempts[contentType ?: Util.inferContentType(effectiveUri)] = true
@@ -301,6 +305,16 @@ class LeanbackMedia3VideoPlayer(
         val avcVariantUrl: String?,
     )
 
+    private data class ImageSequenceFrame(
+        val url: String,
+        val durationMs: Long,
+    )
+
+    private data class HlsImageSequenceProbe(
+        val audioUrl: String?,
+        val frames: List<ImageSequenceFrame>,
+    )
+
     private fun probeHlsMaster(masterUrl: String, content: String): HlsMasterProbe {
         val lines = content.lines()
         var hasVariant = false
@@ -331,6 +345,95 @@ class LeanbackMedia3VideoPlayer(
             hasHevc = hasHevc,
             avcVariantUrl = avcUrl,
         )
+    }
+
+    private fun extractFirstAudioUri(masterUrl: String, content: String): String? {
+        val line = content.lines()
+            .firstOrNull { it.contains("#EXT-X-MEDIA", ignoreCase = true) && it.contains("TYPE=AUDIO", ignoreCase = true) }
+            ?.trim()
+            .orEmpty()
+        if (line.isBlank()) return null
+        val uri = Regex("""URI="([^"]+)"""", RegexOption.IGNORE_CASE)
+            .find(line)?.groupValues?.getOrNull(1).orEmpty()
+        if (uri.isBlank()) return null
+        return runCatching { URI(masterUrl).resolve(uri).toString() }.getOrElse { uri }
+    }
+
+    private fun extractFirstVariantUri(masterUrl: String, content: String): String? {
+        val lines = content.lines()
+        for (i in lines.indices) {
+            val line = lines[i].trim()
+            if (!line.startsWith("#EXT-X-STREAM-INF", ignoreCase = true)) continue
+            val next = lines.getOrNull(i + 1)?.trim().orEmpty()
+            if (next.isBlank() || next.startsWith("#")) continue
+            return runCatching { URI(masterUrl).resolve(next).toString() }.getOrElse { next }
+        }
+        return null
+    }
+
+    private fun probeImageSequenceVariant(variantUrl: String, content: String): List<ImageSequenceFrame> {
+        val lines = content.lines()
+        val out = mutableListOf<ImageSequenceFrame>()
+        var pendingDurationMs = 4000L
+        for (lineRaw in lines) {
+            val line = lineRaw.trim()
+            if (line.isBlank()) continue
+            if (line.startsWith("#EXTINF", ignoreCase = true)) {
+                val sec = line.removePrefix("#EXTINF:")
+                    .substringBefore(",")
+                    .trim()
+                    .toDoubleOrNull()
+                pendingDurationMs = ((sec ?: 4.0) * 1000).toLong().coerceAtLeast(500L)
+                continue
+            }
+            if (line.startsWith("#")) continue
+            if (!line.lowercase().endsWith(".jpeg") && !line.lowercase().endsWith(".jpg")) continue
+            val resolved = runCatching { URI(variantUrl).resolve(line).toString() }.getOrElse { line }
+            out += ImageSequenceFrame(resolved, pendingDurationMs)
+        }
+        return out
+    }
+
+    private suspend fun probeHlsImageSequence(masterUrl: String, masterContent: String, headers: String?): HlsImageSequenceProbe? {
+        val variant = extractFirstVariantUri(masterUrl, masterContent) ?: return null
+        val variantText = fetchText(variant, headers)
+        val frames = probeImageSequenceVariant(variant, variantText)
+        if (frames.isEmpty()) return null
+        return HlsImageSequenceProbe(
+            audioUrl = extractFirstAudioUri(masterUrl, masterContent),
+            frames = frames,
+        )
+    }
+
+    private fun stopImageSequenceMode(clearMetadata: Boolean = true) {
+        imageSequenceJob?.cancel()
+        imageSequenceJob = null
+        if (clearMetadata && (metadata.imageSequenceModeHint || metadata.imageSequenceImageUrl.isNotBlank())) {
+            metadata = metadata.copy(
+                imageSequenceModeHint = false,
+                imageSequenceImageUrl = "",
+            )
+            triggerMetadata(metadata)
+        }
+    }
+
+    private fun startImageSequenceMode(frames: List<ImageSequenceFrame>) {
+        if (frames.isEmpty()) return
+        imageSequenceJob?.cancel()
+        imageSequenceJob = coroutineScope.launch {
+            var idx = 0
+            while (true) {
+                val frame = frames[idx % frames.size]
+                metadata = metadata.copy(
+                    imageSequenceModeHint = true,
+                    imageSequenceImageUrl = frame.url,
+                    audioOnlyModeHint = false,
+                )
+                triggerMetadata(metadata)
+                delay(frame.durationMs.coerceAtLeast(500L))
+                idx++
+            }
+        }
     }
 
     // ── Player 事件监听 ───────────────────────────────────────────
@@ -370,26 +473,50 @@ class LeanbackMedia3VideoPlayer(
                 coroutineScope.launch {
                     val probe = runCatching {
                         val txt = fetchText(hlsUri.toString(), activeStreamRequestHeaders)
-                        probeHlsMaster(hlsUri.toString(), txt)
+                        txt to probeHlsMaster(hlsUri.toString(), txt)
                     }.getOrNull()
                     if (probe != null) {
-                        if (probe.avcVariantUrl != null) {
-                            prepare(Uri.parse(probe.avcVariantUrl), C.CONTENT_TYPE_HLS, activeStreamRequestHeaders)
+                        val (masterText, hlsProbe) = probe
+                        if (hlsProbe.avcVariantUrl != null) {
+                            stopImageSequenceMode()
+                            prepare(Uri.parse(hlsProbe.avcVariantUrl), C.CONTENT_TYPE_HLS, activeStreamRequestHeaders)
                             return@launch
                         }
-                        if (probe.hasAnyVariant && probe.hasHevc && !probe.hasAvc) {
+                        if (!hlsImageSequenceFallbackTried) {
+                            hlsImageSequenceFallbackTried = true
+                            val imageProbe = runCatching {
+                                probeHlsImageSequence(hlsUri.toString(), masterText, activeStreamRequestHeaders)
+                            }.getOrNull()
+                            if (imageProbe != null && imageProbe.frames.isNotEmpty()) {
+                                triggerError(null)
+                                triggerBuffering(false)
+                                startImageSequenceMode(imageProbe.frames)
+                                if (!imageProbe.audioUrl.isNullOrBlank()) {
+                                    prepare(Uri.parse(imageProbe.audioUrl), C.CONTENT_TYPE_HLS, activeStreamRequestHeaders)
+                                } else {
+                                    videoPlayer.stop()
+                                    videoPlayer.clearMediaItems()
+                                    triggerReady()
+                                }
+                                return@launch
+                            }
+                        }
+                        if (hlsProbe.hasAnyVariant && hlsProbe.hasHevc && !hlsProbe.hasAvc) {
+                            stopImageSequenceMode()
                             triggerError(
                                 PlaybackException("HLS_HEVC_ONLY_OR_UNSUPPORTED", 10004)
                             )
                             return@launch
                         }
-                        if (!probe.hasAnyVariant) {
+                        if (!hlsProbe.hasAnyVariant) {
+                            stopImageSequenceMode()
                             triggerError(
                                 PlaybackException("HLS_MASTER_INVALID_OR_SINGLE_AUDIO", 10005)
                             )
                             return@launch
                         }
                     }
+                    stopImageSequenceMode()
                     triggerError(
                         PlaybackException(ex.errorCodeName, ex.errorCode)
                     )
@@ -462,6 +589,7 @@ class LeanbackMedia3VideoPlayer(
                 val noVideoFrameForLongTime =
                     lastRenderedFpsElapsedMs <= 0L || sinceLastFrameMs > 4500L
                 if (!videoPlayer.isPlaying || !noVideoFrameForLongTime) continue
+                if (metadata.imageSequenceModeHint) continue
                 if (!metadata.audioOnlyModeHint) {
                     metadata = metadata.copy(audioOnlyModeHint = true)
                     triggerMetadata(metadata)
@@ -479,6 +607,9 @@ class LeanbackMedia3VideoPlayer(
         if (metadata.audioOnlyModeHint) {
             metadata = metadata.copy(audioOnlyModeHint = false)
             triggerMetadata(metadata)
+        }
+        if (metadata.imageSequenceModeHint) {
+            stopImageSequenceMode()
         }
     }
 
@@ -638,6 +769,7 @@ class LeanbackMedia3VideoPlayer(
     override fun release() {
         parseRetryJob?.cancel()
         stopNoVideoFrameWatchdog()
+        stopImageSequenceMode()
         releaseMulticastLock()
         videoPlayer.removeListener(playerListener)
         videoPlayer.removeAnalyticsListener(metadataListener)
@@ -651,10 +783,12 @@ class LeanbackMedia3VideoPlayer(
     override fun prepare(url: String, streamRequestHeaders: String?) {
         parseRetryJob?.cancel()
         parseRetryJob = null
+        stopImageSequenceMode()
         parseErrorRetryUsed = false
         rtspTriedUdpFallback = false
         lastRtspForceTcp = true
         hlsAvcFallbackTried = false
+        hlsImageSequenceFallbackTried = false
         activeStreamRequestHeaders = streamRequestHeaders
         contentTypeAttempts.clear()
         prepare(Uri.parse(url), null, streamRequestHeaders)
@@ -676,6 +810,7 @@ class LeanbackMedia3VideoPlayer(
         parseRetryJob?.cancel()
         parseRetryJob = null
         stopNoVideoFrameWatchdog()
+        stopImageSequenceMode()
         releaseMulticastLock()
         videoPlayer.stop()
         videoPlayer.clearMediaItems()

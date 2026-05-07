@@ -8,6 +8,7 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
@@ -17,6 +18,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -24,6 +26,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import coil.compose.AsyncImage
 import com.vesaa.mytv.ui.rememberLeanbackChildPadding
 import com.vesaa.mytv.ui.screens.leanback.video.components.LeanbackVideoPlayerMetadata
 
@@ -71,7 +74,21 @@ fun LeanbackVideoScreen(
             errorProvider = { state.error },
         )
 
-        if (state.error == null && state.metadata.audioOnlyModeHint) {
+        if (state.error == null && state.metadata.imageSequenceModeHint && state.metadata.imageSequenceImageUrl.isNotBlank()) {
+            AsyncImage(
+                model = state.metadata.imageSequenceImageUrl,
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Fit,
+            )
+        }
+
+        if (state.error == null && !state.metadata.imageSequenceModeHint && state.metadata.audioOnlyModeHint) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black),
+            )
             AudioOnlyVisualizer(
                 modifier = Modifier.align(Alignment.Center),
             )
