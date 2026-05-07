@@ -39,18 +39,12 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.key.Key
-import androidx.compose.ui.input.key.KeyEventType
-import androidx.compose.ui.input.key.key
-import androidx.compose.ui.input.key.onPreviewKeyEvent
-import androidx.compose.ui.input.key.type
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.tv.foundation.lazy.list.TvLazyColumn
 import androidx.tv.foundation.lazy.list.TvLazyListState
 import androidx.tv.foundation.lazy.list.items
 import androidx.tv.material3.ListItemDefaults
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
 import com.vesaa.mytv.data.entities.Epg
 import com.vesaa.mytv.data.entities.EpgProgramme
@@ -699,114 +693,82 @@ private fun QuickPanelTrackOptionRow(
 }
 
 @Composable
-fun LeanbackQuickPanelTrackPopupMenu(
+fun LeanbackQuickPanelTrackSelectorSheet(
     modifier: Modifier = Modifier,
     audioTracks: List<LeanbackVideoPlayer.TrackOption>,
     videoTracks: List<LeanbackVideoPlayer.TrackOption>,
     onSelectAudioTrack: (String) -> Unit,
     onSelectVideoTrack: (String) -> Unit,
     autoCloseState: PanelAutoCloseState,
-    onDismiss: () -> Unit,
 ) {
     val onBg = MaterialTheme.colorScheme.onBackground
-    var selectedCategory by remember { mutableStateOf<LeanbackVideoPlayer.TrackType?>(null) }
-    var optionFocusToken by remember { mutableStateOf(0) }
-    val focusRequester = remember { FocusRequester() }
-
-    LaunchedEffect(Unit) {
-        delay(16)
-        runCatching { focusRequester.requestFocus() }
-    }
-
-    Row(modifier = modifier) {
-        QuickPanelEpgSurfacePanel(
-            modifier = Modifier.fillMaxWidth(0.5f)
-                .focusRequester(focusRequester)
-                .focusable()
-                .onPreviewKeyEvent { event ->
-                    if (event.type != KeyEventType.KeyUp) return@onPreviewKeyEvent false
-                    val isBack = event.key == Key.Back || event.key == Key.DirectionLeft
-                    if (!isBack) return@onPreviewKeyEvent false
-                    if (selectedCategory != null) {
-                        selectedCategory = null
-                    } else {
-                        onDismiss()
+    QuickPanelEpgSurfacePanel(modifier = modifier) {
+        Column(Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
+            Text(
+                text = "轨道选择",
+                style = MaterialTheme.typography.titleMedium,
+                color = onBg,
+            )
+            TvLazyColumn(
+                contentPadding = PaddingValues(vertical = 6.dp),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                item("video_header") {
+                    Text(
+                        text = "视频轨道",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = onBg.copy(alpha = 0.88f),
+                        modifier = Modifier.padding(start = 8.dp, top = 6.dp, bottom = 4.dp),
+                    )
+                }
+                if (videoTracks.isEmpty()) {
+                    item("video_none") {
+                        Text(
+                            text = "  (无)",
+                            color = onBg.copy(alpha = 0.68f),
+                            modifier = Modifier.padding(start = 8.dp, bottom = 6.dp),
+                        )
                     }
-                    true
-                },
-        ) {
-            Column(Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
-                Text(
-                    text = "轨道选择",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = onBg,
-                )
-                TvLazyColumn(
-                    contentPadding = PaddingValues(vertical = 6.dp),
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    if (audioTracks.size > 1) {
-                        item("audio_category") {
-                            QuickPanelTrackCategoryRow(
-                                title = "音频轨道",
-                                enabled = true,
-                                selected = selectedCategory == LeanbackVideoPlayer.TrackType.Audio,
-                                requestInitialFocus = selectedCategory == null,
-                                onSelect = {
-                                    selectedCategory = LeanbackVideoPlayer.TrackType.Audio
-                                    optionFocusToken++
-                                },
-                                autoCloseState = autoCloseState,
-                            )
-                        }
-                    }
-                    if (videoTracks.size > 1) {
-                        item("video_category") {
-                            QuickPanelTrackCategoryRow(
-                                title = "视频轨道",
-                                enabled = true,
-                                selected = selectedCategory == LeanbackVideoPlayer.TrackType.Video,
-                                requestInitialFocus = selectedCategory == null && audioTracks.size <= 1,
-                                onSelect = {
-                                    selectedCategory = LeanbackVideoPlayer.TrackType.Video
-                                    optionFocusToken++
-                                },
+                } else {
+                    videoTracks.forEachIndexed { idx, track ->
+                        item("video_track_${track.id}_$idx") {
+                            QuickPanelTrackOptionRow(
+                                title = "  ${track.label}",
+                                selected = track.selected,
+                                requestInitialFocus = idx == 0,
+                                onSelect = { onSelectVideoTrack(track.id) },
                                 autoCloseState = autoCloseState,
                             )
                         }
                     }
                 }
-            }
-        }
 
-        if (selectedCategory != null) {
-            val tracks = if (selectedCategory == LeanbackVideoPlayer.TrackType.Audio) audioTracks else videoTracks
-            QuickPanelGlassPanelRight(
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Column(Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
+                item("audio_header") {
                     Text(
-                        text = if (selectedCategory == LeanbackVideoPlayer.TrackType.Audio) "音频轨道" else "视频轨道",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
+                        text = "音频轨道",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = onBg.copy(alpha = 0.88f),
+                        modifier = Modifier.padding(start = 8.dp, top = 8.dp, bottom = 4.dp),
                     )
-                    TvLazyColumn(
-                        contentPadding = PaddingValues(vertical = 6.dp),
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        tracks.forEachIndexed { idx, track ->
-                            item("track_${track.id}_$idx") {
-                                QuickPanelTrackOptionRow(
-                                    title = track.label,
-                                    selected = track.selected,
-                                    requestInitialFocus = idx == 0 && optionFocusToken > 0,
-                                    onSelect = {
-                                        if (selectedCategory == LeanbackVideoPlayer.TrackType.Audio) onSelectAudioTrack(track.id)
-                                        else onSelectVideoTrack(track.id)
-                                    },
-                                    autoCloseState = autoCloseState,
-                                )
-                            }
+                }
+                if (audioTracks.isEmpty()) {
+                    item("audio_none") {
+                        Text(
+                            text = "  (无)",
+                            color = onBg.copy(alpha = 0.68f),
+                            modifier = Modifier.padding(start = 8.dp, bottom = 6.dp),
+                        )
+                    }
+                } else {
+                    audioTracks.forEachIndexed { idx, track ->
+                        item("audio_track_${track.id}_$idx") {
+                            QuickPanelTrackOptionRow(
+                                title = "  ${track.label}",
+                                selected = track.selected,
+                                requestInitialFocus = videoTracks.isEmpty() && idx == 0,
+                                onSelect = { onSelectAudioTrack(track.id) },
+                                autoCloseState = autoCloseState,
+                            )
                         }
                     }
                 }
