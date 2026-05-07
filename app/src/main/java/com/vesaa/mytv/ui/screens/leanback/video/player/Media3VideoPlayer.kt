@@ -35,12 +35,17 @@ import androidx.media3.exoplayer.util.EventLogger
 import androidx.media3.exoplayer.video.VideoFrameMetadataListener
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import okhttp3.Request
 import com.vesaa.mytv.ui.utils.SP
+import com.vesaa.mytv.utils.AppOkHttp
 import com.vesaa.mytv.utils.IptvOutboundHeaderPolicy
 import com.vesaa.mytv.utils.normalizeIptvRequestHeadersInput
 import com.vesaa.mytv.utils.parseHttpHeaderLines
+import java.net.URI
 import androidx.media3.common.PlaybackException as Media3PlaybackException
 import kotlin.math.max
 
@@ -98,6 +103,7 @@ class LeanbackMedia3VideoPlayer(
     private val attemptedVideoTrackFallbackKeys = mutableSetOf<String>()
     private var rtspTriedUdpFallback = false
     private var lastRtspForceTcp = true
+    private var hlsAvcFallbackTried = false
 
     private val preferredTrackParams: TrackSelectionParameters by lazy {
         // 优先选更兼容的编解码，提升老盒子/运营商定制 ROM 的可播率：
@@ -270,6 +276,59 @@ class LeanbackMedia3VideoPlayer(
         }
     }
 
+    private suspend fun fetchText(url: String, headers: String?): String = withContext(Dispatchers.IO) {
+        val builder = Request.Builder().url(url)
+        val norm = normalizeIptvRequestHeadersInput(headers.orEmpty())
+        val blended = IptvOutboundHeaderPolicy.applyToNormalizedHeadersText(norm, url)
+        blended.parseHttpHeaderLines().forEach { (k, v) ->
+            if (!k.equals("User-Agent", ignoreCase = true) && k.isNotBlank()) builder.addHeader(k, v)
+        }
+        val req = builder.build()
+        AppOkHttp.client().newCall(req).execute().use { resp ->
+            if (!resp.isSuccessful) error("HTTP ${resp.code}")
+            resp.body?.string().orEmpty()
+        }
+    }
+
+    private data class HlsMasterProbe(
+        val hasAnyVariant: Boolean,
+        val hasAvc: Boolean,
+        val hasHevc: Boolean,
+        val avcVariantUrl: String?,
+    )
+
+    private fun probeHlsMaster(masterUrl: String, content: String): HlsMasterProbe {
+        val lines = content.lines()
+        var hasVariant = false
+        var hasAvc = false
+        var hasHevc = false
+        var avcUrl: String? = null
+
+        for (i in lines.indices) {
+            val line = lines[i].trim()
+            if (!line.startsWith("#EXT-X-STREAM-INF", ignoreCase = true)) continue
+            hasVariant = true
+            val codecs = Regex("""CODECS="([^"]+)"""", RegexOption.IGNORE_CASE)
+                .find(line)?.groupValues?.getOrNull(1).orEmpty().lowercase()
+            val isAvc = codecs.contains("avc1")
+            val isHevc = codecs.contains("hvc1") || codecs.contains("hev1")
+            if (isAvc) hasAvc = true
+            if (isHevc) hasHevc = true
+            val nextUri = lines.getOrNull(i + 1)?.trim().orEmpty()
+            if (isAvc && avcUrl == null && nextUri.isNotBlank() && !nextUri.startsWith("#")) {
+                avcUrl = runCatching { URI(masterUrl).resolve(nextUri).toString() }
+                    .getOrElse { nextUri }
+            }
+        }
+
+        return HlsMasterProbe(
+            hasAnyVariant = hasVariant,
+            hasAvc = hasAvc,
+            hasHevc = hasHevc,
+            avcVariantUrl = avcUrl,
+        )
+    }
+
     // ── Player 事件监听 ───────────────────────────────────────────
 
     private val playerListener = object : Player.Listener {
@@ -300,6 +359,38 @@ class LeanbackMedia3VideoPlayer(
                     }
                     return
                 }
+            }
+            val hlsUri = curUri
+            if (hlsUri != null && Util.inferContentType(hlsUri) == C.CONTENT_TYPE_HLS && !hlsAvcFallbackTried) {
+                hlsAvcFallbackTried = true
+                coroutineScope.launch {
+                    val probe = runCatching {
+                        val txt = fetchText(hlsUri.toString(), activeStreamRequestHeaders)
+                        probeHlsMaster(hlsUri.toString(), txt)
+                    }.getOrNull()
+                    if (probe != null) {
+                        if (probe.avcVariantUrl != null) {
+                            prepare(Uri.parse(probe.avcVariantUrl), C.CONTENT_TYPE_HLS, activeStreamRequestHeaders)
+                            return@launch
+                        }
+                        if (probe.hasAnyVariant && probe.hasHevc && !probe.hasAvc) {
+                            triggerError(
+                                PlaybackException("HLS_HEVC_ONLY_OR_UNSUPPORTED", 10004)
+                            )
+                            return@launch
+                        }
+                        if (!probe.hasAnyVariant) {
+                            triggerError(
+                                PlaybackException("HLS_MASTER_INVALID_OR_SINGLE_AUDIO", 10005)
+                            )
+                            return@launch
+                        }
+                    }
+                    triggerError(
+                        PlaybackException(ex.errorCodeName, ex.errorCode)
+                    )
+                }
+                return
             }
             // 如果是直播加载位置错误，尝试重新播放
             if (ex.errorCode == Media3PlaybackException.ERROR_CODE_BEHIND_LIVE_WINDOW) {
@@ -559,6 +650,7 @@ class LeanbackMedia3VideoPlayer(
         parseErrorRetryUsed = false
         rtspTriedUdpFallback = false
         lastRtspForceTcp = true
+        hlsAvcFallbackTried = false
         activeStreamRequestHeaders = streamRequestHeaders
         contentTypeAttempts.clear()
         prepare(Uri.parse(url), null, streamRequestHeaders)
