@@ -9,6 +9,9 @@
 # Secrets（正式发版请配置齐）：KEYSTORE_BASE64、KEYSTORE_PASSWORD、KEY_ALIAS、KEY_PASSWORD、PROPRIETARY_AGE_PASSPHRASE
 # 未配置 KEYSTORE_BASE64 时仍用 Debug 签名（各次 CI 证书可能不同，无法稳定覆盖安装）。
 # PKCS12 密钥库需在 Assemble 步骤传入 KEYSTORE_TYPE（与 app/build.gradle.kts 一致）。
+#
+# 附：GitHub Release 附件上传顺序固定为 arm → x86_64 → HarmonyOS。
+# 存量 1.9.* 客户端仍按旧逻辑在 Release 资产列表里做启发式选取；将主包 arm 排在前列可降低误选概率。
 
 name: Release
 
@@ -199,7 +202,11 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: success()
         with:
-          files: artifacts/*
+          # 顺序影响上传/部分 API 中资产排列；与 Package artifacts 中 copy 顺序一致，优先 arm
+          files: |
+            artifacts/vstv-${{ steps.ver.outputs.version }}-arm.apk
+            artifacts/vstv-${{ steps.ver.outputs.version }}-x86_64.apk
+            artifacts/vstv-${{ steps.ver.outputs.version }}-HarmonyOS.apk
           body_path: release_body.md
           generate_release_notes: false
         env:
