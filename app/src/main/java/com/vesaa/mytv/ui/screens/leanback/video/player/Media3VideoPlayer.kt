@@ -119,6 +119,8 @@ class LeanbackMedia3VideoPlayer(
     private var hlsImageSequenceFallbackTried = false
     private var hlsDirectChildFallbackTried = false
 
+    var onHlsFallbackToIjk: ((String, String?) -\u003e Unit)? = null
+
     private val preferredTrackParams: TrackSelectionParameters by lazy {
         // 优先选更兼容的编解码，提升老盒子/运营商定制 ROM 的可播率：
         // - 视频：优先 AVC(H.264)，其次 HEVC(H.265)
@@ -312,7 +314,7 @@ class LeanbackMedia3VideoPlayer(
                     }.getOrNull()
                     if (childUrl != null) {
                         stopImageSequenceMode()
-                        prepare(Uri.parse(childUrl), C.CONTENT_TYPE_HLS, activeStreamRequestHeaders)
+                        onHlsFallbackToIjk?.invoke(childUrl, activeStreamRequestHeaders)
                     }
                 }
             }

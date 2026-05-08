@@ -22,6 +22,13 @@ class LeanbackVideoPlayerRouter(
     private val media3Player = LeanbackMedia3VideoPlayer(context, coroutineScope)
     private val ijkPlayer = LeanbackIjkVideoPlayer(context, coroutineScope)
 
+    init {
+        media3Player.onHlsFallbackToIjk = { url, headers ->
+            stopImageSequenceMode()
+            switchTo(ijkPlayer, url, headers)
+        }
+    }
+
     /** 当前活跃的后端（最后一次 prepare 时选中的后端） */
     private var activePlayer: LeanbackVideoPlayer? = null
 
