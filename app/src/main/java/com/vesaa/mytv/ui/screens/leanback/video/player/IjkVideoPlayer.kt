@@ -9,7 +9,7 @@ import tv.danmaku.ijk.media.player.IMediaPlayer
 import tv.danmaku.ijk.media.player.IjkMediaPlayer
 
 class LeanbackIjkVideoPlayer(
-    private val context: Context,
+    context: Context,
     coroutineScope: CoroutineScope,
 ) : LeanbackVideoPlayer(coroutineScope) {
     private var player: IjkMediaPlayer? = null
@@ -72,10 +72,6 @@ class LeanbackIjkVideoPlayer(
     override fun prepare(url: String, streamRequestHeaders: String?) {
         initialize()
         val p = player ?: return
-        if (!url.startsWith("rtsp://", ignoreCase = true)) {
-            triggerError(PlaybackException.UNSUPPORTED_TYPE)
-            return
-        }
         runCatching {
             p.reset()
             applyBoundSurface()

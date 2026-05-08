@@ -20,13 +20,20 @@ class LeanbackProtocolRoutedVideoPlayer(
     private var boundSurfaceView: SurfaceView? = null
     private var boundTextureView: TextureView? = null
     private var playRequested = true
+    private var currentUrl: String = ""
+    private var currentHeaders: String? = null
+    private var hasTriedHevcIjkFallback = false
 
     init {
         media3.onResolution { w, h -> if (active === media3) triggerResolution(w, h) }
         media3.onPrepared { if (active === media3) triggerPrepared() }
         media3.onReady { if (active === media3) triggerReady() }
         media3.onBuffering { if (active === media3) triggerBuffering(it) }
-        media3.onMetadata { if (active === media3) triggerMetadata(it) }
+        media3.onMetadata {
+            if (active !== media3) return@onMetadata
+            triggerMetadata(it)
+            maybeSwitchHevcAudioOnlyToIjk(it)
+        }
         media3.onCutoff { if (active === media3) triggerCutoff() }
         media3.onError { ex -> if (active === media3) triggerError(ex) }
 
@@ -54,10 +61,16 @@ class LeanbackProtocolRoutedVideoPlayer(
     override fun onDeactivate() {
         media3.onDeactivate()
         ijk.onDeactivate()
+        hasTriedHevcIjkFallback = false
+        currentUrl = ""
+        currentHeaders = null
     }
 
     override fun prepare(url: String, streamRequestHeaders: String?) {
         val targetUrl = url.trim()
+        currentUrl = targetUrl
+        currentHeaders = streamRequestHeaders
+        hasTriedHevcIjkFallback = false
         active = if (targetUrl.isRtspUrl()) ijk else media3
         if (active === ijk) media3.onDeactivate() else ijk.onDeactivate()
         applyBoundSurfaceToActive()
@@ -119,7 +132,27 @@ class LeanbackProtocolRoutedVideoPlayer(
         boundTextureView?.let { active.setVideoTextureView(it) }
     }
 
+    private fun maybeSwitchHevcAudioOnlyToIjk(metadata: Metadata) {
+        if (hasTriedHevcIjkFallback || active !== media3) return
+        if (!metadata.audioOnlyModeHint) return
+        if (!metadata.looksLikeHevc()) return
+        if (currentUrl.isBlank()) return
+
+        hasTriedHevcIjkFallback = true
+        media3.onDeactivate()
+        active = ijk
+        applyBoundSurfaceToActive()
+        active.prepare(currentUrl, currentHeaders)
+        if (playRequested) active.play() else active.pause()
+    }
+
     private fun String.isRtspUrl(): Boolean = runCatching {
         Uri.parse(this).scheme.equals("rtsp", ignoreCase = true)
     }.getOrDefault(false)
+
+    private fun Metadata.looksLikeHevc(): Boolean {
+        val mime = videoMimeType.lowercase()
+        val codecs = videoCodecs.lowercase()
+        return mime.contains("hevc") || codecs.contains("hev1") || codecs.contains("hvc1")
+    }
 }
