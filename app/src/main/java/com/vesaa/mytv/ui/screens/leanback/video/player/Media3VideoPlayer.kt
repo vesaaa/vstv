@@ -117,10 +117,6 @@ class LeanbackMedia3VideoPlayer(
     private var lastRtspForceTcp = true
     private var hlsAvcFallbackTried = false
     private var hlsImageSequenceFallbackTried = false
-    private var hlsDirectChildFallbackTried = false
-    private var ijkGeneralFallbackTried = false
-
-    var onHlsFallbackToIjk: ((String, String?) -\u003e Unit)? = null
 
     private val preferredTrackParams: TrackSelectionParameters by lazy {
         // 优先选更兼容的编解码，提升老盒子/运营商定制 ROM 的可播率：
@@ -284,6 +280,7 @@ class LeanbackMedia3VideoPlayer(
             latestZapStartElapsedMs = SystemClock.elapsedRealtime()
             awaitingFirstReadyAfterPrepare = true
             lastRenderedFpsElapsedMs = 0L
+            attemptedVideoTrackFallbackKeys.clear()
             metadata = metadata.copy(
                 zapLatencyMs = null,
                 videoRenderedFps = 0f,
@@ -300,24 +297,6 @@ class LeanbackMedia3VideoPlayer(
             videoPlayer.setMediaSource(mediaSource)
             videoPlayer.prepare()
             triggerPrepared()
-
-            // HLS 主清单 CODECS 仅声明音频、但 TS 分片含视频的兼容容错。
-            if (Util.inferContentType(effectiveUri) == C.CONTENT_TYPE_HLS && !hlsDirectChildFallbackTried) {
-                hlsDirectChildFallbackTried = true
-                coroutineScope.launch {
-                    val childUrl = runCatching {
-                        val masterText = fetchText(effectiveUri.toString(), activeStreamRequestHeaders)
-                        val probe = probeHlsMaster(effectiveUri.toString(), masterText)
-                        if (probe.hasAnyVariant && !probe.hasAvc && !probe.hasHevc) {
-                            extractFirstVariantUri(effectiveUri.toString(), masterText)
-                        } else null
-                    }.getOrNull()
-                    if (childUrl != null) {
-                        stopImageSequenceMode()
-                        onHlsFallbackToIjk?.invoke(childUrl, activeStreamRequestHeaders)
-                    }
-                }
-            }
         }
     }
 
@@ -619,19 +598,23 @@ class LeanbackMedia3VideoPlayer(
     private fun startNoVideoFrameWatchdog() {
         noVideoFrameWatchdogJob?.cancel()
         noVideoFrameWatchdogJob = coroutineScope.launch {
-            delay(2000)
+            delay(4000)
             while (true) {
                 delay(1200)
                 val sinceLastFrameMs = SystemClock.elapsedRealtime() - lastRenderedFpsElapsedMs
                 val noVideoFrameForLongTime =
-                    lastRenderedFpsElapsedMs <= 0L || sinceLastFrameMs > 2000L
+                    lastRenderedFpsElapsedMs <= 0L || sinceLastFrameMs > 4500L
                 if (!videoPlayer.isPlaying || !noVideoFrameForLongTime) continue
                 if (metadata.imageSequenceModeHint) continue
-                if (tryHevcSoftDecodeFallback()) continue
-                if (tryIjkGeneralFallback()) break
+                if (tryHevcSoftDecodeFallback()) {
+                    continue
+                }
                 if (!metadata.audioOnlyModeHint) {
                     metadata = metadata.copy(audioOnlyModeHint = true)
                     triggerMetadata(metadata)
+                }
+                if (tryFallbackToNextVideoTrack()) {
+                    lastRenderedFpsElapsedMs = SystemClock.elapsedRealtime()
                 }
             }
         }
@@ -655,16 +638,6 @@ class LeanbackMedia3VideoPlayer(
         return true
     }
 
-    private fun tryIjkGeneralFallback(): Boolean {
-        if (ijkGeneralFallbackTried) return false
-        val uri = lastPreparedUri ?: return false
-        val callback = onHlsFallbackToIjk ?: return false
-        ijkGeneralFallbackTried = true
-        stopNoVideoFrameWatchdog()
-        callback(uri, activeStreamRequestHeaders)
-        return true
-    }
-
     private fun stopNoVideoFrameWatchdog() {
         noVideoFrameWatchdogJob?.cancel()
         noVideoFrameWatchdogJob = null
@@ -677,6 +650,51 @@ class LeanbackMedia3VideoPlayer(
         }
     }
 
+    private fun tryFallbackToNextVideoTrack(): Boolean {
+        val videoGroups = videoPlayer.currentTracks.groups.filter { it.type == C.TRACK_TYPE_VIDEO }
+        for (group in videoGroups) {
+            val supported = buildList {
+                for (i in 0 until group.length) {
+                    if (group.isTrackSupported(i)) add(i)
+                }
+            }
+            if (supported.size <= 1) continue
+
+            val selected = supported.firstOrNull { idx -> group.isTrackSelected(idx) }
+            val ranked = supported
+                .filter { it != selected }
+                .sortedBy { idx -> videoTrackScore(group.mediaTrackGroup.getFormat(idx)) }
+
+            for (idx in ranked) {
+                val key = "${group.mediaTrackGroup.id ?: "unknown"}#$idx"
+                if (!attemptedVideoTrackFallbackKeys.add(key)) continue
+                videoPlayer.trackSelectionParameters = videoPlayer.trackSelectionParameters
+                    .buildUpon()
+                    .clearOverridesOfType(C.TRACK_TYPE_VIDEO)
+                    .addOverride(TrackSelectionOverride(group.mediaTrackGroup, listOf(idx)))
+                    .build()
+                return true
+            }
+        }
+        return false
+    }
+
+    private fun videoTrackScore(format: Format): Int {
+        // 分数越低越优先：尽量选 AVC + 低分辨率/低码率，提升兼容性。
+        val mime = format.sampleMimeType.orEmpty().lowercase()
+        val codecs = format.codecs.orEmpty().lowercase()
+        val codecScore = when {
+            mime.contains("avc") || codecs.startsWith("avc1") -> 0
+            mime.contains("hevc") || codecs.startsWith("hvc1") || codecs.startsWith("hev1") -> 10
+            mime.contains("dolby") || codecs.startsWith("dvhe") || codecs.startsWith("dvh1") -> 100
+            else -> 50
+        }
+        val w = if (format.width > 0) format.width else 0
+        val h = if (format.height > 0) format.height else 0
+        val resScore = (w * h) / 10_000 // 1080p≈207, 4K≈829
+        val brScore = (if (format.bitrate > 0) format.bitrate else 0) / 1_000_000
+        return codecScore + resScore + brScore
+    }
 
     override fun getTrackOptions(type: TrackType): List<TrackOption> {
         val targetType = when (type) {
@@ -873,8 +891,6 @@ class LeanbackMedia3VideoPlayer(
         lastRtspForceTcp = true
         hlsAvcFallbackTried = false
         hlsImageSequenceFallbackTried = false
-        hlsDirectChildFallbackTried = false
-        ijkGeneralFallbackTried = false
         activeStreamRequestHeaders = streamRequestHeaders
         contentTypeAttempts.clear()
         prepare(Uri.parse(url), null, streamRequestHeaders)
@@ -899,8 +915,6 @@ class LeanbackMedia3VideoPlayer(
         stopImageSequenceMode()
         forcePreferExtensionDecoders = false
         hevcSoftFallbackTried = false
-        hlsDirectChildFallbackTried = false
-        ijkGeneralFallbackTried = false
         lastPreparedUri = null
         lastPreparedContentType = null
         releaseMulticastLock()

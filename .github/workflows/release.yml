@@ -5,7 +5,7 @@
 #   vstv-<ver>-x86_64.apk     — 常规 X86_64（包名 com.vesaa.mytv）
 #   vstv-<ver>-HarmonyOS.apk  — 鸿蒙/兼容向 ARM（包名 com.chinablue.tv，桌面名 Z视介）
 #
-# 标签：v*.*.*、v*.*.*-*（本仓库 1.0.x 等正式线）
+# 标签：v*.*.*、v*.*.*-*（本仓库 1.0.x 等正式线；推送标签前须已写入 CHANGELOG 对应章节，见下方校验步骤）
 # Secrets（正式发版请配置齐）：KEYSTORE_BASE64、KEYSTORE_PASSWORD、KEY_ALIAS、KEY_PASSWORD、PROPRIETARY_AGE_PASSPHRASE
 # 未配置 KEYSTORE_BASE64 时仍用 Debug 签名（各次 CI 证书可能不同，无法稳定覆盖安装）。
 # PKCS12 密钥库需在 Assemble 步骤传入 KEYSTORE_TYPE（与 app/build.gradle.kts 一致）。
@@ -80,6 +80,19 @@ jobs:
           echo "versionCode=$VC" >> "$GITHUB_OUTPUT"
           echo "Release version=$VER versionCore=$VER_NUM versionCode=$VC (from tag $TAG)"
 
+      - name: Verify CHANGELOG has section for this release
+        run: |
+          set -euo pipefail
+          CORE="${{ steps.ver.outputs.versionCore }}"
+          if [ -z "$CORE" ]; then
+            echo "::error::未能解析 versionCore"
+            exit 1
+          fi
+          if ! grep -qF "## [${CORE}]" CHANGELOG.md; then
+            echo "::error::CHANGELOG.md 缺少本版章节「## [${CORE}]」。请先在 main 上提交 CHANGELOG 再推送标签。"
+            exit 1
+          fi
+          echo "CHANGELOG OK: found ## [${CORE}]"
 
       - name: Assemble all release variants
         env:
