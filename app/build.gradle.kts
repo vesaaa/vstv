@@ -117,6 +117,16 @@ android {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
+        // ijkplayer AAR 内含所有 .so，若与 Jellyfin ffmpeg 扩展存在同名库时取前者。
+        // pickFirst 比 exclude 安全：不会导致运行时找不到 native 库。
+        jniLibs {
+            pickFirsts += setOf(
+                "lib/armeabi-v7a/libijkffmpeg.so",
+                "lib/arm64-v8a/libijkffmpeg.so",
+                "lib/x86_64/libijkffmpeg.so",
+                "lib/x86/libijkffmpeg.so",
+            )
+        }
     }
     signingConfigs {
         if (!ciUseDebugSigning) {
