@@ -119,7 +119,7 @@ class LeanbackIjkVideoPlayer(
         true
     }
 
-    private val videoSizeListener = IMediaPlayer.OnVideoSizeChangedListener { width, height, _, _ ->
+    private val videoSizeListener = IMediaPlayer.OnVideoSizeChangedListener { _, width, height, _, _ ->
         if (width > 0 && height > 0) {
             triggerResolution(width, height)
         }
@@ -138,7 +138,7 @@ class LeanbackIjkVideoPlayer(
                 val trackInfo = mp.trackInfo ?: return@launch
                 for (info in trackInfo) {
                     val lang = info.language.orEmpty()
-                    val infoString = info.infoString.orEmpty()
+                    val infoString = info.infoInline.orEmpty()
                     when (info.trackType) {
                         ITrackInfo.MEDIA_TRACK_TYPE_VIDEO -> {
                             // 从 infoString 解析可能的编码信息
@@ -316,7 +316,7 @@ class LeanbackIjkVideoPlayer(
                 val lang = info.language?.takeIf { it.isNotBlank() && it != "und" } ?: "${type.name}${idx + 1}"
                 val label = buildString {
                     append(lang)
-                    val extra = info.infoString?.takeIf { it.isNotBlank() }
+                    val extra = info.infoInline?.takeIf { it.isNotBlank() }
                     if (extra != null) append(" · $extra")
                 }
                 TrackOption(
