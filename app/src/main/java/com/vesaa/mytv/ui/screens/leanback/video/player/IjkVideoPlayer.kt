@@ -20,36 +20,42 @@ class LeanbackIjkVideoPlayer(
     override fun initialize() {
         super.initialize()
         if (player != null) return
-        player = IjkMediaPlayer().apply {
-            // RTSP 默认优先 TCP，弱网/跨网段环境更稳。
-            setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "rtsp_transport", "tcp")
-            setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "timeout", 20_000_000L)
-            setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "start-on-prepared", 0L)
-            setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "mediacodec", 1L)
-            setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "mediacodec-auto-rotate", 1L)
-            setOnPreparedListener {
-                triggerReady()
-                triggerBuffering(false)
-            }
-            setOnInfoListener { _, what, _ ->
-                when (what) {
-                    IMediaPlayer.MEDIA_INFO_BUFFERING_START -> triggerBuffering(true)
-                    IMediaPlayer.MEDIA_INFO_BUFFERING_END -> {
-                        triggerBuffering(false)
-                        triggerReady()
-                    }
-                    IMediaPlayer.MEDIA_INFO_VIDEO_RENDERING_START -> triggerReady()
+        val created = runCatching {
+            IjkMediaPlayer().apply {
+                // RTSP 默认优先 TCP，弱网/跨网段环境更稳。
+                setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "rtsp_transport", "tcp")
+                setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "timeout", 20_000_000L)
+                setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "start-on-prepared", 0L)
+                setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "mediacodec", 1L)
+                setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "mediacodec-auto-rotate", 1L)
+                setOnPreparedListener {
+                    triggerReady()
+                    triggerBuffering(false)
                 }
-                false
+                setOnInfoListener { _, what, _ ->
+                    when (what) {
+                        IMediaPlayer.MEDIA_INFO_BUFFERING_START -> triggerBuffering(true)
+                        IMediaPlayer.MEDIA_INFO_BUFFERING_END -> {
+                            triggerBuffering(false)
+                            triggerReady()
+                        }
+                        IMediaPlayer.MEDIA_INFO_VIDEO_RENDERING_START -> triggerReady()
+                    }
+                    false
+                }
+                setOnVideoSizeChangedListener { _, width, height, _, _ ->
+                    triggerResolution(width, height)
+                }
+                setOnErrorListener { _, what, extra ->
+                    triggerError(PlaybackException("IJK_ERROR_${what}_$extra", 4001))
+                    true
+                }
             }
-            setOnVideoSizeChangedListener { _, width, height, _, _ ->
-                triggerResolution(width, height)
-            }
-            setOnErrorListener { _, what, extra ->
-                triggerError(PlaybackException("IJK_ERROR_${what}_$extra", 4001))
-                true
-            }
+        }.getOrElse {
+            triggerError(PlaybackException("IJK_INIT_FAILED", 4002))
+            null
         }
+        player = created
     }
 
     override fun release() {
@@ -80,7 +86,7 @@ class LeanbackIjkVideoPlayer(
             triggerPrepared()
             triggerBuffering(true)
         }.onFailure {
-            triggerError(PlaybackException("IJK_PREPARE_FAILED", 4002))
+            triggerError(PlaybackException("IJK_PREPARE_FAILED", 4003))
         }
     }
 
