@@ -41,6 +41,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import okhttp3.Request
 import com.vesaa.mytv.ui.utils.SP
 import com.vesaa.mytv.utils.AppOkHttp
@@ -117,6 +118,9 @@ class LeanbackMedia3VideoPlayer(
     private var lastRtspForceTcp = true
     private var hlsAvcFallbackTried = false
     private var hlsImageSequenceFallbackTried = false
+    private var hlsPreprobeJob: Job? = null
+    private var prepareSessionId: Int = 0
+    private var hlsSuspiciousSession: Boolean = false
 
     private val preferredTrackParams: TrackSelectionParameters by lazy {
         // 优先选更兼容的编解码，提升老盒子/运营商定制 ROM 的可播率：
@@ -208,13 +212,23 @@ class LeanbackMedia3VideoPlayer(
     // ── prepare ───────────────────────────────────────────────────
 
     @OptIn(UnstableApi::class)
-    private fun prepare(uri: Uri, contentType: Int? = null, streamRequestHeaders: String? = null) {
+    private fun prepare(
+        uri: Uri,
+        contentType: Int? = null,
+        streamRequestHeaders: String? = null,
+        markHlsSuspiciousSession: Boolean = false,
+    ) {
         val headers = streamRequestHeaders ?: activeStreamRequestHeaders
         val isRtmp = uri.scheme.equals("rtmp", ignoreCase = true)
         val isUdpRtp = isUdpOrRtp(uri)
         val isRtsp = uri.scheme.equals("rtsp", ignoreCase = true)
         lastPreparedUri = uri
         lastPreparedContentType = contentType
+        if ((contentType ?: Util.inferContentType(uri)) == C.CONTENT_TYPE_HLS) {
+            hlsSuspiciousSession = markHlsSuspiciousSession
+        } else {
+            hlsSuspiciousSession = false
+        }
 
         // UDP/RTP 组播：切换到专用播放器 + 获取 MulticastLock
         ensurePlayerForUdp(isUdpRtp)
@@ -319,6 +333,10 @@ class LeanbackMedia3VideoPlayer(
         val hasAvc: Boolean,
         val hasHevc: Boolean,
         val avcVariantUrl: String?,
+        val firstVariantUrl: String?,
+        val hasMissingCodecsDecl: Boolean,
+        val hasAudioOnlyCodecsDecl: Boolean,
+        val suspiciousByDeclaration: Boolean,
     )
 
     private data class ImageSequenceFrame(
@@ -337,18 +355,38 @@ class LeanbackMedia3VideoPlayer(
         var hasAvc = false
         var hasHevc = false
         var avcUrl: String? = null
+        var firstVariantUrl: String? = null
+        var hasMissingCodecsDecl = false
+        var hasAudioOnlyCodecsDecl = false
 
         for (i in lines.indices) {
             val line = lines[i].trim()
             if (!line.startsWith("#EXT-X-STREAM-INF", ignoreCase = true)) continue
             hasVariant = true
+            val nextUri = lines.getOrNull(i + 1)?.trim().orEmpty()
+            if (firstVariantUrl == null && nextUri.isNotBlank() && !nextUri.startsWith("#")) {
+                firstVariantUrl = runCatching { URI(masterUrl).resolve(nextUri).toString() }
+                    .getOrElse { nextUri }
+            }
             val codecs = Regex("""CODECS="([^"]+)"""", RegexOption.IGNORE_CASE)
                 .find(line)?.groupValues?.getOrNull(1).orEmpty().lowercase()
+            if (codecs.isBlank()) {
+                hasMissingCodecsDecl = true
+            } else {
+                val tokens = codecs.split(",").map { it.trim() }.filter { it.isNotBlank() }
+                val audioOnlyDeclared = tokens.isNotEmpty() &&
+                    tokens.all { token ->
+                        token.startsWith("mp4a") ||
+                            token.startsWith("ac-3") ||
+                            token.startsWith("ec-3") ||
+                            token.startsWith("opus")
+                    }
+                if (audioOnlyDeclared) hasAudioOnlyCodecsDecl = true
+            }
             val isAvc = codecs.contains("avc1")
             val isHevc = codecs.contains("hvc1") || codecs.contains("hev1")
             if (isAvc) hasAvc = true
             if (isHevc) hasHevc = true
-            val nextUri = lines.getOrNull(i + 1)?.trim().orEmpty()
             if (isAvc && avcUrl == null && nextUri.isNotBlank() && !nextUri.startsWith("#")) {
                 avcUrl = runCatching { URI(masterUrl).resolve(nextUri).toString() }
                     .getOrElse { nextUri }
@@ -360,6 +398,10 @@ class LeanbackMedia3VideoPlayer(
             hasAvc = hasAvc,
             hasHevc = hasHevc,
             avcVariantUrl = avcUrl,
+            firstVariantUrl = firstVariantUrl,
+            hasMissingCodecsDecl = hasMissingCodecsDecl,
+            hasAudioOnlyCodecsDecl = hasAudioOnlyCodecsDecl,
+            suspiciousByDeclaration = hasMissingCodecsDecl || hasAudioOnlyCodecsDecl,
         )
     }
 
@@ -598,12 +640,14 @@ class LeanbackMedia3VideoPlayer(
     private fun startNoVideoFrameWatchdog() {
         noVideoFrameWatchdogJob?.cancel()
         noVideoFrameWatchdogJob = coroutineScope.launch {
-            delay(4000)
+            val startupDelayMs = if (hlsSuspiciousSession) 1200L else 4000L
+            val noFrameThresholdMs = if (hlsSuspiciousSession) 2000L else 4500L
+            delay(startupDelayMs)
             while (true) {
-                delay(1200)
+                delay(800)
                 val sinceLastFrameMs = SystemClock.elapsedRealtime() - lastRenderedFpsElapsedMs
                 val noVideoFrameForLongTime =
-                    lastRenderedFpsElapsedMs <= 0L || sinceLastFrameMs > 4500L
+                    lastRenderedFpsElapsedMs <= 0L || sinceLastFrameMs > noFrameThresholdMs
                 if (!videoPlayer.isPlaying || !noVideoFrameForLongTime) continue
                 if (metadata.imageSequenceModeHint) continue
                 if (tryHevcSoftDecodeFallback()) {
@@ -865,6 +909,7 @@ class LeanbackMedia3VideoPlayer(
     }
 
     override fun release() {
+        hlsPreprobeJob?.cancel()
         parseRetryJob?.cancel()
         stopNoVideoFrameWatchdog()
         stopImageSequenceMode()
@@ -879,6 +924,9 @@ class LeanbackMedia3VideoPlayer(
 
     @UnstableApi
     override fun prepare(url: String, streamRequestHeaders: String?) {
+        prepareSessionId += 1
+        val sessionId = prepareSessionId
+        hlsPreprobeJob?.cancel()
         parseRetryJob?.cancel()
         parseRetryJob = null
         stopImageSequenceMode()
@@ -891,9 +939,35 @@ class LeanbackMedia3VideoPlayer(
         lastRtspForceTcp = true
         hlsAvcFallbackTried = false
         hlsImageSequenceFallbackTried = false
+        hlsSuspiciousSession = false
         activeStreamRequestHeaders = streamRequestHeaders
         contentTypeAttempts.clear()
-        prepare(Uri.parse(url), null, streamRequestHeaders)
+        val parsed = Uri.parse(url)
+        val inferredType = Util.inferContentType(parsed)
+        val shouldPreprobeHls = inferredType == C.CONTENT_TYPE_HLS &&
+            (parsed.scheme.equals("http", ignoreCase = true) || parsed.scheme.equals("https", ignoreCase = true))
+        if (!shouldPreprobeHls) {
+            prepare(parsed, null, streamRequestHeaders)
+            return
+        }
+        hlsPreprobeJob = coroutineScope.launch {
+            val decision = withTimeoutOrNull(1200L) {
+                runCatching {
+                    val masterText = fetchText(parsed.toString(), streamRequestHeaders)
+                    val probe = probeHlsMaster(parsed.toString(), masterText)
+                    if (probe.hasAnyVariant && probe.suspiciousByDeclaration) {
+                        val target = probe.avcVariantUrl ?: probe.firstVariantUrl
+                        target?.let { Uri.parse(it) }?.let { it to true }
+                    } else {
+                        null
+                    }
+                }.getOrNull()
+            }
+            if (sessionId != prepareSessionId) return@launch
+            val target = decision?.first ?: parsed
+            val markSuspicious = decision?.second == true
+            prepare(target, C.CONTENT_TYPE_HLS, streamRequestHeaders, markSuspicious)
+        }
     }
 
     override fun play() {
@@ -909,6 +983,7 @@ class LeanbackMedia3VideoPlayer(
     }
 
     override fun onDeactivate() {
+        hlsPreprobeJob?.cancel()
         parseRetryJob?.cancel()
         parseRetryJob = null
         stopNoVideoFrameWatchdog()
@@ -917,6 +992,7 @@ class LeanbackMedia3VideoPlayer(
         hevcSoftFallbackTried = false
         lastPreparedUri = null
         lastPreparedContentType = null
+        hlsSuspiciousSession = false
         releaseMulticastLock()
         videoPlayer.stop()
         videoPlayer.clearMediaItems()
