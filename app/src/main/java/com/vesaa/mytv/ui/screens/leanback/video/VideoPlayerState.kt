@@ -7,7 +7,6 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -16,8 +15,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import com.vesaa.mytv.ui.screens.leanback.video.player.LeanbackMedia3VideoPlayer
 import com.vesaa.mytv.ui.screens.leanback.video.player.LeanbackVideoPlayer
-import com.vesaa.mytv.ui.screens.leanback.video.player.LeanbackProtocolRoutedVideoPlayer
 
 /**
  * 播放器状态
@@ -69,8 +68,6 @@ class LeanbackVideoPlayerState(
 
     /** 当前正在拉流的地址（含回看/多线路切换后的实际 URL），供 UI 展示 */
     var currentMediaUrl by mutableStateOf("")
-    /** 轨道选择变更计数，用于驱动轨道菜单重组刷新选中标记。 */
-    var trackSelectionVersion by mutableIntStateOf(0)
     /** 切台后在首帧到来前强制黑场，避免显示上一频道最后一帧 */
     var holdBlackScreen by mutableStateOf(false)
 
@@ -130,7 +127,6 @@ class LeanbackVideoPlayerState(
 
     fun selectTrack(type: LeanbackVideoPlayer.TrackType, trackId: String) {
         instance.selectTrack(type, trackId)
-        trackSelectionVersion += 1
     }
 
     private val onReadyListeners = mutableListOf<() -> Unit>()
@@ -197,7 +193,7 @@ fun rememberLeanbackVideoPlayerState(
     val coroutineScope = rememberCoroutineScope()
     val state = remember {
         LeanbackVideoPlayerState(
-            LeanbackProtocolRoutedVideoPlayer(context, coroutineScope),
+            LeanbackMedia3VideoPlayer(context, coroutineScope),
             defaultAspectRatioProvider = defaultAspectRatioProvider,
         )
     }

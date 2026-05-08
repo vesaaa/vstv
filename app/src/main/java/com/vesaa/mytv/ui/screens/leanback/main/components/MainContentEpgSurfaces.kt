@@ -162,11 +162,9 @@ internal fun LeanbackMainEpgSurfaces(
                 playReplayWindow(mainContentState.currentIptv, startMs, endMs, "回看中 - 节目回看")
             },
             audioTracksProvider = {
-                videoPlayerState.trackSelectionVersion
                 videoPlayerState.getTrackOptions(com.vesaa.mytv.ui.screens.leanback.video.player.LeanbackVideoPlayer.TrackType.Audio)
             },
             videoTracksProvider = {
-                videoPlayerState.trackSelectionVersion
                 videoPlayerState.getTrackOptions(com.vesaa.mytv.ui.screens.leanback.video.player.LeanbackVideoPlayer.TrackType.Video)
             },
             onSelectAudioTrack = {

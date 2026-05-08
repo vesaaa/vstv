@@ -147,6 +147,13 @@ android {
     }
 }
 
+configurations.configureEach {
+    // Jellyfin 的 media3-ffmpeg-decoder 已自带 libffmpegJNI.so。
+    // 若依赖树里同时引入 AndroidX 的 ffmpeg decoder/底层 lib，会在 mergeNativeLibs 阶段报重复 so。
+    exclude(group = "androidx.media3", module = "media3-decoder-ffmpeg")
+    exclude(group = "androidx.media3", module = "lib-decoder-ffmpeg")
+}
+
 dependencies {
 
     implementation(libs.androidx.core.ktx)
@@ -196,6 +203,8 @@ dependencies {
             mapOf(
                 "dir" to "libs",
                 "include" to listOf("*.aar"),
+                // CI 恢复的私有包里可能包含历史 ffmpeg 扩展，需排除以避免与 Jellyfin 版本重复。
+                "exclude" to listOf("lib-decoder-ffmpeg*.aar", "media3-decoder-ffmpeg*.aar"),
             ),
         ),
     )
