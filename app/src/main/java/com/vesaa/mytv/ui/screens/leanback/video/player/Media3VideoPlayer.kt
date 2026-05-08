@@ -117,6 +117,7 @@ class LeanbackMedia3VideoPlayer(
     private var lastRtspForceTcp = true
     private var hlsAvcFallbackTried = false
     private var hlsImageSequenceFallbackTried = false
+    private var hlsDirectChildFallbackTried = false
 
     private val preferredTrackParams: TrackSelectionParameters by lazy {
         // 优先选更兼容的编解码，提升老盒子/运营商定制 ROM 的可播率：
@@ -297,6 +298,24 @@ class LeanbackMedia3VideoPlayer(
             videoPlayer.setMediaSource(mediaSource)
             videoPlayer.prepare()
             triggerPrepared()
+
+            // HLS 主清单 CODECS 仅声明音频、但 TS 分片含视频的兼容容错。
+            if (Util.inferContentType(effectiveUri) == C.CONTENT_TYPE_HLS && !hlsDirectChildFallbackTried) {
+                hlsDirectChildFallbackTried = true
+                coroutineScope.launch {
+                    val childUrl = runCatching {
+                        val masterText = fetchText(effectiveUri.toString(), activeStreamRequestHeaders)
+                        val probe = probeHlsMaster(effectiveUri.toString(), masterText)
+                        if (probe.hasAnyVariant && !probe.hasAvc && !probe.hasHevc) {
+                            extractFirstVariantUri(effectiveUri.toString(), masterText)
+                        } else null
+                    }.getOrNull()
+                    if (childUrl != null) {
+                        stopImageSequenceMode()
+                        prepare(Uri.parse(childUrl), C.CONTENT_TYPE_HLS, activeStreamRequestHeaders)
+                    }
+                }
+            }
         }
     }
 
@@ -891,6 +910,7 @@ class LeanbackMedia3VideoPlayer(
         lastRtspForceTcp = true
         hlsAvcFallbackTried = false
         hlsImageSequenceFallbackTried = false
+        hlsDirectChildFallbackTried = false
         activeStreamRequestHeaders = streamRequestHeaders
         contentTypeAttempts.clear()
         prepare(Uri.parse(url), null, streamRequestHeaders)
@@ -915,6 +935,7 @@ class LeanbackMedia3VideoPlayer(
         stopImageSequenceMode()
         forcePreferExtensionDecoders = false
         hevcSoftFallbackTried = false
+        hlsDirectChildFallbackTried = false
         lastPreparedUri = null
         lastPreparedContentType = null
         releaseMulticastLock()
