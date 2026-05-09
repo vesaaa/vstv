@@ -89,14 +89,7 @@ jobs:
           if [ "${{ steps.sign.outputs.mode }}" = "debug" ]; then
             ARGS+=(-PciUseDebugSigning=true)
           fi
-          for attempt in 1 2 3; do
-            if ./gradlew "${ARGS[@]}" --stacktrace; then
-              exit 0
-            fi
-            echo "::warning::Gradle 失败，第 $attempt 次重试（30s 后）…"
-            sleep 30
-          done
-          exit 1
+          ./gradlew "${ARGS[@]}" --stacktrace
 
       - name: Package artifacts
         if: success()
