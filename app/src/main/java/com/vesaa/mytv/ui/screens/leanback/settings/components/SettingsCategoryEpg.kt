@@ -154,7 +154,9 @@ fun LeanbackSettingsCategoryEpg(
                     if (settingsViewModel.epgXmlUrl != it) {
                         settingsViewModel.epgXmlUrl = it
                         settingsViewModel.epgXmlRequestHeaders =
-                            SP.getEpgHeadersForUrl(it).ifBlank { builtinEpgDefaultRequestHeaders(it) }
+                            SP.getEpgHeadersForUrl(it).ifBlank {
+                                defaultEpgRequestHeadersAfterUserEmpty(it, SP.iptvSourceEmbeddedEpgUrl)
+                            }
                         coroutineScope.launch { EpgRepository().clearCache() }
                         WebPushConfigNotifier.notifyConfigMayHaveChanged()
                     }
