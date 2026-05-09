@@ -181,7 +181,12 @@ dependencies {
     implementation(libs.androidx.media3.exoplayer.smoothstreaming)
     implementation(libs.androidx.media3.exoplayer.rtsp)
     implementation(libs.androidx.media3.datasource.rtmp)
-    implementation(libs.jellyfin.media3.ffmpeg.decoder)
+    implementation(libs.jellyfin.media3.ffmpeg.decoder) {
+        // mediax 当前包的 POM 里显式带了 androidx.media3 传递依赖（版本可能高于本工程）。
+        // 这里排除传递依赖，统一使用本工程显式声明的 media3 版本（当前 1.8.0）。
+        exclude(group = "androidx.media3", module = "media3-decoder")
+        exclude(group = "androidx.media3", module = "media3-exoplayer")
+    }
     // 序列化
     implementation(libs.kotlinx.serialization)
 
