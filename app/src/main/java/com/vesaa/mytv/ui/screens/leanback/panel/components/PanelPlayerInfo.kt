@@ -22,6 +22,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 import com.vesaa.mytv.ui.screens.leanback.video.player.LeanbackVideoPlayer
+import com.vesaa.mytv.ui.utils.rememberMeasuredPresentationRefreshHz
+import kotlin.math.max
 import com.vesaa.mytv.ui.theme.LeanbackTheme
 import java.text.DecimalFormat
 
@@ -64,6 +66,7 @@ private fun PanelPlayerInfoFps(
     videoRenderedFpsProvider: () -> Float = { 0f },
 ) {
     val view = LocalView.current
+    val measuredHz = rememberMeasuredPresentationRefreshHz()
     val declaredFps = videoFrameRateProvider()
     val renderedFps = videoRenderedFpsProvider()
     val effectiveVideoFps = when {
@@ -73,12 +76,14 @@ private fun PanelPlayerInfoFps(
     }
     val videoFpsText = if (effectiveVideoFps > 0.05f) effectiveVideoFps.toInt().toString() else "N/A"
     val display = view.display
-    val activeRefreshRate = display?.refreshRate ?: 0f
-    val maxSupportedRefreshRate = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+    val apiActive = display?.refreshRate ?: 0f
+    val apiMax = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
         display?.supportedModes?.maxOfOrNull { it.refreshRate } ?: 0f
     } else {
         0f
     }
+    val activeRefreshRate = max(apiActive, measuredHz)
+    val maxSupportedRefreshRate = max(apiMax, measuredHz)
     val activeFpsText = if (activeRefreshRate > 1f) activeRefreshRate.toInt().toString() else "N/A"
     val maxFpsText = if (maxSupportedRefreshRate > 1f) maxSupportedRefreshRate.toInt().toString() else ""
     val deviceFpsText = if (maxFpsText.isNotEmpty() && maxSupportedRefreshRate - activeRefreshRate > 1f) {

@@ -20,6 +20,8 @@ import com.vesaa.mytv.ui.screens.leanback.quickpanel.formatQuickPanelVideoDetail
 import com.vesaa.mytv.ui.screens.leanback.quickpanel.formatVideoFpsForPanelStyle
 import com.vesaa.mytv.ui.screens.leanback.video.player.LeanbackVideoPlayer
 import com.vesaa.mytv.ui.theme.LeanbackTheme
+import com.vesaa.mytv.ui.utils.rememberMeasuredPresentationRefreshHz
+import kotlin.math.max
 
 @Composable
 fun LeanbackVideoPlayerMetadata(
@@ -27,13 +29,16 @@ fun LeanbackVideoPlayerMetadata(
     metadata: LeanbackVideoPlayer.Metadata,
 ) {
     val view = LocalView.current
+    val measuredHz = rememberMeasuredPresentationRefreshHz()
     val display = view.display
-    val displayRefreshHz = display?.refreshRate ?: 0f
-    val maxSupportedRefreshHz = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+    val apiActive = display?.refreshRate ?: 0f
+    val apiMax = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
         display?.supportedModes?.maxOfOrNull { it.refreshRate } ?: 0f
     } else {
         0f
     }
+    val displayRefreshHz = max(apiActive, measuredHz)
+    val maxSupportedRefreshHz = max(apiMax, measuredHz)
     CompositionLocalProvider(
         LocalTextStyle provides MaterialTheme.typography.labelMedium,
         LocalContentColor provides MaterialTheme.colorScheme.onBackground
