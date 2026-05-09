@@ -86,6 +86,27 @@ object Constants {
      */
     const val VIDEO_PLAYER_LOAD_TIMEOUT = 1000L * 10 // 10秒
 
+    /** RTSP：`RtspMediaSource` 在无 RTP 包时的判定超时（毫秒），默认高于 Media3 内置 8000ms，运营商弱网更易起播 */
+    const val VIDEO_RTSP_RTP_SILENCE_TIMEOUT_MS = 28_000L
+
+    /** RTSP：优先 RTP over TCP（interleaved）；关闭则交给 Media3 先 UDP */
+    const val VIDEO_RTSP_FORCE_TCP_DEFAULT = true
+
+    /** RTSP：TCP/interleaved 起播失败后、切 UDP 之前的同址重试次数 */
+    const val VIDEO_RTSP_TCP_PREPARE_RETRY_DEFAULT = 2
+
+    /** RTSP：上述重试间隔（毫秒） */
+    const val VIDEO_RTSP_PREPARE_RETRY_DELAY_MS_DEFAULT = 1200L
+
+    /** RTSP：`Media3` READY 后首帧 watchdog startup 等待（毫秒） */
+    const val VIDEO_RTSP_NO_VIDEO_WATCHDOG_STARTUP_MS = 7500L
+
+    /** RTSP：判定「长时间无渲染帧」阈值（毫秒） */
+    const val VIDEO_RTSP_NO_VIDEO_WATCHDOG_THRESHOLD_MS = 10_500L
+
+    /** Logcat 播放链路概要（宿主+画像，不落完整 URL） */
+    const val PLAYBACK_TRACE_LOGCAT_DEFAULT_ENABLED = true
+
     /**
      * 界面 超时未操作自动关闭界面
      */

@@ -44,6 +44,8 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import okhttp3.Request
 import com.vesaa.mytv.ui.utils.SP
+import com.vesaa.mytv.utils.PlaybackTrace
+import com.vesaa.mytv.data.utils.Constants
 import com.vesaa.mytv.utils.AppOkHttp
 import com.vesaa.mytv.utils.IptvOutboundHeaderPolicy
 import com.vesaa.mytv.utils.normalizeIptvRequestHeadersInput
@@ -116,6 +118,8 @@ class LeanbackMedia3VideoPlayer(
     private val attemptedVideoTrackFallbackKeys = mutableSetOf<String>()
     private var rtspTriedUdpFallback = false
     private var lastRtspForceTcp = true
+    /** 仍为 TCP/interleaved 时允许的同址重试次数（耗尽早于 UDP 回退） */
+    private var rtspTcpPrepareRetriesRemaining = 0
     private var hlsAvcFallbackTried = false
     private var hlsImageSequenceFallbackTried = false
     private var hlsPreprobeJob: Job? = null
@@ -209,6 +213,20 @@ class LeanbackMedia3VideoPlayer(
     private fun isUdpOrRtp(uri: Uri): Boolean =
         uri.scheme.equals("udp", ignoreCase = true) || uri.scheme.equals("rtp", ignoreCase = true)
 
+    private fun rtspUserAgent(uri: Uri, streamRequestHeaders: String?): String {
+        val url = uri.toString()
+        val trimmed = streamRequestHeaders?.trim().orEmpty()
+        if (trimmed.isEmpty()) {
+            return IptvOutboundHeaderPolicy.blendUserAgentValue(SP.playbackHttpUserAgent(), url)
+        }
+        val norm = normalizeIptvRequestHeadersInput(trimmed)
+        val blended = IptvOutboundHeaderPolicy.applyToNormalizedHeadersText(norm, url)
+        val map = blended.parseHttpHeaderLines()
+        val ua = map.entries.firstOrNull { it.key.equals("User-Agent", ignoreCase = true) }
+            ?.value?.trim()?.takeIf { it.isNotEmpty() }
+        return ua ?: IptvOutboundHeaderPolicy.blendUserAgentValue(SP.playbackHttpUserAgent(), url)
+    }
+
     // ── prepare ───────────────────────────────────────────────────
 
     @OptIn(UnstableApi::class)
@@ -269,9 +287,14 @@ class LeanbackMedia3VideoPlayer(
             }
 
             C.CONTENT_TYPE_RTSP -> {
+                // Media3 内部完成 SDP/SETUP；App 侧通过更长 timeout、TCP-first、UA 与重试提升运营商源可播率。
                 val forceTcp = if (isRtsp) lastRtspForceTcp else true
+                val timeoutMs = SP.videoRtspRtpSilenceTimeoutMs.coerceIn(3_000L, 120_000L)
                 RtspMediaSource.Factory()
                     .setForceUseRtpTcp(forceTcp)
+                    .setTimeoutMs(timeoutMs)
+                    .setUserAgent(rtspUserAgent(effectiveUri, headers))
+                    .setDebugLoggingEnabled(SP.debugAppLog)
                     .createMediaSource(mediaItem)
             }
 
@@ -291,6 +314,12 @@ class LeanbackMedia3VideoPlayer(
         }
 
         if (mediaSource != null) {
+            val ct = contentType ?: Util.inferContentType(effectiveUri)
+            PlaybackTrace.i(
+                effectiveUri,
+                "prepare",
+                "ct=$ct rtspTcp=$lastRtspForceTcp rtspRetryLeft=$rtspTcpPrepareRetriesRemaining",
+            )
             latestZapStartElapsedMs = SystemClock.elapsedRealtime()
             awaitingFirstReadyAfterPrepare = true
             lastRenderedFpsElapsedMs = 0L
@@ -505,9 +534,29 @@ class LeanbackMedia3VideoPlayer(
             // 运营商 RTSP 常见“UDP 不通、TCP 可播”场景：
             // 先按 TCP 拉流；若失败且还未尝试 UDP，则自动回退 UDP 再试一次。
             val curUri = videoPlayer.currentMediaItem?.localConfiguration?.uri
+            if (curUri?.scheme.equals("rtsp", ignoreCase = true) &&
+                lastRtspForceTcp &&
+                rtspTcpPrepareRetriesRemaining > 0
+            ) {
+                rtspTcpPrepareRetriesRemaining--
+                val delayMs = SP.videoRtspPrepareRetryDelayMs.coerceIn(200L, 10_000L)
+                PlaybackTrace.i(
+                    curUri,
+                    "rtsp_tcp_prepare_retry",
+                    "left=$rtspTcpPrepareRetriesRemaining code=${ex.errorCode} ${ex.errorCodeName}",
+                )
+                parseRetryJob?.cancel()
+                parseRetryJob = coroutineScope.launch {
+                    delay(delayMs)
+                    prepare(curUri, C.CONTENT_TYPE_RTSP, streamRequestHeaders = null)
+                }
+                return
+            }
             if (curUri?.scheme.equals("rtsp", ignoreCase = true) && lastRtspForceTcp && !rtspTriedUdpFallback) {
+                PlaybackTrace.i(curUri, "rtsp_fallback_udp", "after_tcp_exhausted code=${ex.errorCode}")
                 rtspTriedUdpFallback = true
                 lastRtspForceTcp = false
+                rtspTcpPrepareRetriesRemaining = 0
                 curUri?.let { prepare(it, C.CONTENT_TYPE_RTSP, streamRequestHeaders = null) }
                 return
             }
@@ -640,8 +689,17 @@ class LeanbackMedia3VideoPlayer(
     private fun startNoVideoFrameWatchdog() {
         noVideoFrameWatchdogJob?.cancel()
         noVideoFrameWatchdogJob = coroutineScope.launch {
-            val startupDelayMs = if (hlsSuspiciousSession) 1200L else 4000L
-            val noFrameThresholdMs = if (hlsSuspiciousSession) 2000L else 4500L
+            val isRtspSession = lastPreparedUri?.scheme.equals("rtsp", ignoreCase = true)
+            val startupDelayMs = when {
+                hlsSuspiciousSession -> 1200L
+                isRtspSession -> Constants.VIDEO_RTSP_NO_VIDEO_WATCHDOG_STARTUP_MS
+                else -> 4000L
+            }
+            val noFrameThresholdMs = when {
+                hlsSuspiciousSession -> 2000L
+                isRtspSession -> Constants.VIDEO_RTSP_NO_VIDEO_WATCHDOG_THRESHOLD_MS
+                else -> 4500L
+            }
             delay(startupDelayMs)
             while (true) {
                 delay(800)
@@ -652,6 +710,9 @@ class LeanbackMedia3VideoPlayer(
                 if (metadata.imageSequenceModeHint) continue
                 if (tryHevcSoftDecodeFallback()) {
                     continue
+                }
+                if (isRtspSession) {
+                    PlaybackTrace.i(lastPreparedUri, "watchdog_no_video", "thrMs=$noFrameThresholdMs")
                 }
                 if (!metadata.audioOnlyModeHint) {
                     metadata = metadata.copy(audioOnlyModeHint = true)
@@ -936,13 +997,20 @@ class LeanbackMedia3VideoPlayer(
         lastPreparedContentType = null
         parseErrorRetryUsed = false
         rtspTriedUdpFallback = false
-        lastRtspForceTcp = true
+        lastRtspForceTcp = SP.videoRtspForceTcp
         hlsAvcFallbackTried = false
         hlsImageSequenceFallbackTried = false
         hlsSuspiciousSession = false
         activeStreamRequestHeaders = streamRequestHeaders
         contentTypeAttempts.clear()
         val parsed = Uri.parse(url)
+        when {
+            parsed.scheme.equals("rtsp", ignoreCase = true) && SP.videoRtspForceTcp ->
+                rtspTcpPrepareRetriesRemaining =
+                    SP.videoRtspTcpPrepareRetryCount.coerceIn(0, 10)
+
+            else -> rtspTcpPrepareRetriesRemaining = 0
+        }
         val inferredType = Util.inferContentType(parsed)
         val shouldPreprobeHls = inferredType == C.CONTENT_TYPE_HLS &&
             (parsed.scheme.equals("http", ignoreCase = true) || parsed.scheme.equals("https", ignoreCase = true))

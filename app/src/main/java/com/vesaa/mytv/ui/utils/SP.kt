@@ -197,6 +197,21 @@ object SP {
 
         /** 播放器 画面比例 */
         VIDEO_PLAYER_ASPECT_RATIO,
+
+        /** RTSP：强制 RTP over TCP（interleaved） */
+        VIDEO_RTSP_FORCE_TCP,
+
+        /** RTSP：RTP 静默超时（映射 Media3 setTimeoutMs） */
+        VIDEO_RTSP_RTP_SILENCE_TIMEOUT_MS,
+
+        /** RTSP：TCP 起播失败后的重试次数（仍保持 TCP） */
+        VIDEO_RTSP_TCP_PREPARE_RETRY_COUNT,
+
+        /** RTSP：TCP 重试间隔（毫秒） */
+        VIDEO_RTSP_PREPARE_RETRY_DELAY_MS,
+
+        /** Logcat 输出播放链路诊断（VsTVPlayback） */
+        PLAYBACK_TRACE_LOGCAT_ENABLED,
     }
 
     /** ==================== 应用 ==================== */
@@ -666,6 +681,43 @@ object SP {
             sp.getInt(KEY.VIDEO_PLAYER_ASPECT_RATIO.name, VideoPlayerAspectRatio.ORIGINAL.value)
         )
         set(value) = sp.edit().putInt(KEY.VIDEO_PLAYER_ASPECT_RATIO.name, value.value).apply()
+
+    /** RTSP：强制使用 RTP over TCP（interleaved），默认开 */
+    var videoRtspForceTcp: Boolean
+        get() = sp.getBoolean(KEY.VIDEO_RTSP_FORCE_TCP.name, Constants.VIDEO_RTSP_FORCE_TCP_DEFAULT)
+        set(value) = sp.edit().putBoolean(KEY.VIDEO_RTSP_FORCE_TCP.name, value).apply()
+
+    /** RTSP：`RtspMediaSource.Factory.setTimeoutMs`（RTP 长时间无包等） */
+    var videoRtspRtpSilenceTimeoutMs: Long
+        get() = sp.getLong(
+            KEY.VIDEO_RTSP_RTP_SILENCE_TIMEOUT_MS.name,
+            Constants.VIDEO_RTSP_RTP_SILENCE_TIMEOUT_MS,
+        )
+        set(value) = sp.edit().putLong(KEY.VIDEO_RTSP_RTP_SILENCE_TIMEOUT_MS.name, value).apply()
+
+    /** RTSP：保持 TCP 时的起播错误重试次数（之后才尝试 UDP） */
+    var videoRtspTcpPrepareRetryCount: Int
+        get() = sp.getInt(
+            KEY.VIDEO_RTSP_TCP_PREPARE_RETRY_COUNT.name,
+            Constants.VIDEO_RTSP_TCP_PREPARE_RETRY_DEFAULT,
+        )
+        set(value) = sp.edit().putInt(KEY.VIDEO_RTSP_TCP_PREPARE_RETRY_COUNT.name, value).apply()
+
+    /** RTSP：TCP 重试间隔（毫秒） */
+    var videoRtspPrepareRetryDelayMs: Long
+        get() = sp.getLong(
+            KEY.VIDEO_RTSP_PREPARE_RETRY_DELAY_MS.name,
+            Constants.VIDEO_RTSP_PREPARE_RETRY_DELAY_MS_DEFAULT,
+        )
+        set(value) = sp.edit().putLong(KEY.VIDEO_RTSP_PREPARE_RETRY_DELAY_MS.name, value).apply()
+
+    /** Logcat 标签 `VsTVPlayback`：起播/重试/传输切换等摘要（不含完整 URL） */
+    var playbackTraceLogcatEnabled: Boolean
+        get() = sp.getBoolean(
+            KEY.PLAYBACK_TRACE_LOGCAT_ENABLED.name,
+            Constants.PLAYBACK_TRACE_LOGCAT_DEFAULT_ENABLED,
+        )
+        set(value) = sp.edit().putBoolean(KEY.PLAYBACK_TRACE_LOGCAT_ENABLED.name, value).apply()
 
     enum class UiTimeShowMode(val value: Int) {
         /** 隐藏 */

@@ -73,6 +73,77 @@ fun LeanbackSettingsCategoryVideoPlayer(
                 },
             )
         }
+
+        item {
+            LeanbackSettingsCategoryListItem(
+                headlineContent = "RTSP 优先 TCP（Interleaved）",
+                supportingContent = "默认开启，穿越 NAT/防火墙更稳后再按需回退 RTP/UDP",
+                trailingContent = {
+                    Switch(checked = settingsViewModel.videoRtspForceTcp, onCheckedChange = null)
+                },
+                onSelected = {
+                    settingsViewModel.videoRtspForceTcp = !settingsViewModel.videoRtspForceTcp
+                },
+            )
+        }
+
+        item {
+            val step = 5000L
+            val minTo = 10_000L
+            val maxTo = 60_000L
+            LeanbackSettingsCategoryListItem(
+                headlineContent = "RTSP 超时容忍",
+                supportingContent = "对应 Media3 收流静默判定，过小易误断；SDP/握手慢时可加大",
+                trailingContent = settingsViewModel.videoRtspRtpSilenceTimeoutMs.humanizeMs(),
+                onSelected = {
+                    val v = settingsViewModel.videoRtspRtpSilenceTimeoutMs + step
+                    settingsViewModel.videoRtspRtpSilenceTimeoutMs =
+                        if (v > maxTo) minTo else v.coerceIn(minTo, maxTo)
+                },
+            )
+        }
+
+        item {
+            LeanbackSettingsCategoryListItem(
+                headlineContent = "RTSP TCP 起播重试",
+                supportingContent = "仍为 TCP/interleaved 时同址重试次数，之后才尝试 RTP/UDP（${settingsViewModel.videoRtspPrepareRetryDelayMs.humanizeMs()} 间隔）",
+                trailingContent = "${settingsViewModel.videoRtspTcpPrepareRetryCount} 次",
+                onSelected = {
+                    settingsViewModel.videoRtspTcpPrepareRetryCount =
+                        (settingsViewModel.videoRtspTcpPrepareRetryCount + 1) % 6
+                },
+            )
+        }
+
+        item {
+            val stepDelay = 200L
+            val minDelay = 400L
+            val maxDelay = 4000L
+            LeanbackSettingsCategoryListItem(
+                headlineContent = "RTSP 重试间隔",
+                supportingContent = "TCP 起播失败后等待再拉同一地址",
+                trailingContent = settingsViewModel.videoRtspPrepareRetryDelayMs.humanizeMs(),
+                onSelected = {
+                    val v = settingsViewModel.videoRtspPrepareRetryDelayMs + stepDelay
+                    settingsViewModel.videoRtspPrepareRetryDelayMs =
+                        if (v > maxDelay) minDelay else v.coerceIn(minDelay, maxDelay)
+                },
+            )
+        }
+
+        item {
+            LeanbackSettingsCategoryListItem(
+                headlineContent = "播放链路诊断日志",
+                supportingContent = "Logcat 筛选标签：VsTVPlayback（不写完整频道 URL）",
+                trailingContent = {
+                    Switch(checked = settingsViewModel.playbackTraceLogcatEnabled, onCheckedChange = null)
+                },
+                onSelected = {
+                    settingsViewModel.playbackTraceLogcatEnabled =
+                        !settingsViewModel.playbackTraceLogcatEnabled
+                },
+            )
+        }
     }
 }
 

@@ -409,6 +409,46 @@ class LeanbackSettingsViewModel : ViewModel() {
             SP.videoPlayerAspectRatio = value
         }
 
+    private var _videoRtspForceTcp by mutableStateOf(SP.videoRtspForceTcp)
+    var videoRtspForceTcp: Boolean
+        get() = _videoRtspForceTcp
+        set(value) {
+            _videoRtspForceTcp = value
+            SP.videoRtspForceTcp = value
+        }
+
+    private var _videoRtspRtpSilenceTimeoutMs by mutableLongStateOf(SP.videoRtspRtpSilenceTimeoutMs)
+    var videoRtspRtpSilenceTimeoutMs: Long
+        get() = _videoRtspRtpSilenceTimeoutMs
+        set(value) {
+            _videoRtspRtpSilenceTimeoutMs = value
+            SP.videoRtspRtpSilenceTimeoutMs = value
+        }
+
+    private var _videoRtspTcpPrepareRetryCount by mutableIntStateOf(SP.videoRtspTcpPrepareRetryCount)
+    var videoRtspTcpPrepareRetryCount: Int
+        get() = _videoRtspTcpPrepareRetryCount
+        set(value) {
+            _videoRtspTcpPrepareRetryCount = value
+            SP.videoRtspTcpPrepareRetryCount = value
+        }
+
+    private var _videoRtspPrepareRetryDelayMs by mutableLongStateOf(SP.videoRtspPrepareRetryDelayMs)
+    var videoRtspPrepareRetryDelayMs: Long
+        get() = _videoRtspPrepareRetryDelayMs
+        set(value) {
+            _videoRtspPrepareRetryDelayMs = value
+            SP.videoRtspPrepareRetryDelayMs = value
+        }
+
+    private var _playbackTraceLogcatEnabled by mutableStateOf(SP.playbackTraceLogcatEnabled)
+    var playbackTraceLogcatEnabled: Boolean
+        get() = _playbackTraceLogcatEnabled
+        set(value) {
+            _playbackTraceLogcatEnabled = value
+            SP.playbackTraceLogcatEnabled = value
+        }
+
     /** 主界面据此刷新「隐藏分组」过滤（设置里恢复、选台长按隐藏后 bump） */
     private var _iptvHiddenGroupFilterEpoch by mutableIntStateOf(0)
     val iptvHiddenGroupFilterEpoch: Int get() = _iptvHiddenGroupFilterEpoch
