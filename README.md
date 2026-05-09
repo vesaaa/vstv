@@ -116,11 +116,13 @@
 
 **解码**：使用带 **扩展渲染器** 的工厂，便于在部分设备上启用 **软件解码** 兜底（例如部分 **H.265/HEVC** 场景），实际能否播放仍取决于 **片源编码** 与 **机型硬件/系统**。
 
-### 内置：Jellyfin FFmpeg 扩展软解
+### 内置：mediax / FFmpeg 扩展软解
 
-- 项目已默认集成 `org.jellyfin.media3:media3-ffmpeg-decoder`（与当前 Media3 主版本对齐）。
-- 播放器策略为 **硬解优先**；当硬解不可用或初始化失败时，自动尝试 FFmpeg 软解兜底（并启用解码回退）。
-- Release CI 会强制校验 3 个发布 APK（`arm` / `x86_64` / `HarmonyOS`）是否包含 `*ffmpeg*.so`，确保发版包真实带上扩展软解能力。
+- 项目使用自建 **[mediax](https://github.com/vesaaa/mediax)** 产物：Maven 坐标仍为 `org.jellyfin.media3:media3-ffmpeg-decoder`，版本在 [`gradle/libs.versions.toml`](gradle/libs.versions.toml) 的 **`jellyfinMedia3Ffmpeg`** 中锁定（示例：`1.8.1-beta3`），从 **GitHub Packages**（`maven.pkg.github.com/vesaaa/mediax`）拉取；与主工程显式依赖的 **AndroidX Media3（如 1.8.0）** 由本工程统一版本，扩展 POM 不再强制抬升 Media3。
+- [mediax README](https://github.com/vesaaa/mediax/blob/main/README.md) 说明了相对上游 Jellyfin 默认 **多启用的 FFmpeg 解码器**（如 `h264` / `hevc` / `vp9` / `av1` / `opus` 等）。
+- **本地 Gradle 同步**需能读 Packages：在 `~/.gradle/gradle.properties` 配置 `gpr.user` / `gpr.key`（PAT 含 `read:packages`），或等价环境变量；**GitHub Actions** 下发版已注入 `GITHUB_ACTOR` / `GITHUB_TOKEN`。
+- 播放器策略：**硬解优先**；必要时 **FFmpeg 软解兜底**（`EXTENSION_RENDERER_MODE_ON` / 回退，见 `Media3VideoPlayer`）。
+- Release CI 校验 3 个发布 APK（`arm` / `x86_64` / `HarmonyOS`）内含 `*ffmpeg*.so`。
 
 ---
 
