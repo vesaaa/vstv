@@ -15,6 +15,8 @@
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <!-- RTP/UDP 组播 IPTV：Android 默认丢弃 Wi-Fi 组播包，需此权限才能获取 MulticastLock -->
     <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
+    <!-- 允许引入 minSdk=23 的 FFmpeg 扩展库，同时保持应用 minSdk=21。 -->
+    <uses-sdk tools:overrideLibrary="androidx.media3.decoder.ffmpeg" />
 
     <!-- Android 11+ 包可见性：否则部分国产电视/魔改系统上「网页上传 APK 安装」无法解析到系统安装器 -->
     <queries>
