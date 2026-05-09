@@ -15,8 +15,13 @@ class GiteeGitReleaseParser : GitReleaseParser {
         val json = Json.parseToJsonElement(data).jsonObject
 
         val assets = json.getValue("assets").jsonArray
+        if (assets.isEmpty()) {
+            throw Exception("Release 未包含任何附件，请确认已上传 APK")
+        }
         val url = assets.pickVstvDefaultApkBrowserUrl()
-            ?: assets[0].jsonObject["browser_download_url"]!!.jsonPrimitive.content
+            ?: throw Exception(
+                "Release 中没有与本机渠道/CPU 匹配的 APK（鸿蒙只升鸿蒙附件；原味按 ARM / x86_64 区分）。"
+            )
         return GitRelease(
             version = json.getValue("tag_name").jsonPrimitive.content.removePrefix("v").trim(),
             downloadUrl = url,

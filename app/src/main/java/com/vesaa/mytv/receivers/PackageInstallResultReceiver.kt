@@ -112,7 +112,14 @@ class PackageInstallResultReceiver : BroadcastReceiver() {
                 return "安装超时，请重试"
             else -> Unit
         }
-        val extra = systemMsg?.trim()?.takeIf { it.isNotBlank() }
+        val sm = systemMsg?.trim().orEmpty()
+        if (sm.contains("NO_MATCHING", ignoreCase = true) ||
+            sm.contains("ABI", ignoreCase = true) && sm.contains("mismatch", ignoreCase = true)
+        ) {
+            return "安装包与当前设备 CPU 架构不匹配（常见原因：x86 设备下载了仅含 ARM 的 APK）。" +
+                "请使用 GitHub Release 中的 vstv-*-x86_64.apk，或确认自动更新已选到对应架构附件。"
+        }
+        val extra = sm.takeIf { it.isNotBlank() }
         return extra ?: "安装失败（状态码 $status）"
     }
 }
