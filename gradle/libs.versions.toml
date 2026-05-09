@@ -19,7 +19,7 @@ tvFoundation = "1.0.0-alpha10"
 tvMaterial = "1.0.0-beta01"
 coil = "2.7.0"
 workManager = "2.9.1"
-jellyfinMedia3Ffmpeg = "1.8.0+1"
+jellyfinMedia3Ffmpeg = "1.8.1-beta1"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
