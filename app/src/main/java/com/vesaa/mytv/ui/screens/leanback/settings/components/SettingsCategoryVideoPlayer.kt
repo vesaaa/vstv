@@ -65,11 +65,25 @@ fun LeanbackSettingsCategoryVideoPlayer(
 
             LeanbackSettingsCategoryListItem(
                 headlineContent = "播放器加载超时",
-                supportingContent = "影响超时换源、断线重连",
+                supportingContent = "影响超时换源、断线重连；再向下为链路诊断与 RTSP 项",
                 trailingContent = settingsViewModel.videoPlayerLoadTimeout.humanizeMs(),
                 onSelected = {
                     settingsViewModel.videoPlayerLoadTimeout =
                         max(min, (settingsViewModel.videoPlayerLoadTimeout + step) % (max + step))
+                },
+            )
+        }
+
+        item {
+            LeanbackSettingsCategoryListItem(
+                headlineContent = "播放链路诊断日志",
+                supportingContent = "Logcat 筛选标签：VsTVPlayback（不写完整频道 URL）；配合「网络→应用调试日志」可写入本机日志页",
+                trailingContent = {
+                    Switch(checked = settingsViewModel.playbackTraceLogcatEnabled, onCheckedChange = null)
+                },
+                onSelected = {
+                    settingsViewModel.playbackTraceLogcatEnabled =
+                        !settingsViewModel.playbackTraceLogcatEnabled
                 },
             )
         }
@@ -127,20 +141,6 @@ fun LeanbackSettingsCategoryVideoPlayer(
                     val v = settingsViewModel.videoRtspPrepareRetryDelayMs + stepDelay
                     settingsViewModel.videoRtspPrepareRetryDelayMs =
                         if (v > maxDelay) minDelay else v.coerceIn(minDelay, maxDelay)
-                },
-            )
-        }
-
-        item {
-            LeanbackSettingsCategoryListItem(
-                headlineContent = "播放链路诊断日志",
-                supportingContent = "Logcat 筛选标签：VsTVPlayback（不写完整频道 URL）",
-                trailingContent = {
-                    Switch(checked = settingsViewModel.playbackTraceLogcatEnabled, onCheckedChange = null)
-                },
-                onSelected = {
-                    settingsViewModel.playbackTraceLogcatEnabled =
-                        !settingsViewModel.playbackTraceLogcatEnabled
                 },
             )
         }

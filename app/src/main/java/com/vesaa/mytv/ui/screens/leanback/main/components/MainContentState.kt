@@ -287,6 +287,7 @@ class LeanbackMainContentState(
         videoPlayerState.prepare(
             url,
             streamRequestHeadersForPlayback?.trim()?.takeIf { it.isNotEmpty() },
+            playbackLabel = iptv.name.takeIf { it.isNotBlank() },
         )
     }
 
@@ -324,6 +325,7 @@ class LeanbackMainContentState(
         videoPlayerState.prepare(
             overrideUrl,
             streamRequestHeadersForPlayback?.trim()?.takeIf { it.isNotEmpty() },
+            playbackLabel = _currentIptv.name.takeIf { it.isNotBlank() },
         )
     }
 

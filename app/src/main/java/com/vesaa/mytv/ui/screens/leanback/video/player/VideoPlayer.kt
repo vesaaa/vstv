@@ -31,8 +31,13 @@ abstract class LeanbackVideoPlayer(
 
     /**
      * @param streamRequestHeaders 非 null 且非空白时，按多行请求头解析 UA 与其它头用于拉流；null 或空白则用 [SP.playbackHttpUserAgent] 等全局行为。
+     * @param playbackLabel 可选，用于 VsTVPlayback 诊断里标注频道名称（不写 URL）。
      */
-    abstract fun prepare(url: String, streamRequestHeaders: String? = null)
+    abstract fun prepare(
+        url: String,
+        streamRequestHeaders: String? = null,
+        playbackLabel: String? = null,
+    )
 
     abstract fun play()
 

@@ -12,12 +12,21 @@ object PlaybackTrace {
     private const val TAG = "VsTVPlayback"
     private val historyLogger = Logger.create(TAG)
 
-    fun i(uri: Uri?, event: String, detail: String = "") {
+    fun i(
+        uri: Uri?,
+        event: String,
+        detail: String = "",
+        channelLabel: String? = null,
+    ) {
         if (!SP.playbackTraceLogcatEnabled) return
         val profile = StreamPlaybackProfiler.classify(uri)
         val ep = StreamPlaybackProfiler.redactedEndpoint(uri)
-        val tail = detail.trim().take(180)
-        val msg = "[$profile][$event] ep=$ep${if (tail.isNotEmpty()) " $tail" else ""}"
+        val tail = detail.trim().take(280)
+        val ch = channelLabel?.trim()?.take(48)?.takeIf { it.isNotEmpty() }?.let { raw ->
+            val safe = raw.replace('"', '\'').replace('\n', ' ')
+            " ch=\"$safe\""
+        } ?: ""
+        val msg = "[$profile][$event]$ch ep=$ep${if (tail.isNotEmpty()) " $tail" else ""}"
         Log.i(TAG, msg)
         if (SP.debugAppLog) historyLogger.i(msg)
     }

@@ -74,13 +74,17 @@ class LeanbackVideoPlayerState(
     /** 切台后在首帧到来前强制黑场，避免显示上一频道最后一帧 */
     var holdBlackScreen by mutableStateOf(false)
 
-    fun prepare(url: String, streamRequestHeaders: String? = null) {
+    fun prepare(
+        url: String,
+        streamRequestHeaders: String? = null,
+        playbackLabel: String? = null,
+    ) {
         error = null
         holdBlackScreen = true
         currentMediaUrl = url.trim()
         // 新播放请求前先停掉旧会话，降低旧错误回调串扰到新频道的概率。
         instance.onDeactivate()
-        instance.prepare(url, streamRequestHeaders)
+        instance.prepare(url, streamRequestHeaders, playbackLabel)
     }
 
     /** 分屏退出或子屏释放时调用，停止当前会话并清空展示态。 */

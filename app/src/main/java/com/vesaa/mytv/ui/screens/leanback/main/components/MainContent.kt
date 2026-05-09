@@ -326,7 +326,11 @@ fun LeanbackMainContent(
                     if (url.isBlank()) {
                         LeanbackToastState.I.showToast("当前频道播放地址为空")
                     } else {
-                        splitPlayerStateAt(paneIndex).prepare(url, headers)
+                        splitPlayerStateAt(paneIndex).prepare(
+                            url,
+                            headers,
+                            playbackLabel = iptv.name.takeIf { it.isNotBlank() },
+                        )
                         splitPaneStates = splitPaneStates.mapIndexed { idx, old ->
                             if (idx == paneIndex) {
                                 old.copy(
@@ -384,7 +388,11 @@ fun LeanbackMainContent(
                 val nextIdx = if (isLeft) paneState.urlIdx - 1 else paneState.urlIdx + 1
                 val normalizedIdx = (nextIdx + size) % size
                 val url = paneState.iptv.urlList[normalizedIdx]
-                splitPlayerStateAt(pane).prepare(url, paneState.streamHeaders ?: resolveExtraStreamHeaders(paneState.iptv))
+                splitPlayerStateAt(pane).prepare(
+                    url,
+                    paneState.streamHeaders ?: resolveExtraStreamHeaders(paneState.iptv),
+                    playbackLabel = paneState.iptv.name.takeIf { it.isNotBlank() },
+                )
                 splitPaneStates = splitPaneStates.mapIndexed { idx, old ->
                     if (idx == pane) old.copy(urlIdx = normalizedIdx) else old
                 }

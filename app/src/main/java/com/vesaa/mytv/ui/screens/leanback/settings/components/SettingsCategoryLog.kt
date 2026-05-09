@@ -32,7 +32,7 @@ fun LeanbackSettingsCategoryLog(
     ) {
         items(historySorted) {
             LeanbackSettingsCategoryListItem(
-                headlineContent = "${it.level.toString()[0]} ${it.tag}",
+                headlineContent = "${it.level.name} ${it.tag}",
                 supportingContent = it.message,
                 trailingContent = timeFormat.format(it.time),
             )

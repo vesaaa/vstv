@@ -27,7 +27,7 @@ fun semverToVersionCode(versionName: String): Int {
         parts[2].coerceIn(0, 999)
 }
 
-    val defaultVersionName = "2.0.20"
+val defaultVersionName = "2.1.5"
 val resolvedVersionName = releaseVersion.ifEmpty { defaultVersionName }
 val resolvedVersionCode =
     (project.findProperty("versionCode") as String?)?.toIntOrNull()
@@ -83,14 +83,6 @@ android {
             }
         }
     }
-    variantFilter {
-        val distFlavor = flavors.find { it.dimension == "dist" }?.name
-        val abiFlavor = flavors.find { it.dimension == "abiPack" }?.name
-        // 仅保留 3 个发布包：originalArm / originalX86 / disguisedArm
-        if (distFlavor == "disguised" && abiFlavor == "x86") {
-            ignore = true
-        }
-    }
 
     buildTypes {
         release {
@@ -143,6 +135,16 @@ android {
             } else {
                 signingConfigs.getByName("release")
             }
+        }
+    }
+}
+
+androidComponents {
+    beforeVariants { variant ->
+        val names = variant.productFlavors.associate { it.first to it.second }
+        // 仅保留 3 个发布包：originalArm / originalX86 / disguisedArm（去掉 disguisedX86）
+        if (names["dist"] == "disguised" && names["abiPack"] == "x86") {
+            variant.enable = false
         }
     }
 }

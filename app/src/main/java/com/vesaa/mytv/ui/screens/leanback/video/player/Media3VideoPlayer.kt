@@ -118,6 +118,9 @@ class LeanbackMedia3VideoPlayer(
     private val attemptedVideoTrackFallbackKeys = mutableSetOf<String>()
     private var rtspTriedUdpFallback = false
     private var lastRtspForceTcp = true
+
+    /** 最近一次 [prepare] 传入的频道名，用于 [PlaybackTrace]（不含 URL）。 */
+    private var lastPlaybackLabel: String? = null
     /** 仍为 TCP/interleaved 时允许的同址重试次数（耗尽早于 UDP 回退） */
     private var rtspTcpPrepareRetriesRemaining = 0
     private var hlsAvcFallbackTried = false
@@ -315,10 +318,19 @@ class LeanbackMedia3VideoPlayer(
 
         if (mediaSource != null) {
             val ct = contentType ?: Util.inferContentType(effectiveUri)
+            val prepareDetail = buildString {
+                append("ct=$ct rtspTcp=$lastRtspForceTcp rtspRetryLeft=$rtspTcpPrepareRetriesRemaining")
+                if (isRtsp) {
+                    append(" rtspTimeoutMs=").append(
+                        SP.videoRtspRtpSilenceTimeoutMs.coerceIn(3_000L, 120_000L),
+                    )
+                }
+            }
             PlaybackTrace.i(
                 effectiveUri,
                 "prepare",
-                "ct=$ct rtspTcp=$lastRtspForceTcp rtspRetryLeft=$rtspTcpPrepareRetriesRemaining",
+                prepareDetail,
+                lastPlaybackLabel,
             )
             latestZapStartElapsedMs = SystemClock.elapsedRealtime()
             awaitingFirstReadyAfterPrepare = true
@@ -538,22 +550,29 @@ class LeanbackMedia3VideoPlayer(
                 lastRtspForceTcp &&
                 rtspTcpPrepareRetriesRemaining > 0
             ) {
+                val rtspUri = curUri ?: return
                 rtspTcpPrepareRetriesRemaining--
                 val delayMs = SP.videoRtspPrepareRetryDelayMs.coerceIn(200L, 10_000L)
                 PlaybackTrace.i(
-                    curUri,
+                    rtspUri,
                     "rtsp_tcp_prepare_retry",
                     "left=$rtspTcpPrepareRetriesRemaining code=${ex.errorCode} ${ex.errorCodeName}",
+                    lastPlaybackLabel,
                 )
                 parseRetryJob?.cancel()
                 parseRetryJob = coroutineScope.launch {
                     delay(delayMs)
-                    prepare(curUri, C.CONTENT_TYPE_RTSP, streamRequestHeaders = null)
+                    prepare(rtspUri, C.CONTENT_TYPE_RTSP, streamRequestHeaders = null)
                 }
                 return
             }
             if (curUri?.scheme.equals("rtsp", ignoreCase = true) && lastRtspForceTcp && !rtspTriedUdpFallback) {
-                PlaybackTrace.i(curUri, "rtsp_fallback_udp", "after_tcp_exhausted code=${ex.errorCode}")
+                PlaybackTrace.i(
+                    curUri,
+                    "rtsp_fallback_udp",
+                    "after_tcp_exhausted code=${ex.errorCode}",
+                    lastPlaybackLabel,
+                )
                 rtspTriedUdpFallback = true
                 lastRtspForceTcp = false
                 rtspTcpPrepareRetriesRemaining = 0
@@ -712,7 +731,12 @@ class LeanbackMedia3VideoPlayer(
                     continue
                 }
                 if (isRtspSession) {
-                    PlaybackTrace.i(lastPreparedUri, "watchdog_no_video", "thrMs=$noFrameThresholdMs")
+                    PlaybackTrace.i(
+                        lastPreparedUri,
+                        "watchdog_no_video",
+                        "thrMs=$noFrameThresholdMs",
+                        lastPlaybackLabel,
+                    )
                 }
                 if (!metadata.audioOnlyModeHint) {
                     metadata = metadata.copy(audioOnlyModeHint = true)
@@ -984,7 +1008,8 @@ class LeanbackMedia3VideoPlayer(
     }
 
     @UnstableApi
-    override fun prepare(url: String, streamRequestHeaders: String?) {
+    override fun prepare(url: String, streamRequestHeaders: String?, playbackLabel: String?) {
+        lastPlaybackLabel = playbackLabel?.trim()?.take(80)?.takeIf { it.isNotEmpty() }
         prepareSessionId += 1
         val sessionId = prepareSessionId
         hlsPreprobeJob?.cancel()
@@ -1058,6 +1083,7 @@ class LeanbackMedia3VideoPlayer(
         stopImageSequenceMode()
         forcePreferExtensionDecoders = false
         hevcSoftFallbackTried = false
+        lastPlaybackLabel = null
         lastPreparedUri = null
         lastPreparedContentType = null
         hlsSuspiciousSession = false
