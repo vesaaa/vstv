@@ -1,4 +1,3 @@
-# Build 3 release APKs from version tags and publish GitHub Release.
 name: Release
 
 on:
