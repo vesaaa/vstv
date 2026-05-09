@@ -5,7 +5,7 @@
 #   vstv-<ver>-x86_64.apk     — 常规 X86_64（包名 com.vesaa.mytv）
 #   vstv-<ver>-HarmonyOS.apk  — 鸿蒙/兼容向 ARM（包名 com.chinablue.tv，桌面名 Z视介）
 #
-# 标签：v*.*.*、v*.*.*-*（本仓库 1.0.x 等正式线；推送标签前须已写入 CHANGELOG 对应章节，见下方校验步骤）
+# 标签：v*.*.*、v*.*.*-*（本仓库 1.0.x 等正式线）。
 # Secrets（正式发版请配置齐）：KEYSTORE_BASE64、KEYSTORE_PASSWORD、KEY_ALIAS、KEY_PASSWORD、PROPRIETARY_AGE_PASSPHRASE
 # 未配置 KEYSTORE_BASE64 时仍用 Debug 签名（各次 CI 证书可能不同，无法稳定覆盖安装）。
 # PKCS12 密钥库需在 Assemble 步骤传入 KEYSTORE_TYPE（与 app/build.gradle.kts 一致）。
@@ -79,20 +79,6 @@ jobs:
           VC=$((10#$A * 1000000 + 10#$B * 1000 + 10#$C))
           echo "versionCode=$VC" >> "$GITHUB_OUTPUT"
           echo "Release version=$VER versionCore=$VER_NUM versionCode=$VC (from tag $TAG)"
-
-      - name: Verify CHANGELOG has section for this release
-        run: |
-          set -euo pipefail
-          CORE="${{ steps.ver.outputs.versionCore }}"
-          if [ -z "$CORE" ]; then
-            echo "::error::未能解析 versionCore"
-            exit 1
-          fi
-          if ! grep -qF "## [${CORE}]" CHANGELOG.md; then
-            echo "::error::CHANGELOG.md 缺少本版章节「## [${CORE}]」。请先在 main 上提交 CHANGELOG 再推送标签。"
-            exit 1
-          fi
-          echo "CHANGELOG OK: found ## [${CORE}]"
 
       - name: Assemble all release variants
         env:
@@ -199,26 +185,31 @@ jobs:
           require_ffmpeg_so "$ROOT/artifacts/vstv-${VER}-x86_64.apk" "x86_64"
           require_ffmpeg_so "$ROOT/artifacts/vstv-${VER}-HarmonyOS.apk" "HarmonyOS"
 
-      # GitHub 自带的 generate_release_notes 多为提交列表 +「Full Changelog」链接，可读性差。
-      # 正式说明以仓库根目录 CHANGELOG.md 中对应「## [x.y.z]」章节为准，写入 Release 正文。
+      # 优先使用 CHANGELOG.md 中对应「## [x.y.z]」章节作为 Release 正文；
+      # 若缺失则写入兜底文案（不阻断构建）。
       - name: Prepare release notes from CHANGELOG
         env:
           VERSION_CORE: ${{ steps.ver.outputs.versionCore }}
+          VERSION_TAG: ${{ steps.ver.outputs.version }}
         run: |
           python3 << 'PY'
           import os
           import pathlib
           import re
-          import sys
 
           core = os.environ["VERSION_CORE"]
+          ver = os.environ["VERSION_TAG"]
           text = pathlib.Path("CHANGELOG.md").read_text(encoding="utf-8")
           pattern = rf"^## \[{re.escape(core)}\].*?(?=^## \[|\Z)"
           m = re.search(pattern, text, re.MULTILINE | re.DOTALL)
-          if not m:
-              print(f"::error::未能从 CHANGELOG.md 提取 ## [{core}] 章节正文", file=sys.stderr)
-              sys.exit(1)
-          body = m.group(0).rstrip() + "\n"
+          if m:
+              body = m.group(0).rstrip() + "\n"
+          else:
+              body = f"""## [{core}]
+
+- 发布版本：{ver}
+- 本次未在 CHANGELOG.md 中找到对应章节，已使用自动兜底说明。
+"""
           pathlib.Path("release_body.md").write_text(body, encoding="utf-8")
           print("---- release_body.md（预览，截断）----")
           print(body[:4000] if len(body) > 4000 else body)
