@@ -40,7 +40,7 @@ fun LeanbackPanelPlayerInfo(
                 videoFrameRateProvider = { metadataProvider().videoFrameRate },
                 videoRenderedFpsProvider = { metadataProvider().videoRenderedFps },
             )
-            PanelPlayerInfoNetSpeed()
+            LeanbackPanelNetSpeed()
         }
     }
 }
@@ -94,7 +94,7 @@ private fun PanelPlayerInfoFps(
 }
 
 @Composable
-private fun PanelPlayerInfoNetSpeed(
+fun LeanbackPanelNetSpeed(
     modifier: Modifier = Modifier,
     netSpeed: Long = rememberNetSpeed(),
 ) {
@@ -149,9 +149,9 @@ private fun LeanbackPanelPlayerInfoPreview() {
 private fun LeanbackPanelPlayerInfoNetSpeedPreview() {
     LeanbackTheme {
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            PanelPlayerInfoNetSpeed()
-            PanelPlayerInfoNetSpeed(netSpeed = 54321)
-            PanelPlayerInfoNetSpeed(netSpeed = 1222 * 1222)
+            LeanbackPanelNetSpeed()
+            LeanbackPanelNetSpeed(netSpeed = 54321)
+            LeanbackPanelNetSpeed(netSpeed = 1222 * 1222)
         }
     }
 }

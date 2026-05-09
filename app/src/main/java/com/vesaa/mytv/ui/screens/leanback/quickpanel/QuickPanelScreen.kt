@@ -69,6 +69,7 @@ import com.vesaa.mytv.ui.rememberLeanbackChildPadding
 import com.vesaa.mytv.ui.screens.leanback.panel.LeanbackPanelScreenTopRight
 import com.vesaa.mytv.ui.screens.leanback.panel.PanelAutoCloseState
 import com.vesaa.mytv.ui.screens.leanback.panel.components.LeanbackPanelIptvInfo
+import com.vesaa.mytv.ui.screens.leanback.panel.components.LeanbackPanelNetSpeed
 import com.vesaa.mytv.ui.screens.leanback.panel.components.LeanbackPanelPlayerInfo
 import com.vesaa.mytv.ui.screens.leanback.panel.rememberPanelAutoCloseState
 import com.vesaa.mytv.ui.screens.leanback.quickpanel.components.LeanbackQuickPanelIptvChannelsDialog
@@ -373,6 +374,7 @@ fun LeanbackQuickPanelScreen(
                     verticalArrangement = Arrangement.spacedBy(20.dp),
                 ) {
                     LeanbackPanelIptvInfo(
+                        modifier = Modifier.fillMaxWidth(0.78f),
                         iptvProvider = currentIptvProvider,
                         iptvUrlIdxProvider = currentIptvUrlIdxProvider,
                         currentProgrammesProvider = currentProgrammesProvider,
@@ -552,6 +554,12 @@ fun LeanbackQuickPanelScreen(
                         Spacer(Modifier.width(childPadding.end))
                     }
                 }
+
+                LeanbackPanelNetSpeed(
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(end = childPadding.end, bottom = childPadding.bottom),
+                )
             }
         }
 

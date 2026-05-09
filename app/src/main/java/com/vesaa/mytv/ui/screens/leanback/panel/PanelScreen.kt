@@ -5,6 +5,7 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -39,6 +40,7 @@ import com.vesaa.mytv.ui.screens.leanback.panel.components.LeanbackPanelDateTime
 import com.vesaa.mytv.ui.screens.leanback.panel.components.LeanbackPanelIptvFavoriteList
 import com.vesaa.mytv.ui.screens.leanback.panel.components.LeanbackPanelIptvGroupList
 import com.vesaa.mytv.ui.screens.leanback.panel.components.LeanbackPanelIptvInfo
+import com.vesaa.mytv.ui.screens.leanback.panel.components.LeanbackPanelNetSpeed
 import com.vesaa.mytv.ui.screens.leanback.panel.components.LeanbackPanelPlayerInfo
 import com.vesaa.mytv.ui.screens.leanback.toast.LeanbackToastState
 import com.vesaa.mytv.ui.screens.leanback.video.player.LeanbackVideoPlayer
@@ -175,7 +177,8 @@ private fun LeanbackPanelScreenBottom(
         ) {
             LeanbackPanelIptvInfo(
                 modifier = Modifier
-                    .padding(start = childPadding.start),
+                    .padding(start = childPadding.start)
+                    .fillMaxWidth(0.78f),
                 iptvProvider = currentIptvProvider,
                 iptvUrlIdxProvider = currentIptvUrlIdxProvider,
                 currentProgrammesProvider = {
@@ -206,6 +209,13 @@ private fun LeanbackPanelScreenBottom(
                 onUserAction = onUserAction,
             )
         }
+
+        // 右下角网速：与面板同生命周期显示，自动隐藏逻辑与频道号/底栏一致。
+        LeanbackPanelNetSpeed(
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(end = childPadding.end, bottom = childPadding.bottom),
+        )
     }
 }
 
