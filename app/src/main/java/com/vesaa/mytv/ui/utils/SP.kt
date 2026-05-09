@@ -110,6 +110,9 @@ object SP {
         /** 各订阅 URL 对应的频道播放请求头（JSON 对象） */
         IPTV_CHANNEL_HEADERS_BY_URL_JSON,
 
+        /** 当前直播源中声明的节目单地址（M3U x-tvg-url/url-tvg） */
+        IPTV_SOURCE_EMBEDDED_EPG_URL,
+
         /** 设置页/二维码展示的 IP（空则自动） */
         HTTP_SERVER_ADVERTISE_IP,
 
@@ -335,6 +338,11 @@ object SP {
         }
         iptvChannelHeadersByUrlJsonRaw = spJson.encodeToString(map)
     }
+
+    /** 当前直播源里声明的节目单地址（如 M3U `x-tvg-url` / `url-tvg`）。 */
+    var iptvSourceEmbeddedEpgUrl: String
+        get() = sp.getString(KEY.IPTV_SOURCE_EMBEDDED_EPG_URL.name, "") ?: ""
+        set(value) = sp.edit().putString(KEY.IPTV_SOURCE_EMBEDDED_EPG_URL.name, value).apply()
 
     /**
      * 网页/扫码推送直播源后同步落盘（[apply] 异步可能导致用户立刻杀进程时配置未写入）。

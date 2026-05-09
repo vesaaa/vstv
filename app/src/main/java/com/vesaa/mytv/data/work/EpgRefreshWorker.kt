@@ -29,7 +29,7 @@ class EpgRefreshWorker(
             log.d("EPG 已关闭，跳过")
             return@withContext Result.success()
         }
-        val xmlUrl = SP.epgXmlUrl.trim()
+        val xmlUrl = effectiveEpgXmlUrl()
         if (xmlUrl.isBlank()) {
             log.d("EPG 地址为空，跳过")
             return@withContext Result.success()
@@ -75,9 +75,14 @@ class EpgRefreshWorker(
     }
 
     private fun epgRequestHeadersForWork(): String {
-        val url = SP.epgXmlUrl
+        val url = effectiveEpgXmlUrl()
         val user = SP.epgXmlRequestHeaders.ifBlank { SP.getEpgHeadersForUrl(url) }
         if (user.isNotBlank()) return user
         return builtinEpgDefaultRequestHeaders(url)
+    }
+
+    /** 节目单优先级：直播源内声明（x-tvg-url/url-tvg） > 用户设置 > 内置默认。 */
+    private fun effectiveEpgXmlUrl(): String {
+        return SP.iptvSourceEmbeddedEpgUrl.trim().ifBlank { SP.epgXmlUrl.trim() }
     }
 }

@@ -20,7 +20,8 @@ object EpgRefreshWorkScheduler {
 
     fun schedule(context: Context) {
         val appCtx = context.applicationContext
-        if (!SP.epgEnable || SP.epgXmlUrl.isBlank()) {
+        val effectiveEpgUrl = SP.iptvSourceEmbeddedEpgUrl.trim().ifBlank { SP.epgXmlUrl.trim() }
+        if (!SP.epgEnable || effectiveEpgUrl.isBlank()) {
             cancel(appCtx)
             return
         }

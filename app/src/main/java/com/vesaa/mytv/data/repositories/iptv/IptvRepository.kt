@@ -22,6 +22,7 @@ import com.vesaa.mytv.ui.utils.SP
  */
 class IptvRepository : FileCacheRepository("iptv.txt") {
     private val log = Logger.create(javaClass.simpleName)
+    private val m3uEpgAttrRegex = Regex("""\b(?:x-tvg-url|url-tvg)\s*=\s*(['"])(.*?)\1""", RegexOption.IGNORE_CASE)
 
     /**
      * 获取远程直播源数据
@@ -78,6 +79,7 @@ class IptvRepository : FileCacheRepository("iptv.txt") {
             val sourceData = getOrRefresh(cacheTime) {
                 fetchSource(sourceUrl, requestHeadersText)
             }
+            SP.iptvSourceEmbeddedEpgUrl = extractEmbeddedEpgUrlFromM3u(sourceData)
 
             // 大文件解析耗 CPU，避免在 viewModel 主线程上执行导致界面长期停在「加载中」
             return withContext(Dispatchers.Default) {
@@ -139,5 +141,23 @@ class IptvRepository : FileCacheRepository("iptv.txt") {
             raw.replace(line, resolved)
         }
         return if (changed) rewritten.joinToString("\n") else sourceData
+    }
+
+    /**
+     * 从 M3U 顶部 `#EXTM3U` 行提取节目单地址（`x-tvg-url` / `url-tvg`）。
+     */
+    private fun extractEmbeddedEpgUrlFromM3u(sourceData: String): String {
+        val normalized = sourceData.trimStart('\uFEFF')
+        val lines = normalized.split("\r\n", "\n")
+        for (line in lines) {
+            val t = line.trim()
+            if (t.isBlank()) continue
+            if (!t.startsWith("#")) break
+            if (!t.startsWith("#EXTM3U", ignoreCase = true)) continue
+            val match = m3uEpgAttrRegex.find(t) ?: continue
+            val url = match.groupValues.getOrNull(2)?.trim().orEmpty()
+            if (url.isNotBlank()) return url
+        }
+        return ""
     }
 }
