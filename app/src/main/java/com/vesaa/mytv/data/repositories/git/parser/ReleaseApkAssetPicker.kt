@@ -1,5 +1,6 @@
 package com.vesaa.mytv.data.repositories.git.parser
 
+import android.os.Build
 import com.vesaa.mytv.BuildConfig
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.jsonObject
