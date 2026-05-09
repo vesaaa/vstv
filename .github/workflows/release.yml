@@ -1,18 +1,4 @@
-# 打标签后构建 3 个 release APK 并发布到 GitHub Releases。
-#
-# 产物（前缀 vstv）：
-#   vstv-<ver>-arm.apk        — 常规 ARM（包名 com.vesaa.mytv）
-#   vstv-<ver>-x86_64.apk     — 常规 X86_64（包名 com.vesaa.mytv）
-#   vstv-<ver>-HarmonyOS.apk  — 鸿蒙/兼容向 ARM（包名 com.chinablue.tv，桌面名 Z视介）
-#
-# 标签：v*.*.*、v*.*.*-*（本仓库 1.0.x 等正式线）。
-# Secrets（正式发版请配置齐）：KEYSTORE_BASE64、KEYSTORE_PASSWORD、KEY_ALIAS、KEY_PASSWORD、PROPRIETARY_AGE_PASSPHRASE
-# 未配置 KEYSTORE_BASE64 时仍用 Debug 签名（各次 CI 证书可能不同，无法稳定覆盖安装）。
-# PKCS12 密钥库需在 Assemble 步骤传入 KEYSTORE_TYPE（与 app/build.gradle.kts 一致）。
-#
-# 附：GitHub Release 附件上传顺序固定为 arm → x86_64 → HarmonyOS。
-# 存量 1.9.* 客户端仍按旧逻辑在 Release 资产列表里做启发式选取；将主包 arm 排在前列可降低误选概率。
-
+# Build 3 release APKs from version tags and publish GitHub Release.
 name: Release
 
 on:
