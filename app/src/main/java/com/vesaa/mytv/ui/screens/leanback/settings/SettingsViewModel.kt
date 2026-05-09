@@ -15,6 +15,12 @@ import com.vesaa.mytv.data.entities.IptvFavoriteEntry
 import com.vesaa.mytv.ui.utils.SP
 
 class LeanbackSettingsViewModel : ViewModel() {
+    val effectiveEpgXmlUrl: String
+        get() = SP.iptvSourceEmbeddedEpgUrl.trim().ifBlank { _epgXmlUrl.trim() }
+
+    val isEpgSourceFromEmbeddedM3u: Boolean
+        get() = SP.iptvSourceEmbeddedEpgUrl.trim().isNotBlank()
+
     private var _appBootLaunch by mutableStateOf(SP.appBootLaunch)
     var appBootLaunch: Boolean
         get() = _appBootLaunch

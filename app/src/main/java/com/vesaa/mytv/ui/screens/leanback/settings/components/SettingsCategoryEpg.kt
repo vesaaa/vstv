@@ -45,7 +45,7 @@ import com.vesaa.mytv.ui.utils.HttpServer
 import com.vesaa.mytv.ui.utils.SP
 import com.vesaa.mytv.ui.utils.WebPushConfigNotifier
 import com.vesaa.mytv.ui.utils.handleLeanbackKeyEvents
-import com.vesaa.mytv.utils.builtinEpgDefaultRequestHeaders
+import com.vesaa.mytv.utils.defaultEpgRequestHeadersAfterUserEmpty
 import com.vesaa.mytv.utils.userAgentValueFromHeadersText
 import kotlin.math.max
 
@@ -111,18 +111,30 @@ fun LeanbackSettingsCategoryEpg(
                     append(Constants.EPG_XML_URL_APTV)
                     append("（默认 UA：aptv）\n")
                     append("当前地址：")
-                    append(settingsViewModel.epgXmlUrl)
+                    append(settingsViewModel.effectiveEpgXmlUrl)
+                    if (settingsViewModel.isEpgSourceFromEmbeddedM3u) {
+                        append("（直播源内置优先）")
+                    }
                     append("\n")
                     append("User-Agent：")
                     val raw = settingsViewModel.epgXmlRequestHeaders.ifBlank {
-                        SP.getEpgHeadersForUrl(settingsViewModel.epgXmlUrl)
+                        SP.getEpgHeadersForUrl(settingsViewModel.effectiveEpgXmlUrl)
                     }
                     val ua = userAgentValueFromHeadersText(
-                        raw.ifBlank { builtinEpgDefaultRequestHeaders(settingsViewModel.epgXmlUrl) },
+                        raw.ifBlank {
+                            defaultEpgRequestHeadersAfterUserEmpty(
+                                settingsViewModel.effectiveEpgXmlUrl,
+                                SP.iptvSourceEmbeddedEpgUrl,
+                            )
+                        },
                     )
                     append(if (ua.isBlank()) "（未配置）" else ua)
                 },
-                trailingContent = if (SP.isEpgXmlUrlStoredBlank) "内置默认" else "自定义地址",
+                trailingContent = when {
+                    settingsViewModel.isEpgSourceFromEmbeddedM3u -> "直播源内置"
+                    SP.isEpgXmlUrlStoredBlank -> "内置默认"
+                    else -> "自定义地址"
+                },
                 onSelected = { showDialog = true },
                 remoteConfig = true,
             )
@@ -135,7 +147,7 @@ fun LeanbackSettingsCategoryEpg(
                         it !in Constants.EPG_BUILTIN_XML_URLS
                     }.toImmutableList()
                 },
-                currentEpgXmlUrlProvider = { settingsViewModel.epgXmlUrl },
+                currentEpgXmlUrlProvider = { settingsViewModel.effectiveEpgXmlUrl },
                 currentEpgRequestHeadersProvider = { settingsViewModel.epgXmlRequestHeaders },
                 onSelected = {
                     showDialog = false
@@ -240,7 +252,9 @@ private fun LeanbackSettingsEpgSourceHistoryDialog(
                                 SP.getEpgHeadersForUrl(url)
                             }
                         val uaDisplay = userAgentValueFromHeadersText(
-                            headersText.ifBlank { builtinEpgDefaultRequestHeaders(url) },
+                            headersText.ifBlank {
+                                defaultEpgRequestHeadersAfterUserEmpty(url, SP.iptvSourceEmbeddedEpgUrl)
+                            },
                         ).let { v -> if (v.isBlank()) "（未配置）" else v }
 
                         LaunchedEffect(Unit) {

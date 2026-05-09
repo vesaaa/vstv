@@ -11,7 +11,7 @@ import com.vesaa.mytv.data.repositories.epg.EpgRepository
 import com.vesaa.mytv.data.repositories.iptv.IptvRepository
 import com.vesaa.mytv.ui.utils.SP
 import com.vesaa.mytv.utils.Logger
-import com.vesaa.mytv.utils.builtinEpgDefaultRequestHeaders
+import com.vesaa.mytv.utils.defaultEpgRequestHeadersAfterUserEmpty
 import com.vesaa.mytv.utils.normalizeIptvRequestHeadersInput
 
 /**
@@ -76,9 +76,14 @@ class EpgRefreshWorker(
 
     private fun epgRequestHeadersForWork(): String {
         val url = effectiveEpgXmlUrl()
-        val user = SP.epgXmlRequestHeaders.ifBlank { SP.getEpgHeadersForUrl(url) }
+        val explicitUrl = SP.epgXmlUrl.trim()
+        val user = if (SP.epgXmlRequestHeaders.isNotBlank() && explicitUrl == url) {
+            SP.epgXmlRequestHeaders
+        } else {
+            SP.getEpgHeadersForUrl(url)
+        }
         if (user.isNotBlank()) return user
-        return builtinEpgDefaultRequestHeaders(url)
+        return defaultEpgRequestHeadersAfterUserEmpty(url, SP.iptvSourceEmbeddedEpgUrl)
     }
 
     /** 节目单优先级：直播源内声明（x-tvg-url/url-tvg） > 用户设置 > 内置默认。 */
