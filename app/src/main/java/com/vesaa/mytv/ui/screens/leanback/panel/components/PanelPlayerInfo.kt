@@ -5,9 +5,12 @@ import android.os.Build
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -98,11 +101,22 @@ fun LeanbackPanelNetSpeed(
     modifier: Modifier = Modifier,
     netSpeed: Long = rememberNetSpeed(),
 ) {
-    Text(
-        text = if (netSpeed < 1024 * 999) "网速：${netSpeed / 1024}KB/s"
-        else "网速：${DecimalFormat("#.#").format(netSpeed / 1024 / 1024f)}MB/s",
+    val text = if (netSpeed < 1024 * 999) "网速：${netSpeed / 1024}KB/s"
+    else "网速：${DecimalFormat("#.#").format(netSpeed / 1024 / 1024f)}MB/s"
+    Surface(
         modifier = modifier,
-    )
+        shape = RoundedCornerShape(6.dp),
+        color = MaterialTheme.colorScheme.scrim.copy(alpha = 0.55f),
+        contentColor = MaterialTheme.colorScheme.onBackground,
+        tonalElevation = 0.dp,
+        shadowElevation = 0.dp,
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+        )
+    }
 }
 
 @Composable

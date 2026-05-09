@@ -23,6 +23,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.vesaa.mytv.data.entities.EpgList
@@ -214,7 +215,8 @@ private fun LeanbackPanelScreenBottom(
         LeanbackPanelNetSpeed(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(end = childPadding.end, bottom = childPadding.bottom),
+                .padding(end = childPadding.end, bottom = childPadding.bottom)
+                .zIndex(10f),
         )
     }
 }

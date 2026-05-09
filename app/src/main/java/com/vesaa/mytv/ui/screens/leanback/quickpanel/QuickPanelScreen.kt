@@ -58,6 +58,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import androidx.tv.material3.Border
 import androidx.tv.material3.ButtonDefaults
 import androidx.tv.material3.Glow
@@ -558,7 +559,8 @@ fun LeanbackQuickPanelScreen(
                 LeanbackPanelNetSpeed(
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
-                        .padding(end = childPadding.end, bottom = childPadding.bottom),
+                        .padding(end = childPadding.end, bottom = childPadding.bottom)
+                        .zIndex(10f),
                 )
             }
         }

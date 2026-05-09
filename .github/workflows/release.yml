@@ -34,19 +34,21 @@ jobs:
           java-version: 17
           cache: gradle
 
-      - name: Prepare keystore (optional)
+      - name: Prepare keystore (required for releasable auto-update)
         id: sign
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
-          if [ -n "$KEYSTORE_BASE64" ]; then
-            printf '%s' "$KEYSTORE_BASE64" | base64 --decode > app/keystore.jks
-            echo "mode=release" >> "$GITHUB_OUTPUT"
-            echo "已使用仓库 Secret 中的 Release 签名"
-          else
-            echo "mode=debug" >> "$GITHUB_OUTPUT"
-            echo "::notice::未配置 KEYSTORE_BASE64，将使用 Debug 签名打包（仅供测试）。"
+          if [ -z "$KEYSTORE_BASE64" ] || [ -z "$KEYSTORE_PASSWORD" ] || [ -z "$KEY_ALIAS" ] || [ -z "$KEY_PASSWORD" ]; then
+            echo "::error::缺少 Release 签名 Secret（KEYSTORE_BASE64 / KEYSTORE_PASSWORD / KEY_ALIAS / KEY_PASSWORD），为避免产出不可覆盖安装的包，本次直接失败。"
+            exit 1
           fi
+          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > app/keystore.jks
+          echo "mode=release" >> "$GITHUB_OUTPUT"
+          echo "已使用仓库 Secret 中的 Release 签名"
 
       - name: Parse version from tag
         id: ver
@@ -86,9 +88,6 @@ jobs:
             "-PreleaseVersion=$VER"
             "-PversionCode=$VC"
           )
-          if [ "${{ steps.sign.outputs.mode }}" = "debug" ]; then
-            ARGS+=(-PciUseDebugSigning=true)
-          fi
           ./gradlew "${ARGS[@]}" --stacktrace
 
       - name: Package artifacts
