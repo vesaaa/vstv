@@ -101,8 +101,8 @@ fun LeanbackPanelNetSpeed(
     modifier: Modifier = Modifier,
     netSpeed: Long = rememberNetSpeed(),
 ) {
-    val text = if (netSpeed < 1024 * 999) "网速：${netSpeed / 1024}KB/s"
-    else "网速：${DecimalFormat("#.#").format(netSpeed / 1024 / 1024f)}MB/s"
+    val text = if (netSpeed < 1024 * 999) "${netSpeed / 1024}KB/s"
+    else "${DecimalFormat("#.#").format(netSpeed / 1024 / 1024f)}MB/s"
     Surface(
         modifier = modifier,
         shape = RoundedCornerShape(6.dp),
