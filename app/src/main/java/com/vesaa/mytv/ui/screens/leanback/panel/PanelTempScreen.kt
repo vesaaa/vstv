@@ -17,6 +17,7 @@ import androidx.compose.ui.layout.layoutId
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import com.vesaa.mytv.data.entities.EpgProgramme
 import com.vesaa.mytv.data.entities.EpgProgramme.Companion.progress
 import com.vesaa.mytv.data.entities.EpgProgrammeCurrent
@@ -24,6 +25,7 @@ import com.vesaa.mytv.data.entities.Iptv
 import com.vesaa.mytv.ui.rememberLeanbackChildPadding
 import com.vesaa.mytv.ui.screens.leanback.panel.components.LeanbackPanelChannelNo
 import com.vesaa.mytv.ui.screens.leanback.panel.components.LeanbackPanelIptvInfo
+import com.vesaa.mytv.ui.screens.leanback.panel.components.LeanbackPanelNetSpeed
 import com.vesaa.mytv.ui.theme.LeanbackTheme
 
 @Composable
@@ -44,6 +46,14 @@ fun LeanbackPanelTempScreen(
             modifier = Modifier
                 .padding(top = childPadding.top, end = childPadding.end)
                 .align(Alignment.TopEnd),
+        )
+
+        LeanbackPanelNetSpeed(
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(end = childPadding.end, bottom = childPadding.bottom)
+                .zIndex(10f),
+            showLabel = false,
         )
 
         Layout(

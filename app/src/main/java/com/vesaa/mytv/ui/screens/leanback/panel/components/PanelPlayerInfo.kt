@@ -97,10 +97,12 @@ private fun PanelPlayerInfoFps(
 fun LeanbackPanelNetSpeed(
     modifier: Modifier = Modifier,
     netSpeed: Long = rememberNetSpeed(),
+    showLabel: Boolean = true,
 ) {
+    val speedText = if (netSpeed < 1024 * 999) "${netSpeed / 1024}KB/s"
+    else "${DecimalFormat("#.#").format(netSpeed / 1024 / 1024f)}MB/s"
     Text(
-        text = if (netSpeed < 1024 * 999) "${netSpeed / 1024}KB/s"
-        else "${DecimalFormat("#.#").format(netSpeed / 1024 / 1024f)}MB/s",
+        text = if (showLabel) "网速：$speedText" else speedText,
         modifier = modifier,
     )
 }
@@ -152,6 +154,7 @@ private fun LeanbackPanelPlayerInfoNetSpeedPreview() {
             LeanbackPanelNetSpeed()
             LeanbackPanelNetSpeed(netSpeed = 54321)
             LeanbackPanelNetSpeed(netSpeed = 1222 * 1222)
+            LeanbackPanelNetSpeed(netSpeed = 1222 * 1222, showLabel = false)
         }
     }
 }
