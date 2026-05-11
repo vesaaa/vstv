@@ -80,6 +80,9 @@ class LeanbackVideoPlayerState(
     /** 当前字幕 cues（含文本/位图），由播放器事件回调更新。 */
     val subtitleCues = mutableStateListOf<Cue>()
 
+    /** 字幕轨道选中 ID（Compose State，直接驱动 UI 勾选）。null = 未选中任何字幕。 */
+    private var selectedSubtitleTrackId by mutableStateOf<String?>(null)
+
     fun prepare(
         url: String,
         streamRequestHeaders: String? = null,
@@ -88,7 +91,8 @@ class LeanbackVideoPlayerState(
         error = null
         holdBlackScreen = true
         currentMediaUrl = url.trim()
-        // 新播放请求前先停掉旧会话，降低旧错误回调串扰到新频道的概率。
+        selectedSubtitleTrackId = null
+        subtitleCues.clear()
         instance.onDeactivate()
         instance.prepare(url, streamRequestHeaders, playbackLabel)
     }
@@ -101,6 +105,7 @@ class LeanbackVideoPlayerState(
         currentMediaUrl = ""
         metadata = LeanbackVideoPlayer.Metadata()
         subtitleCues.clear()
+        selectedSubtitleTrackId = null
     }
 
     fun play() {
@@ -136,10 +141,21 @@ class LeanbackVideoPlayerState(
         instance.seekBack(offsetMs)
     }
 
-    fun getTrackOptions(type: LeanbackVideoPlayer.TrackType): List<LeanbackVideoPlayer.TrackOption> =
-        instance.getTrackOptions(type)
+    fun getTrackOptions(type: LeanbackVideoPlayer.TrackType): List<LeanbackVideoPlayer.TrackOption> {
+        val options = instance.getTrackOptions(type)
+        if (type != LeanbackVideoPlayer.TrackType.Subtitle) return options
+        val localId = selectedSubtitleTrackId
+        return options.map { it.copy(selected = localId != null && localId == it.id) }
+    }
 
     fun selectTrack(type: LeanbackVideoPlayer.TrackType, trackId: String) {
+        if (type == LeanbackVideoPlayer.TrackType.Subtitle) {
+            if (selectedSubtitleTrackId == trackId) {
+                selectedSubtitleTrackId = null
+            } else {
+                selectedSubtitleTrackId = trackId
+            }
+        }
         instance.selectTrack(type, trackId)
         trackSelectionVersion += 1
     }
