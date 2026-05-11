@@ -43,6 +43,8 @@ class LeanbackVideoPlayerState(
                 "该频道仅提供 HEVC/H.265 视频，当前设备可能不支持($code)"
             code == 10005 || upper.contains("MASTER_INVALID") || upper.contains("SINGLE_AUDIO") ->
                 "该频道清单异常或仅音频轨，无法正常出画($code)"
+            code == 10007 || upper.contains("SMIL_RESOLVE") ->
+                "无法解析该 RTSP 播放列表(SMIL)，请用设置开启播放诊断后反馈 VsTVSmil 日志($code)"
             code == 3001 -> "源端分片/容器数据异常，请稍后重试或切换线路($code)"
             code == 3002 -> "源端清单异常或分片错误，请稍后重试或切换线路($code)"
             code in 3000..3999 && (upper.contains("AUTH") || upper.contains("401") || upper.contains("403")) ->

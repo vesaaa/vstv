@@ -45,6 +45,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 import okhttp3.Request
 import com.vesaa.mytv.ui.utils.SP
 import com.vesaa.mytv.utils.PlaybackTrace
+import com.vesaa.mytv.utils.RtspSmilResolver
 import com.vesaa.mytv.data.utils.Constants
 import com.vesaa.mytv.utils.AppOkHttp
 import com.vesaa.mytv.utils.IptvOutboundHeaderPolicy
@@ -126,6 +127,7 @@ class LeanbackMedia3VideoPlayer(
     private var hlsAvcFallbackTried = false
     private var hlsImageSequenceFallbackTried = false
     private var hlsPreprobeJob: Job? = null
+    private var smilResolveJob: Job? = null
     private var prepareSessionId: Int = 0
     private var hlsSuspiciousSession: Boolean = false
 
@@ -324,6 +326,9 @@ class LeanbackMedia3VideoPlayer(
                     append(" rtspTimeoutMs=").append(
                         SP.videoRtspRtpSilenceTimeoutMs.coerceIn(3_000L, 120_000L),
                     )
+                    if (effectiveUri.path?.endsWith(".smil", ignoreCase = true) == true) {
+                        append(" rtspUriTail=.smil")
+                    }
                 }
             }
             PlaybackTrace.i(
@@ -995,6 +1000,7 @@ class LeanbackMedia3VideoPlayer(
 
     override fun release() {
         hlsPreprobeJob?.cancel()
+        smilResolveJob?.cancel()
         parseRetryJob?.cancel()
         stopNoVideoFrameWatchdog()
         stopImageSequenceMode()
@@ -1013,6 +1019,7 @@ class LeanbackMedia3VideoPlayer(
         prepareSessionId += 1
         val sessionId = prepareSessionId
         hlsPreprobeJob?.cancel()
+        smilResolveJob?.cancel()
         parseRetryJob?.cancel()
         parseRetryJob = null
         stopImageSequenceMode()
@@ -1035,6 +1042,43 @@ class LeanbackMedia3VideoPlayer(
                     SP.videoRtspTcpPrepareRetryCount.coerceIn(0, 10)
 
             else -> rtspTcpPrepareRetriesRemaining = 0
+        }
+        val isRtspSmilPlaylist =
+            parsed.scheme.equals("rtsp", ignoreCase = true) &&
+                (parsed.path?.endsWith(".smil", ignoreCase = true) == true)
+        if (isRtspSmilPlaylist) {
+            smilResolveJob = coroutineScope.launch {
+                val ua = rtspUserAgent(parsed, streamRequestHeaders)
+                PlaybackTrace.i(
+                    parsed,
+                    "smil_resolve_start",
+                    "ua_len=${ua.length}",
+                    lastPlaybackLabel,
+                )
+                val result = RtspSmilResolver.resolve(parsed, ua, lastPlaybackLabel)
+                if (sessionId != prepareSessionId) return@launch
+                when (result) {
+                    is RtspSmilResolver.Result.Ok -> {
+                        PlaybackTrace.i(
+                            result.streamUri,
+                            "smil_resolve_ok",
+                            "stream=${result.streamUri}",
+                            lastPlaybackLabel,
+                        )
+                        prepare(result.streamUri, C.CONTENT_TYPE_RTSP, streamRequestHeaders)
+                    }
+                    is RtspSmilResolver.Result.Fail -> {
+                        PlaybackTrace.i(
+                            parsed,
+                            "smil_resolve_fail",
+                            result.reason.take(120),
+                            lastPlaybackLabel,
+                        )
+                        triggerError(PlaybackException("SMIL_RESOLVE_FAILED", 10007))
+                    }
+                }
+            }
+            return
         }
         val inferredType = Util.inferContentType(parsed)
         val shouldPreprobeHls = inferredType == C.CONTENT_TYPE_HLS &&
@@ -1077,6 +1121,7 @@ class LeanbackMedia3VideoPlayer(
 
     override fun onDeactivate() {
         hlsPreprobeJob?.cancel()
+        smilResolveJob?.cancel()
         parseRetryJob?.cancel()
         parseRetryJob = null
         stopNoVideoFrameWatchdog()
