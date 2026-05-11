@@ -82,6 +82,8 @@ class LeanbackVideoPlayerState(
 
     /** 字幕轨道选中 ID（Compose State，直接驱动 UI 勾选）。null = 未选中任何字幕。 */
     private var selectedSubtitleTrackId by mutableStateOf<String?>(null)
+    /** 防止同一次按键 handleLeanbackKeyEvents + ListItem.onClick 双触发导致 toggle 抵消。 */
+    private var lastSubtitleToggleMs = 0L
 
     fun prepare(
         url: String,
@@ -150,11 +152,10 @@ class LeanbackVideoPlayerState(
 
     fun selectTrack(type: LeanbackVideoPlayer.TrackType, trackId: String) {
         if (type == LeanbackVideoPlayer.TrackType.Subtitle) {
-            if (selectedSubtitleTrackId == trackId) {
-                selectedSubtitleTrackId = null
-            } else {
-                selectedSubtitleTrackId = trackId
-            }
+            val now = android.os.SystemClock.elapsedRealtime()
+            if (now - lastSubtitleToggleMs < 300) return
+            lastSubtitleToggleMs = now
+            selectedSubtitleTrackId = if (selectedSubtitleTrackId == trackId) null else trackId
         }
         instance.selectTrack(type, trackId)
         trackSelectionVersion += 1
