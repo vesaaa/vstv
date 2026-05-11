@@ -843,13 +843,6 @@ class LeanbackMedia3VideoPlayer(
         return codecScore + resScore + brScore
     }
 
-    /**
-     * [TrackGroup.id] 在 TS/HLS 场景里经常为 null；若用 `"group#$i"` 编码，多组并排时会产生
-     * 重复的 `"group#0"`，选轨始终命中第一个 [TrackGroup]，表现为第二条字幕永远选不出字。
-     */
-    private fun stableTrackOptionId(groupIndex: Int, indexInGroup: Int): String =
-        "tg${groupIndex}_tr${indexInGroup}"
-
     override fun getTrackOptions(type: TrackType): List<TrackOption> {
         val targetType = when (type) {
             TrackType.Audio -> C.TRACK_TYPE_AUDIO
@@ -858,13 +851,13 @@ class LeanbackMedia3VideoPlayer(
         }
         return videoPlayer.currentTracks.groups
             .filter { it.type == targetType }
-            .flatMapIndexed { groupIndex, group ->
+            .flatMap { group ->
                 buildList {
                     for (i in 0 until group.length) {
                         add(
                             TrackOption(
-                                id = stableTrackOptionId(groupIndex, i),
-                                label = trackLabel(type, group, i, groupIndex),
+                                id = "${group.mediaTrackGroup.id ?: "group"}#$i",
+                                label = trackLabel(type, group, i),
                                 selected = group.isTrackSelected(i),
                             ),
                         )
@@ -880,9 +873,9 @@ class LeanbackMedia3VideoPlayer(
             TrackType.Subtitle -> C.TRACK_TYPE_TEXT
         }
         val groups = videoPlayer.currentTracks.groups.filter { it.type == targetType }
-        for ((groupIndex, group) in groups.withIndex()) {
+        for (group in groups) {
             for (i in 0 until group.length) {
-                val id = stableTrackOptionId(groupIndex, i)
+                val id = "${group.mediaTrackGroup.id ?: "group"}#$i"
                 if (id != trackId) continue
                 if (type == TrackType.Subtitle && group.isTrackSelected(i)) {
                     triggerSubtitle(emptyList())
@@ -904,12 +897,11 @@ class LeanbackMedia3VideoPlayer(
         }
     }
 
-    private fun trackLabel(type: TrackType, group: Tracks.Group, index: Int, groupIndex: Int): String {
+    private fun trackLabel(type: TrackType, group: Tracks.Group, index: Int): String {
         val f = group.mediaTrackGroup.getFormat(index)
         return when (type) {
             TrackType.Audio -> {
-                val lang = f.language?.takeIf { it.isNotBlank() && it != "und" }
-                    ?: "音轨${groupIndex + 1}-${index + 1}"
+                val lang = f.language?.takeIf { it.isNotBlank() && it != "und" } ?: "音轨${index + 1}"
                 val codec = f.sampleMimeType?.removePrefix("audio/").orEmpty().ifBlank { "unknown" }
                 val ch = if (f.channelCount > 0) "·${f.channelCount}ch" else ""
                 "$lang · $codec$ch"
@@ -921,8 +913,7 @@ class LeanbackMedia3VideoPlayer(
                 "$res · $codec"
             }
             TrackType.Subtitle -> {
-                val lang = f.language?.takeIf { it.isNotBlank() && it != "und" }
-                    ?: "字幕${groupIndex + 1}-${index + 1}"
+                val lang = f.language?.takeIf { it.isNotBlank() && it != "und" } ?: "字幕${index + 1}"
                 val codec = f.sampleMimeType.orEmpty().ifBlank { "text" }
                 "$lang · $codec"
             }
