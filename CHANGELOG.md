@@ -4,6 +4,10 @@
 
 > **说明**：本文件仍由人编写条目，**不会由机器人自动撰写内容**。推送 **Release 标签**（`v*.*.*`）时，GitHub Actions 会检查 `CHANGELOG.md` 中是否已有对应章节 **`## [x.y.z]`**（`x.y.z` 为标签去掉 `v`/`tv-` 及预发布后缀 `-…` 的核心版本）；**未写入则 Release 构建失败**，避免发版记录遗漏。**GitHub Release 页面上的版本说明**会**自动截取并发布本文件中该版本章节全文**（不再使用仅含提交列表与「Full Changelog」链接的自动生成说明）。若需对照历史，见 [GitHub Releases](https://github.com/vesaaa/vstv/releases)。
 
+## [2.1.23] - 2026-05-11
+
+- **字幕与视频同一 View 叠层**：将 `SurfaceView`/`TextureView` 与 `SubtitleView` 放入同一 `FrameLayout`（视频在下、字幕在上，`clipChildren = false`），避免部分电视上独立 `AndroidView` 与 `SurfaceView` 层级导致字幕绘制不可见。
+
 ## [2.1.22] - 2026-05-11
 
 - **修复多组字幕/音轨 ID 碰撞导致选轨错位**：MPEG-TS / HLS 场景下 `TrackGroup.id` 常为 null，若多条字幕或音频分属不同 `TrackGroup`，旧逻辑会生成重复的 `group#0`，`selectTrack` 始终命中第一个组，表现为“打勾正常但第二条不出字幕”、或音轨列表与选中不一致。现按该类型过滤后的组下标与组内下标生成稳定唯一 ID（如 `tg0_tr0`、`tg1_tr0`），标签在无语言元数据时显示为「字幕1-1 / 字幕2-1」等形式以便区分。

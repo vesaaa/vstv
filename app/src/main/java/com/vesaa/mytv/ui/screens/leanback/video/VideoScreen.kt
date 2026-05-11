@@ -3,6 +3,7 @@ package com.vesaa.mytv.ui.screens.leanback.video
 import android.graphics.Color as AndroidColor
 import android.view.SurfaceView
 import android.view.TextureView
+import android.widget.FrameLayout
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -22,7 +23,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -40,35 +40,68 @@ fun LeanbackVideoScreen(
     showMetadataProvider: () -> Boolean = { false },
     useTextureView: Boolean = false,
 ) {
-    val context = LocalContext.current
     val childPadding = rememberLeanbackChildPadding()
 
     Box(modifier = modifier.fillMaxSize()) {
+        // SurfaceView 在独立 AndroidView 时可能与另一块 SubtitleView 的层叠顺序异常：
+        // 将视频面与 SubtitleView 放进同一 FrameLayout，保证字幕在同一 View 层级叠在画面之上。
         key(useTextureView) {
+            val displayCues = if (state.error == null) state.subtitleCues.toList() else emptyList()
             AndroidView(
                 modifier = Modifier
                     .align(Alignment.Center)
                     .aspectRatio(state.aspectRatio),
-                factory = {
-                    if (useTextureView) {
-                        TextureView(context).apply {
+                factory = { ctx ->
+                    FrameLayout(ctx).apply {
+                        clipChildren = false
+                        clipToPadding = false
+                        val lpMatch = FrameLayout.LayoutParams(
+                            FrameLayout.LayoutParams.MATCH_PARENT,
+                            FrameLayout.LayoutParams.MATCH_PARENT,
+                        )
+                        val videoView = if (useTextureView) {
+                            TextureView(ctx).apply {
+                                isFocusable = false
+                                isFocusableInTouchMode = false
+                            }
+                        } else {
+                            SurfaceView(ctx).apply {
+                                isFocusable = false
+                                isFocusableInTouchMode = false
+                            }
+                        }
+                        addView(videoView, lpMatch)
+                        val subtitleView = SubtitleView(ctx).apply {
                             isFocusable = false
                             isFocusableInTouchMode = false
+                            setApplyEmbeddedStyles(true)
+                            setApplyEmbeddedFontSizes(true)
+                            setBottomPaddingFraction(0.08f)
+                            setFractionalTextSize(SubtitleView.DEFAULT_TEXT_SIZE_FRACTION * 1.05f)
+                            setStyle(
+                                CaptionStyleCompat(
+                                    AndroidColor.WHITE,
+                                    AndroidColor.TRANSPARENT,
+                                    AndroidColor.TRANSPARENT,
+                                    CaptionStyleCompat.EDGE_TYPE_DROP_SHADOW,
+                                    AndroidColor.BLACK,
+                                    null,
+                                ),
+                            )
                         }
-                    } else {
-                        SurfaceView(context).apply {
-                            isFocusable = false
-                            isFocusableInTouchMode = false
-                        }
+                        addView(subtitleView, lpMatch)
                     }
                 },
-                update = { videoView ->
+                update = { frame ->
+                    val videoView = frame.getChildAt(0)
+                    val subtitleView = frame.getChildAt(1) as SubtitleView
                     videoView.isFocusable = false
                     videoView.isFocusableInTouchMode = false
                     when (videoView) {
                         is SurfaceView -> state.setVideoSurfaceView(videoView)
                         is TextureView -> state.setVideoTextureView(videoView)
                     }
+                    subtitleView.setCues(displayCues)
                 },
             )
         }
@@ -97,37 +130,6 @@ fun LeanbackVideoScreen(
         if (state.error == null && !state.metadata.imageSequenceModeHint && state.metadata.audioOnlyModeHint) {
             AudioOnlyVisualizer(
                 modifier = Modifier.align(Alignment.Center),
-            )
-        }
-
-        // 在组合作用域读 subtitleCues，确保变化能触发重组并刷新 SubtitleView。
-        val currentCues = state.subtitleCues.toList()
-        if (state.error == null) {
-            AndroidView(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .fillMaxSize(),
-                factory = {
-                    SubtitleView(context).apply {
-                        setApplyEmbeddedStyles(true)
-                        setApplyEmbeddedFontSizes(true)
-                        setBottomPaddingFraction(0.08f)
-                        setFractionalTextSize(SubtitleView.DEFAULT_TEXT_SIZE_FRACTION * 1.05f)
-                        setStyle(
-                            CaptionStyleCompat(
-                                AndroidColor.WHITE,
-                                AndroidColor.TRANSPARENT,
-                                AndroidColor.TRANSPARENT,
-                                CaptionStyleCompat.EDGE_TYPE_DROP_SHADOW,
-                                AndroidColor.BLACK,
-                                null,
-                            ),
-                        )
-                    }
-                },
-                update = { subtitleView ->
-                    subtitleView.setCues(currentCues)
-                },
             )
         }
 
