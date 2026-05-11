@@ -51,13 +51,14 @@ private const val DialogWidthFraction = 2f / 3f
 /** 面板内左右留白 */
 private val PanelInnerHorizontalPadding = 22.dp
 
-/** 行距；列缝与之相同（左格 end + 右格 start 各一半拼出总宽） */
-private val RowGap = 14.dp
+/** 行距；列缝总宽与之相同（左列 end + 右列 start 为 7+8=15） */
+private val RowGap = 15.dp
 
-/**
- * 每个格子的固定高度（扁长条）。在原先约 58dp 基础上增加约 1/3，使一屏 6 格区域与长条更高。
- */
-private val TileHeight = 58.dp * (4f / 3f)
+private val ColumnGapLeftEnd = 7.dp
+private val ColumnGapRightStart = 8.dp
+
+/** 每个格子高度（扁长条；约原 58dp 增 1/3 后取整到 5） */
+private val TileHeight = 75.dp
 
 internal fun distinctIptvSourceUrlsForSwitch(
     currentUrl: String,
@@ -84,8 +85,6 @@ internal fun LeanbackIptvSourceSwitchOnlyDialog(
 ) {
     val gridState = rememberTvLazyGridState()
     val focusRequesters = remember(urls) { List(urls.size) { FocusRequester() } }
-    val columnGapHalf = RowGap / 2
-
     LaunchedEffect(urls) {
         delay(48)
         if (focusRequesters.isNotEmpty()) {
@@ -159,8 +158,8 @@ internal fun LeanbackIptvSourceSwitchOnlyDialog(
                                     .fillMaxWidth()
                                     .height(TileHeight)
                                     .padding(
-                                        start = if (col == 1) columnGapHalf else 0.dp,
-                                        end = if (col == 0) columnGapHalf else 0.dp,
+                                        start = if (col == 1) ColumnGapRightStart else 0.dp,
+                                        end = if (col == 0) ColumnGapLeftEnd else 0.dp,
                                     )
                                     .focusRequester(focusRequester)
                                     .onFocusChanged {
