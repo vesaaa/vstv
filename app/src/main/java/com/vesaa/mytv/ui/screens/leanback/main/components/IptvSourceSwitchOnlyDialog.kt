@@ -51,17 +51,13 @@ private const val DialogWidthFraction = 2f / 3f
 /** 面板内左右留白 */
 private val PanelInnerHorizontalPadding = 22.dp
 
-/** 行与行之间的间距 */
+/** 行距；列缝与之相同（左格 end + 右格 start 各一半拼出总宽） */
 private val RowGap = 14.dp
 
 /**
- * 每个格子的固定高度（扁长条：格宽由两列均分后远大于此高度）。
- * 与 [RowGap]、[SwitchGridVisibleRows] 一起决定可视区高度，保证一屏 6 格。
+ * 每个格子的固定高度（扁长条）。在原先约 58dp 基础上增加约 1/3，使一屏 6 格区域与长条更高。
  */
-private val TileHeight = 58.dp
-
-/** 两列之间的总间距（左格 end + 右格 start 各一半） */
-private val ColumnGap = 24.dp
+private val TileHeight = 58.dp * (4f / 3f)
 
 internal fun distinctIptvSourceUrlsForSwitch(
     currentUrl: String,
@@ -88,7 +84,7 @@ internal fun LeanbackIptvSourceSwitchOnlyDialog(
 ) {
     val gridState = rememberTvLazyGridState()
     val focusRequesters = remember(urls) { List(urls.size) { FocusRequester() } }
-    val columnGapHalf = ColumnGap / 2
+    val columnGapHalf = RowGap / 2
 
     LaunchedEffect(urls) {
         delay(48)
@@ -127,7 +123,7 @@ internal fun LeanbackIptvSourceSwitchOnlyDialog(
                         .fillMaxWidth()
                         .padding(
                             horizontal = PanelInnerHorizontalPadding,
-                            vertical = 18.dp,
+                            vertical = 22.dp,
                         ),
                 ) {
                     Text(
@@ -135,7 +131,7 @@ internal fun LeanbackIptvSourceSwitchOnlyDialog(
                         style = MaterialTheme.typography.titleLarge,
                         color = MaterialTheme.colorScheme.onSurface,
                     )
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(20.dp))
                     TvLazyVerticalGrid(
                         state = gridState,
                         columns = TvGridCells.Fixed(2),
