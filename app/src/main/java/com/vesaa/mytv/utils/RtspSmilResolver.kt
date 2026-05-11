@@ -147,17 +147,18 @@ object RtspSmilResolver {
             Socket().use { sock ->
                 sock.soTimeout = 12_000
                 sock.connect(InetSocketAddress(host, port), 8_000)
-                sock.getOutputStream().bufferedWriter(Charsets.UTF_8).use { w ->
-                    val sb = StringBuilder()
-                    sb.append("DESCRIBE ").append(requestUri).append(" RTSP/1.0\r\n")
-                    sb.append("CSeq: 1\r\n")
-                    sb.append("User-Agent: ").append(userAgent.take(400)).append("\r\n")
-                    sb.append("Accept: application/sdp, application/rtsl, application/smil, text/xml, ")
-                    sb.append("*").append("/").append("*").append("\r\n")
-                    sb.append("\r\n")
-                    w.write(sb.toString())
-                    w.flush()
-                }
+                // 禁止对 getOutputStream().bufferedWriter().use { }：use 会 close Writer，进而关掉整条 Socket，读响应即 Socket is closed
+                val sb = StringBuilder()
+                sb.append("DESCRIBE ").append(requestUri).append(" RTSP/1.0\r\n")
+                sb.append("CSeq: 1\r\n")
+                sb.append("User-Agent: ").append(userAgent.take(400)).append("\r\n")
+                sb.append("Accept: application/sdp, application/rtsl, application/smil, text/xml, ")
+                sb.append("*").append("/").append("*").append("\r\n")
+                sb.append("\r\n")
+                val reqBytes = sb.toString().toByteArray(StandardCharsets.UTF_8)
+                sock.getOutputStream().write(reqBytes)
+                sock.getOutputStream().flush()
+                onLog("rtsp_describe request_sent bytes=${reqBytes.length} port=$port")
                 val inp = sock.getInputStream()
                 val (headerBlock, initialTail) = readRtspHeaders(inp)
                 val statusLine = headerBlock.lineSequence().firstOrNull().orEmpty()
