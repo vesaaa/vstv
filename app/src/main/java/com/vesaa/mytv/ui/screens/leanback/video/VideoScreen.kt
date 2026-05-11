@@ -1,5 +1,6 @@
 package com.vesaa.mytv.ui.screens.leanback.video
 
+import android.graphics.Color as AndroidColor
 import android.view.SurfaceView
 import android.view.TextureView
 import androidx.compose.animation.core.RepeatMode
@@ -26,6 +27,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.media3.ui.CaptionStyleCompat
+import androidx.media3.ui.SubtitleView
 import coil.compose.AsyncImage
 import com.vesaa.mytv.ui.rememberLeanbackChildPadding
 import com.vesaa.mytv.ui.screens.leanback.video.components.LeanbackVideoPlayerMetadata
@@ -94,6 +97,35 @@ fun LeanbackVideoScreen(
         if (state.error == null && !state.metadata.imageSequenceModeHint && state.metadata.audioOnlyModeHint) {
             AudioOnlyVisualizer(
                 modifier = Modifier.align(Alignment.Center),
+            )
+        }
+
+        if (state.error == null && state.subtitleCues.isNotEmpty()) {
+            AndroidView(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxSize(),
+                factory = {
+                    SubtitleView(context).apply {
+                        setApplyEmbeddedStyles(true)
+                        setApplyEmbeddedFontSizes(true)
+                        setBottomPaddingFraction(0.08f)
+                        setFractionalTextSize(SubtitleView.DEFAULT_TEXT_SIZE_FRACTION * 1.05f)
+                        setStyle(
+                            CaptionStyleCompat(
+                                AndroidColor.WHITE,
+                                AndroidColor.TRANSPARENT,
+                                AndroidColor.TRANSPARENT,
+                                CaptionStyleCompat.EDGE_TYPE_DROP_SHADOW,
+                                AndroidColor.BLACK,
+                                null,
+                            ),
+                        )
+                    }
+                },
+                update = { subtitleView ->
+                    subtitleView.setCues(state.subtitleCues)
+                },
             )
         }
 

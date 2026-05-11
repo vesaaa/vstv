@@ -17,6 +17,7 @@ import androidx.media3.common.Tracks
 import androidx.media3.common.VideoSize
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.common.util.Util
+import androidx.media3.common.text.CueGroup
 import androidx.media3.datasource.DataSource
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.DefaultHttpDataSource
@@ -549,6 +550,10 @@ class LeanbackMedia3VideoPlayer(
     // ── Player 事件监听 ───────────────────────────────────────────
 
     private val playerListener = object : Player.Listener {
+        override fun onCues(cueGroup: CueGroup) {
+            triggerSubtitle(cueGroup.cues)
+        }
+
         override fun onVideoSizeChanged(videoSize: VideoSize) {
             triggerResolution(videoSize.width, videoSize.height)
         }
@@ -873,6 +878,7 @@ class LeanbackMedia3VideoPlayer(
                 val wasSelected = group.isTrackSelected(i)
                 videoPlayer.trackSelectionParameters = if (type == TrackType.Subtitle && wasSelected) {
                     // 同一字幕轨再次确认：关闭字幕（取消激活）。
+                    triggerSubtitle(emptyList())
                     videoPlayer.trackSelectionParameters
                         .buildUpon()
                         .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, true)

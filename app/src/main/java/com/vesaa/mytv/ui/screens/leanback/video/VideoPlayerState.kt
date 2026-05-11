@@ -8,6 +8,7 @@ import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -16,6 +17,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import androidx.media3.common.text.Cue
 import com.vesaa.mytv.ui.screens.leanback.video.player.LeanbackMedia3VideoPlayer
 import com.vesaa.mytv.ui.screens.leanback.video.player.LeanbackVideoPlayer
 
@@ -75,6 +77,8 @@ class LeanbackVideoPlayerState(
     var trackSelectionVersion by mutableIntStateOf(0)
     /** 切台后在首帧到来前强制黑场，避免显示上一频道最后一帧 */
     var holdBlackScreen by mutableStateOf(false)
+    /** 当前字幕 cues（含文本/位图），由播放器事件回调更新。 */
+    val subtitleCues = mutableStateListOf<Cue>()
 
     fun prepare(
         url: String,
@@ -96,6 +100,7 @@ class LeanbackVideoPlayerState(
         holdBlackScreen = false
         currentMediaUrl = ""
         metadata = LeanbackVideoPlayer.Metadata()
+        subtitleCues.clear()
     }
 
     fun play() {
@@ -183,6 +188,10 @@ class LeanbackVideoPlayerState(
             if (it.videoRenderedFps > 0f || it.imageSequenceModeHint) {
                 holdBlackScreen = false
             }
+        }
+        instance.onSubtitle {
+            subtitleCues.clear()
+            subtitleCues.addAll(it)
         }
         instance.onCutoff { onCutoffListeners.forEach { it.invoke() } }
     }

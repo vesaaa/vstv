@@ -3,6 +3,7 @@ package com.vesaa.mytv.ui.screens.leanback.video.player
 import android.view.SurfaceView
 import android.view.TextureView
 import androidx.media3.common.PlaybackException
+import androidx.media3.common.text.Cue
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -78,6 +79,7 @@ abstract class LeanbackVideoPlayer(
     private val onBufferingListeners = mutableListOf<(buffering: Boolean) -> Unit>()
     private val onPreparedListeners = mutableListOf<() -> Unit>()
     private val onMetadataListeners = mutableListOf<(metadata: Metadata) -> Unit>()
+    private val onSubtitleListeners = mutableListOf<(cues: List<Cue>) -> Unit>()
     private val onCutoffListeners = mutableListOf<() -> Unit>()
 
     private fun clearAllListeners() {
@@ -87,6 +89,7 @@ abstract class LeanbackVideoPlayer(
         onBufferingListeners.clear()
         onPreparedListeners.clear()
         onMetadataListeners.clear()
+        onSubtitleListeners.clear()
         onCutoffListeners.clear()
     }
 
@@ -143,6 +146,10 @@ abstract class LeanbackVideoPlayer(
         onMetadataListeners.forEach { it(metadata) }
     }
 
+    protected fun triggerSubtitle(cues: List<Cue>) {
+        onSubtitleListeners.forEach { it(cues) }
+    }
+
     protected fun triggerCutoff() {
         onCutoffListeners.forEach { it() }
     }
@@ -169,6 +176,10 @@ abstract class LeanbackVideoPlayer(
 
     fun onMetadata(listener: (metadata: Metadata) -> Unit) {
         onMetadataListeners.add(listener)
+    }
+
+    fun onSubtitle(listener: (cues: List<Cue>) -> Unit) {
+        onSubtitleListeners.add(listener)
     }
 
     fun onCutoff(listener: () -> Unit) {
