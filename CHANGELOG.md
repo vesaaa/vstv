@@ -4,6 +4,11 @@
 
 > **说明**：本文件仍由人编写条目，**不会由机器人自动撰写内容**。推送 **Release 标签**（`v*.*.*`）时，GitHub Actions 会检查 `CHANGELOG.md` 中是否已有对应章节 **`## [x.y.z]`**（`x.y.z` 为标签去掉 `v`/`tv-` 及预发布后缀 `-…` 的核心版本）；**未写入则 Release 构建失败**，避免发版记录遗漏。**GitHub Release 页面上的版本说明**会**自动截取并发布本文件中该版本章节全文**（不再使用仅含提交列表与「Full Changelog」链接的自动生成说明）。若需对照历史，见 [GitHub Releases](https://github.com/vesaaa/vstv/releases)。
 
+## [2.1.16] - 2026-05-11
+
+- **修复字幕渲染编译失败**：移除对 `media3-ui`（`SubtitleView`/`CaptionStyleCompat`）的直接依赖，解决 CI 中 `Unresolved reference 'ui'` 导致的 Release Kotlin 编译失败。
+- **字幕展示兼容降级**：改为使用 Compose 直接渲染字幕文本 cues，保持“选中字幕轨后可见字幕文本”的基础体验，同时避免新增依赖引发构建不兼容。
+
 ## [2.1.15] - 2026-05-11
 
 - **字幕渲染链路补齐**：修复“字幕轨道可选中但画面不出字幕”的问题，播放器接入字幕 cues 回调并同步到 UI 层渲染。
