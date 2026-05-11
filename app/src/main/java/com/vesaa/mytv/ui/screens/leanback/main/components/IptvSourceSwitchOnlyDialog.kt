@@ -142,7 +142,12 @@ internal fun LeanbackIptvSourceSwitchOnlyDialog(
                         // 列间距由每个 Card 的 start/end padding 拼出，避免与网格实现叠在一起看不见缝
                         horizontalArrangement = Arrangement.spacedBy(0.dp),
                         verticalArrangement = Arrangement.spacedBy(RowGap),
-                        contentPadding = PaddingValues(horizontal = 2.dp, bottom = 6.dp),
+                        contentPadding = PaddingValues(
+                            start = 2.dp,
+                            top = 0.dp,
+                            end = 2.dp,
+                            bottom = 6.dp,
+                        ),
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(gridMaxHeight),
