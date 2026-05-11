@@ -555,12 +555,6 @@ class LeanbackMedia3VideoPlayer(
     // ── Player 事件监听 ───────────────────────────────────────────
 
     private val playerListener = object : Player.Listener {
-        override fun onTracksChanged(tracks: Tracks) {
-            syncSelectedTrackIdFromPlayer(TrackType.Audio, C.TRACK_TYPE_AUDIO)
-            syncSelectedTrackIdFromPlayer(TrackType.Video, C.TRACK_TYPE_VIDEO)
-            syncSelectedTrackIdFromPlayer(TrackType.Subtitle, C.TRACK_TYPE_TEXT)
-        }
-
         override fun onCues(cueGroup: CueGroup) {
             triggerSubtitle(cueGroup.cues)
         }
@@ -919,18 +913,6 @@ class LeanbackMedia3VideoPlayer(
                 return
             }
         }
-    }
-
-    private fun syncSelectedTrackIdFromPlayer(type: TrackType, targetType: Int) {
-        val selectedId = videoPlayer.currentTracks.groups
-            .asSequence()
-            .filter { it.type == targetType }
-            .mapNotNull { group ->
-                val idx = (0 until group.length).firstOrNull { i -> group.isTrackSelected(i) } ?: return@mapNotNull null
-                "${group.mediaTrackGroup.id ?: "group"}#$idx"
-            }
-            .firstOrNull()
-        selectedTrackIdByType[type] = selectedId
     }
 
     private fun trackLabel(type: TrackType, group: Tracks.Group, index: Int): String {
