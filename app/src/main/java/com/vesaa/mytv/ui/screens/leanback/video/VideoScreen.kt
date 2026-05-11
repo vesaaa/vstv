@@ -100,6 +100,8 @@ fun LeanbackVideoScreen(
             )
         }
 
+        // 在组合作用域读 subtitleCues，确保变化能触发重组并刷新 SubtitleView。
+        val currentCues = state.subtitleCues.toList()
         if (state.error == null) {
             AndroidView(
                 modifier = Modifier
@@ -124,7 +126,7 @@ fun LeanbackVideoScreen(
                     }
                 },
                 update = { subtitleView ->
-                    subtitleView.setCues(state.subtitleCues)
+                    subtitleView.setCues(currentCues)
                 },
             )
         }

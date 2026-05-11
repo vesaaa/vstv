@@ -4,6 +4,10 @@
 
 > **说明**：本文件仍由人编写条目，**不会由机器人自动撰写内容**。推送 **Release 标签**（`v*.*.*`）时，GitHub Actions 会检查 `CHANGELOG.md` 中是否已有对应章节 **`## [x.y.z]`**（`x.y.z` 为标签去掉 `v`/`tv-` 及预发布后缀 `-…` 的核心版本）；**未写入则 Release 构建失败**，避免发版记录遗漏。**GitHub Release 页面上的版本说明**会**自动截取并发布本文件中该版本章节全文**（不再使用仅含提交列表与「Full Changelog」链接的自动生成说明）。若需对照历史，见 [GitHub Releases](https://github.com/vesaaa/vstv/releases)。
 
+## [2.1.21] - 2026-05-11
+
+- **修复字幕选中后不渲染**：`AndroidView.update` 不是 Composable，在其中读取 `subtitleCues` 不会注册重组依赖；改为在组合作用域预读 cues 列表，确保变化触发重组并刷新 `SubtitleView`。
+
 ## [2.1.20] - 2026-05-11
 
 - **修复字幕轨道无法选中打勾**：将字幕选中态从播放器层的普通 Map 移到 Compose State 层（`VideoPlayerState`），直接驱动 UI 重组，不再依赖播放器异步回调。
