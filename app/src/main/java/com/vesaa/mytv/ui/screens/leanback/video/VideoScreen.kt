@@ -100,7 +100,7 @@ fun LeanbackVideoScreen(
             )
         }
 
-        if (state.error == null && state.subtitleCues.isNotEmpty()) {
+        if (state.error == null) {
             AndroidView(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)

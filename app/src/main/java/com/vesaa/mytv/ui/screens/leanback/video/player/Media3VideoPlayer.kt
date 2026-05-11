@@ -120,6 +120,8 @@ class LeanbackMedia3VideoPlayer(
     private val attemptedVideoTrackFallbackKeys = mutableSetOf<String>()
     private var rtspTriedUdpFallback = false
     private var lastRtspForceTcp = true
+    /** UI 轨道勾选即时态：避免等待播放器异步 tracks 更新导致勾选延迟/错位。 */
+    private val selectedTrackIdByType = mutableMapOf<TrackType, String?>()
 
     /** 最近一次 [prepare] 传入的频道名，用于 [PlaybackTrace]（不含 URL）。 */
     private var lastPlaybackLabel: String? = null
@@ -266,6 +268,9 @@ class LeanbackMedia3VideoPlayer(
         }
 
         val mediaItem = MediaItem.fromUri(effectiveUri)
+        selectedTrackIdByType[TrackType.Audio] = null
+        selectedTrackIdByType[TrackType.Video] = null
+        selectedTrackIdByType[TrackType.Subtitle] = null
         // 字幕轨默认关闭：仅在用户手动选择后启用。
         videoPlayer.trackSelectionParameters = videoPlayer.trackSelectionParameters
             .buildUpon()
@@ -552,6 +557,11 @@ class LeanbackMedia3VideoPlayer(
     private val playerListener = object : Player.Listener {
         override fun onCues(cueGroup: CueGroup) {
             triggerSubtitle(cueGroup.cues)
+        }
+
+        @Suppress("OVERRIDE_DEPRECATION")
+        override fun onCues(cues: MutableList<androidx.media3.common.text.Cue>) {
+            triggerSubtitle(cues)
         }
 
         override fun onVideoSizeChanged(videoSize: VideoSize) {
@@ -852,11 +862,16 @@ class LeanbackMedia3VideoPlayer(
             .flatMap { group ->
                 buildList {
                     for (i in 0 until group.length) {
+                        val id = "${group.mediaTrackGroup.id ?: "group"}#$i"
+                        val selectedByLocal = selectedTrackIdByType[type]
                         add(
                             TrackOption(
-                                id = "${group.mediaTrackGroup.id ?: "group"}#$i",
+                                id = id,
                                 label = trackLabel(type, group, i),
-                                selected = group.isTrackSelected(i),
+                                selected = when {
+                                    selectedByLocal != null -> selectedByLocal == id
+                                    else -> group.isTrackSelected(i)
+                                },
                             ),
                         )
                     }
@@ -875,16 +890,18 @@ class LeanbackMedia3VideoPlayer(
             for (i in 0 until group.length) {
                 val id = "${group.mediaTrackGroup.id ?: "group"}#$i"
                 if (id != trackId) continue
-                val wasSelected = group.isTrackSelected(i)
+                val wasSelected = selectedTrackIdByType[type] == id
                 videoPlayer.trackSelectionParameters = if (type == TrackType.Subtitle && wasSelected) {
                     // 同一字幕轨再次确认：关闭字幕（取消激活）。
                     triggerSubtitle(emptyList())
+                    selectedTrackIdByType[TrackType.Subtitle] = null
                     videoPlayer.trackSelectionParameters
                         .buildUpon()
                         .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, true)
                         .clearOverridesOfType(C.TRACK_TYPE_TEXT)
                         .build()
                 } else {
+                    selectedTrackIdByType[type] = id
                     videoPlayer.trackSelectionParameters
                         .buildUpon()
                         .setTrackTypeDisabled(targetType, false)
@@ -1161,6 +1178,9 @@ class LeanbackMedia3VideoPlayer(
         lastPreparedUri = null
         lastPreparedContentType = null
         hlsSuspiciousSession = false
+        selectedTrackIdByType[TrackType.Audio] = null
+        selectedTrackIdByType[TrackType.Video] = null
+        selectedTrackIdByType[TrackType.Subtitle] = null
         releaseMulticastLock()
         videoPlayer.stop()
         videoPlayer.clearMediaItems()
