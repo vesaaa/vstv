@@ -60,6 +60,9 @@ private val ColumnGapRightStart = 8.dp
 /** 每个格子高度（扁长条；约原 58dp 增 1/3 后取整到 5） */
 private val TileHeight = 75.dp
 
+/** 网格顶内边距：为首行聚焦边框留出空间，避免被 LazyGrid 裁剪掉上边线 */
+private val GridContentPaddingTop = 4.dp
+
 internal fun distinctIptvSourceUrlsForSwitch(
     currentUrl: String,
     historyUrls: Set<String>,
@@ -95,6 +98,7 @@ internal fun LeanbackIptvSourceSwitchOnlyDialog(
     val gridMaxHeight =
         TileHeight * SwitchGridVisibleRows +
             RowGap * (SwitchGridVisibleRows - 1) +
+            GridContentPaddingTop +
             8.dp
 
     Dialog(
@@ -139,7 +143,7 @@ internal fun LeanbackIptvSourceSwitchOnlyDialog(
                         verticalArrangement = Arrangement.spacedBy(RowGap),
                         contentPadding = PaddingValues(
                             start = 2.dp,
-                            top = 0.dp,
+                            top = GridContentPaddingTop,
                             end = 2.dp,
                             bottom = 6.dp,
                         ),
