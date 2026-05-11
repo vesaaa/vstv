@@ -158,7 +158,7 @@ object RtspSmilResolver {
                 val reqBytes = sb.toString().toByteArray(StandardCharsets.UTF_8)
                 sock.getOutputStream().write(reqBytes)
                 sock.getOutputStream().flush()
-                onLog("rtsp_describe request_sent bytes=${reqBytes.length} port=$port")
+                onLog("rtsp_describe request_sent bytes=${reqBytes.size} port=$port")
                 val inp = sock.getInputStream()
                 val (headerBlock, initialTail) = readRtspHeaders(inp)
                 val statusLine = headerBlock.lineSequence().firstOrNull().orEmpty()
