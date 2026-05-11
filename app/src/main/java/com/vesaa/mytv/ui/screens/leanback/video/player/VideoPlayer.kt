@@ -81,6 +81,7 @@ abstract class LeanbackVideoPlayer(
     private val onMetadataListeners = mutableListOf<(metadata: Metadata) -> Unit>()
     private val onSubtitleListeners = mutableListOf<(cues: List<Cue>) -> Unit>()
     private val onCutoffListeners = mutableListOf<() -> Unit>()
+    private val onTrackSelectionChangedListeners = mutableListOf<() -> Unit>()
 
     private fun clearAllListeners() {
         onResolutionListeners.clear()
@@ -91,6 +92,7 @@ abstract class LeanbackVideoPlayer(
         onMetadataListeners.clear()
         onSubtitleListeners.clear()
         onCutoffListeners.clear()
+        onTrackSelectionChangedListeners.clear()
     }
 
     protected fun triggerResolution(width: Int, height: Int) {
@@ -150,6 +152,11 @@ abstract class LeanbackVideoPlayer(
         onSubtitleListeners.forEach { it(cues) }
     }
 
+    /** 轨道选择参数（含自动选首条字幕）变更后通知 UI 刷新轨道列表。 */
+    protected fun triggerTrackSelectionChanged() {
+        onTrackSelectionChangedListeners.forEach { it() }
+    }
+
     protected fun triggerCutoff() {
         onCutoffListeners.forEach { it() }
     }
@@ -184,6 +191,10 @@ abstract class LeanbackVideoPlayer(
 
     fun onCutoff(listener: () -> Unit) {
         onCutoffListeners.add(listener)
+    }
+
+    fun onTrackSelectionChanged(listener: () -> Unit) {
+        onTrackSelectionChangedListeners.add(listener)
     }
 
     data class PlaybackException(

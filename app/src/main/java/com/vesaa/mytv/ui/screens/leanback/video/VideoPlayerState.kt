@@ -147,7 +147,9 @@ class LeanbackVideoPlayerState(
         val options = instance.getTrackOptions(type)
         if (type != LeanbackVideoPlayer.TrackType.Subtitle) return options
         val localId = selectedSubtitleTrackId
-        return options.map { it.copy(selected = localId != null && localId == it.id) }
+        // null：沿用播放器真实选中态（含自动启用首条字幕）；非 null：由本地勾选驱动 UI。
+        if (localId == null) return options
+        return options.map { it.copy(selected = localId == it.id) }
     }
 
     fun selectTrack(type: LeanbackVideoPlayer.TrackType, trackId: String) {
@@ -155,7 +157,19 @@ class LeanbackVideoPlayerState(
             val now = android.os.SystemClock.elapsedRealtime()
             if (now - lastSubtitleToggleMs < 300) return
             lastSubtitleToggleMs = now
-            selectedSubtitleTrackId = if (selectedSubtitleTrackId == trackId) null else trackId
+            val turningOff = selectedSubtitleTrackId == trackId
+            selectedSubtitleTrackId = if (turningOff) null else trackId
+            if (turningOff) {
+                instance.selectTrack(type, trackId)
+            } else {
+                val options = instance.getTrackOptions(type)
+                val alreadyPlaying = options.any { it.id == trackId && it.selected }
+                if (!alreadyPlaying) {
+                    instance.selectTrack(type, trackId)
+                }
+            }
+            trackSelectionVersion += 1
+            return
         }
         instance.selectTrack(type, trackId)
         trackSelectionVersion += 1
@@ -211,6 +225,7 @@ class LeanbackVideoPlayerState(
             subtitleCues.addAll(it)
         }
         instance.onCutoff { onCutoffListeners.forEach { it.invoke() } }
+        instance.onTrackSelectionChanged { trackSelectionVersion += 1 }
     }
 
     fun release() {

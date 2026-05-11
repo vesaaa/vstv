@@ -32,6 +32,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.alpha
@@ -53,6 +56,7 @@ import com.vesaa.mytv.data.entities.Iptv
 import com.vesaa.mytv.ui.screens.leanback.panel.PanelAutoCloseState
 import com.vesaa.mytv.ui.screens.leanback.video.player.LeanbackVideoPlayer
 import com.vesaa.mytv.ui.utils.handleLeanbackKeyEvents
+import android.view.KeyEvent as AndroidKeyEvent
 import java.text.SimpleDateFormat
 import java.util.Locale
 import kotlin.math.max
@@ -658,6 +662,8 @@ private fun QuickPanelTrackOptionRow(
     title: String,
     selected: Boolean,
     requestInitialFocus: Boolean = false,
+    /** 为 true 时消费向下键，避免焦点从轨道列表最后一个可选项逃出到快捷面板底栏（如「分屏播放」）。 */
+    consumeDpadDownExit: Boolean = false,
     onSelect: () -> Unit,
     autoCloseState: PanelAutoCloseState,
 ) {
@@ -668,11 +674,23 @@ private fun QuickPanelTrackOptionRow(
             runCatching { focusRequester.requestFocus() }
         }
     }
+    val trapDownModifier = if (consumeDpadDownExit) {
+        Modifier.onPreviewKeyEvent { e ->
+            if (e.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
+            val down =
+                e.key == Key.DirectionDown ||
+                    e.nativeKeyEvent.keyCode == AndroidKeyEvent.KEYCODE_DPAD_DOWN
+            down
+        }
+    } else {
+        Modifier
+    }
     CompositionLocalProvider(
         LocalContentColor provides if (isFocused) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onSurface,
     ) {
         androidx.tv.material3.ListItem(
             modifier = Modifier
+                .then(trapDownModifier)
                 .focusRequester(focusRequester)
                 .onFocusChanged {
                     isFocused = it.isFocused || it.hasFocus
@@ -723,7 +741,9 @@ fun LeanbackQuickPanelTrackSelectorSheet(
     val effectiveAudioTracks = if (audioTracks.any { it.selected }) audioTracks else audioTracks.mapIndexed { idx, t ->
         t.copy(selected = idx == 0)
     }
-    val effectiveSubtitleTracks = subtitleTracks
+    val effectiveSubtitleTracks = if (subtitleTracks.any { it.selected }) subtitleTracks else subtitleTracks.mapIndexed { idx, t ->
+        t.copy(selected = idx == 0)
+    }
     QuickPanelEpgSurfacePanel(modifier = modifier) {
         Column(Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
             Text(
@@ -758,6 +778,9 @@ fun LeanbackQuickPanelTrackSelectorSheet(
                                 title = "  ${track.label}",
                                 selected = track.selected,
                                 requestInitialFocus = idx == 0,
+                                consumeDpadDownExit = idx == effectiveVideoTracks.lastIndex &&
+                                    effectiveAudioTracks.isEmpty() &&
+                                    effectiveSubtitleTracks.isEmpty(),
                                 onSelect = { onSelectVideoTrack(track.id) },
                                 autoCloseState = autoCloseState,
                             )
@@ -788,6 +811,8 @@ fun LeanbackQuickPanelTrackSelectorSheet(
                                 title = "  ${track.label}",
                                 selected = track.selected,
                                 requestInitialFocus = effectiveVideoTracks.isEmpty() && idx == 0,
+                                consumeDpadDownExit = idx == effectiveAudioTracks.lastIndex &&
+                                    effectiveSubtitleTracks.isEmpty(),
                                 onSelect = { onSelectAudioTrack(track.id) },
                                 autoCloseState = autoCloseState,
                             )
@@ -820,6 +845,7 @@ fun LeanbackQuickPanelTrackSelectorSheet(
                                 requestInitialFocus = effectiveVideoTracks.isEmpty() &&
                                     effectiveAudioTracks.isEmpty() &&
                                     idx == 0,
+                                consumeDpadDownExit = idx == effectiveSubtitleTracks.lastIndex,
                                 onSelect = { onSelectSubtitleTrack(track.id) },
                                 autoCloseState = autoCloseState,
                             )

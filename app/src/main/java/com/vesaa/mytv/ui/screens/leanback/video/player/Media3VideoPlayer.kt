@@ -132,6 +132,9 @@ class LeanbackMedia3VideoPlayer(
     private var prepareSessionId: Int = 0
     private var hlsSuspiciousSession: Boolean = false
 
+    /** 新会话在 [onTracksChanged] 中自动启用第一条可解码字幕轨；用户手动选字幕后置 false。 */
+    private var pendingApplyDefaultFirstSubtitle: Boolean = false
+
     private val preferredTrackParams: TrackSelectionParameters by lazy {
         // 优先选更兼容的编解码，提升老盒子/运营商定制 ROM 的可播率：
         // - 视频：优先 AVC(H.264)，其次 HEVC(H.265)
@@ -319,6 +322,7 @@ class LeanbackMedia3VideoPlayer(
             }
         }
 
+        pendingApplyDefaultFirstSubtitle = false
         if (mediaSource != null) {
             val ct = contentType ?: Util.inferContentType(effectiveUri)
             val prepareDetail = buildString {
@@ -351,7 +355,9 @@ class LeanbackMedia3VideoPlayer(
             )
             triggerMetadata(metadata)
             contentTypeAttempts[contentType ?: Util.inferContentType(effectiveUri)] = true
-            // 每次切台先按偏好设置选轨（优先 AVC/AAC），清掉历史手动覆盖，并默认禁用字幕轨。
+            // 每次切台先按偏好设置选轨（优先 AVC/AAC），清掉历史手动覆盖；字幕轨先禁用，
+            // 待 [onTracksChanged] 后自动选中第一条可解码字幕（见 [applyDefaultFirstSubtitleIfPending]）。
+            pendingApplyDefaultFirstSubtitle = true
             videoPlayer.trackSelectionParameters = preferredTrackParams.buildUpon()
                 .clearOverridesOfType(C.TRACK_TYPE_VIDEO)
                 .clearOverridesOfType(C.TRACK_TYPE_AUDIO)
@@ -546,7 +552,32 @@ class LeanbackMedia3VideoPlayer(
 
     // ── Player 事件监听 ───────────────────────────────────────────
 
+    private fun applyDefaultFirstSubtitleIfPending() {
+        if (!pendingApplyDefaultFirstSubtitle) return
+        val groups = videoPlayer.currentTracks.groups.filter { it.type == C.TRACK_TYPE_TEXT }
+        if (groups.isEmpty()) return
+        for (group in groups) {
+            for (i in 0 until group.length) {
+                if (!group.isTrackSupported(i)) continue
+                videoPlayer.trackSelectionParameters = videoPlayer.trackSelectionParameters
+                    .buildUpon()
+                    .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, false)
+                    .clearOverridesOfType(C.TRACK_TYPE_TEXT)
+                    .addOverride(TrackSelectionOverride(group.mediaTrackGroup, listOf(i)))
+                    .build()
+                pendingApplyDefaultFirstSubtitle = false
+                triggerTrackSelectionChanged()
+                return
+            }
+        }
+        pendingApplyDefaultFirstSubtitle = false
+    }
+
     private val playerListener = object : Player.Listener {
+        override fun onTracksChanged(tracks: Tracks) {
+            applyDefaultFirstSubtitleIfPending()
+        }
+
         override fun onCues(cueGroup: CueGroup) {
             triggerSubtitle(cueGroup.cues)
         }
@@ -867,6 +898,9 @@ class LeanbackMedia3VideoPlayer(
     }
 
     override fun selectTrack(type: TrackType, trackId: String) {
+        if (type == TrackType.Subtitle) {
+            pendingApplyDefaultFirstSubtitle = false
+        }
         val targetType = when (type) {
             TrackType.Audio -> C.TRACK_TYPE_AUDIO
             TrackType.Video -> C.TRACK_TYPE_VIDEO
@@ -1161,6 +1195,7 @@ class LeanbackMedia3VideoPlayer(
         lastPreparedUri = null
         lastPreparedContentType = null
         hlsSuspiciousSession = false
+        pendingApplyDefaultFirstSubtitle = false
         releaseMulticastLock()
         videoPlayer.stop()
         videoPlayer.clearMediaItems()
