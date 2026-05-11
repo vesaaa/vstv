@@ -18,6 +18,7 @@ import com.vesaa.mytv.data.entities.IptvGroupList.Companion.iptvIdx
 import com.vesaa.mytv.data.entities.IptvGroupList.Companion.iptvList
 import com.vesaa.mytv.data.utils.Constants
 import com.vesaa.mytv.ui.screens.leanback.quickpanel.LeanbackQuickPanelSubPanel
+import com.vesaa.mytv.ui.screens.leanback.settings.LeanbackSettingsCategories
 import com.vesaa.mytv.ui.screens.leanback.video.LeanbackVideoPlayerState
 import com.vesaa.mytv.ui.screens.leanback.video.rememberLeanbackVideoPlayerState
 import com.vesaa.mytv.ui.utils.SP
@@ -70,6 +71,22 @@ class LeanbackMainContentState(
         get() = _isSettingsVisible
         set(value) {
             _isSettingsVisible = value
+        }
+
+    /** 打开设置时自动进入的分类（如新用户引导进直播源）；关闭设置时应置 null */
+    private var _settingsInitialOpenCategory by mutableStateOf<LeanbackSettingsCategories?>(null)
+    var settingsInitialOpenCategory
+        get() = _settingsInitialOpenCategory
+        set(value) {
+            _settingsInitialOpenCategory = value
+        }
+
+    /** 全屏/分屏长按确认：在已保存的多个直播源间快速切换（仅切换，无添加） */
+    private var _iptvSourceQuickPickVisible by mutableStateOf(false)
+    var iptvSourceQuickPickVisible
+        get() = _iptvSourceQuickPickVisible
+        set(value) {
+            _iptvSourceQuickPickVisible = value
         }
 
     private var _isTempPanelVisible by mutableStateOf(false)

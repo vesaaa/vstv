@@ -35,6 +35,8 @@ internal fun LeanbackSplitPlaybackScreen(
     onFocusedPaneChange: (Int) -> Unit,
     onActivePaneChange: (Int) -> Unit,
     onOpenQuickPanelFromSafeArea: () -> Unit,
+    /** 长按确认：在已保存的多个直播源间快速切换（至少 2 个才弹出） */
+    onLongSelectOpenIptvQuickPick: () -> Unit = {},
     onOpenChannelPanelForFocused: () -> Unit,
     onChannelUp: () -> Unit,
     onChannelDown: () -> Unit,
@@ -107,7 +109,7 @@ internal fun LeanbackSplitPlaybackScreen(
             .handleLeanbackKeyEvents(
                 pointerTapEnabled = false,
                 onSelect = { onOpenChannelPanelForFocused() },
-                onLongSelect = {},
+                onLongSelect = onLongSelectOpenIptvQuickPick,
                 onSettings = onOpenQuickPanelFromSafeArea,
                 onLongDown = onOpenQuickPanelFromSafeArea,
             )

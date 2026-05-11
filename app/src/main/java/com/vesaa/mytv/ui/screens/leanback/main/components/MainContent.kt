@@ -14,6 +14,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -30,7 +31,9 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.vesaa.mytv.data.repositories.iptv.IptvRepository
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import com.vesaa.mytv.data.entities.EpgList
 import com.vesaa.mytv.data.IptvFavoriteMigration
 import com.vesaa.mytv.data.entities.Iptv
@@ -48,6 +51,7 @@ import com.vesaa.mytv.ui.screens.leanback.panel.LeanbackPanelDateTimeScreen
 import com.vesaa.mytv.ui.screens.leanback.panel.rememberLeanbackPanelChannelNoSelectState
 import com.vesaa.mytv.ui.screens.leanback.quickpanel.QuickPanelSplitMode
 import com.vesaa.mytv.ui.screens.leanback.quickpanel.LeanbackQuickPanelSubPanel
+import com.vesaa.mytv.ui.screens.leanback.settings.LeanbackSettingsCategories
 import com.vesaa.mytv.ui.screens.leanback.settings.LeanbackSettingsScreen
 import com.vesaa.mytv.ui.screens.leanback.settings.LeanbackSettingsViewModel
 import com.vesaa.mytv.ui.screens.leanback.toast.LeanbackToastState
@@ -56,6 +60,7 @@ import com.vesaa.mytv.ui.screens.leanback.video.LeanbackVideoPlayerState
 import com.vesaa.mytv.ui.screens.leanback.video.LeanbackVideoScreen
 import com.vesaa.mytv.ui.screens.leanback.video.rememberLeanbackVideoPlayerState
 import com.vesaa.mytv.ui.utils.SP
+import com.vesaa.mytv.ui.utils.WebPushConfigNotifier
 import com.vesaa.mytv.ui.utils.handleLeanbackDragGestures
 import com.vesaa.mytv.ui.utils.handleLeanbackKeyEvents
 import com.vesaa.mytv.utils.IptvCatchup
@@ -68,6 +73,7 @@ fun LeanbackMainContent(
     epgList: EpgList = EpgList(),
     settingsViewModel: LeanbackSettingsViewModel = viewModel(),
 ) {
+    val mainContentCoroutineScope = rememberCoroutineScope()
     val configuration = LocalConfiguration.current
 
     val defaultAspectRatioProvider = {
@@ -519,6 +525,7 @@ fun LeanbackMainContent(
             return@LaunchedEffect
         }
         if (sessionOnboardingDismissed) return@LaunchedEffect
+        mainContentState.settingsInitialOpenCategory = LeanbackSettingsCategories.IPTV
         mainContentState.isSettingsVisible = true
         mainContentState.isQuickPanelVisible = false
     }
@@ -614,7 +621,9 @@ fun LeanbackMainContent(
         onBackPressed = {
             if (mainContentState.isPanelVisible) mainContentState.isPanelVisible = false
             else if (mainContentState.isSettingsVisible) mainContentState.isSettingsVisible = false
-            else if (mainContentState.isQuickPanelVisible) {
+            else if (mainContentState.iptvSourceQuickPickVisible) {
+                mainContentState.iptvSourceQuickPickVisible = false
+            } else if (mainContentState.isQuickPanelVisible) {
                 if (mainContentState.quickPanelSubPanel != LeanbackQuickPanelSubPanel.None) {
                     mainContentState.quickPanelSubPanel = LeanbackQuickPanelSubPanel.None
                 } else {
@@ -645,6 +654,17 @@ fun LeanbackMainContent(
                 },
                 onActivePaneChange = { splitActivePane = it.coerceIn(0, splitPaneCount - 1) },
                 onOpenQuickPanelFromSafeArea = { mainContentState.isQuickPanelVisible = true },
+                onLongSelectOpenIptvQuickPick = {
+                    mainContentState.isQuickPanelVisible = false
+                    mainContentState.quickPanelSubPanel = LeanbackQuickPanelSubPanel.None
+                    val urls = distinctIptvSourceUrlsForSwitch(
+                        settingsViewModel.iptvSourceUrl,
+                        settingsViewModel.iptvSourceUrlHistoryList,
+                    )
+                    if (urls.size >= 2) {
+                        mainContentState.iptvSourceQuickPickVisible = true
+                    }
+                },
                 onOpenChannelPanelForFocused = {
                     splitFocusedPane = splitFocusedPane.coerceIn(0, splitPaneCount - 1)
                     mainContentState.isPanelVisible = true
@@ -665,6 +685,17 @@ fun LeanbackMainContent(
                         onLeft = { changeActivePaneLine(true) },
                         onRight = { changeActivePaneLine(false) },
                         onSelect = { mainContentState.isPanelVisible = true },
+                        onLongSelect = {
+                            mainContentState.isQuickPanelVisible = false
+                            mainContentState.quickPanelSubPanel = LeanbackQuickPanelSubPanel.None
+                            val urls = distinctIptvSourceUrlsForSwitch(
+                                settingsViewModel.iptvSourceUrl,
+                                settingsViewModel.iptvSourceUrlHistoryList,
+                            )
+                            if (urls.size >= 2) {
+                                mainContentState.iptvSourceQuickPickVisible = true
+                            }
+                        },
                         onSettings = { mainContentState.isQuickPanelVisible = true },
                         onNumber = {
                             if (settingsViewModel.iptvChannelNoSelectEnable) {
@@ -750,11 +781,44 @@ fun LeanbackMainContent(
 
         LeanbackVisible({ mainContentState.isSettingsVisible }) {
             LeanbackSettingsScreen(
+                initialOpenCategory = mainContentState.settingsInitialOpenCategory,
                 onRequestClose = {
+                    mainContentState.settingsInitialOpenCategory = null
                     mainContentState.isSettingsVisible = false
                     if (needsLeanbackOnboarding) sessionOnboardingDismissed = true
                 },
             )
+        }
+
+        LeanbackVisible({ mainContentState.iptvSourceQuickPickVisible }) {
+            val switchUrls = remember(
+                settingsViewModel.iptvSourceUrl,
+                settingsViewModel.iptvSourceUrlHistoryList,
+            ) {
+                distinctIptvSourceUrlsForSwitch(
+                    settingsViewModel.iptvSourceUrl,
+                    settingsViewModel.iptvSourceUrlHistoryList,
+                )
+            }
+            if (switchUrls.size >= 2) {
+                LeanbackIptvSourceSwitchOnlyDialog(
+                    urls = switchUrls,
+                    currentUrl = settingsViewModel.iptvSourceUrl,
+                    onDismissRequest = { mainContentState.iptvSourceQuickPickVisible = false },
+                    onSourceSelected = { picked ->
+                        mainContentState.iptvSourceQuickPickVisible = false
+                        applyDefaultIptvSourceSelection(
+                            picked,
+                            settingsViewModel,
+                            mainContentCoroutineScope,
+                        )
+                    },
+                )
+            } else {
+                LaunchedEffect(Unit) {
+                    mainContentState.iptvSourceQuickPickVisible = false
+                }
+            }
         }
 
         LeanbackVisible({ settingsViewModel.debugShowFps }) {
@@ -820,6 +884,27 @@ fun LeanbackBackPressHandledArea(
         .then(modifier),
     content = content,
 )
+
+private fun applyDefaultIptvSourceSelection(
+    picked: String,
+    settingsViewModel: LeanbackSettingsViewModel,
+    coroutineScope: kotlinx.coroutines.CoroutineScope,
+) {
+    if (picked.trim().startsWith(SP.IPTV_LOCAL_SOURCE_URL) && !SP.hasIptvLocalUploadFile()) {
+        LeanbackToastState.I.showToast("本地上传文件不存在，请先在网页管理端重新上传")
+        return
+    }
+    if (settingsViewModel.iptvSourceUrl != picked) {
+        settingsViewModel.iptvSourceUrl = picked
+        settingsViewModel.iptvSourceRequestHeaders =
+            if (picked.isBlank()) "" else SP.getIptvSourceHeadersForUrl(picked)
+        settingsViewModel.iptvChannelRequestHeaders =
+            if (picked.isBlank()) "" else SP.getIptvChannelHeadersForUrl(picked)
+                .ifBlank { settingsViewModel.iptvSourceRequestHeaders }
+        coroutineScope.launch { IptvRepository().clearCache() }
+        WebPushConfigNotifier.notifyConfigMayHaveChanged()
+    }
+}
 
 private data class SplitPanePlaybackState(
     val iptv: Iptv = Iptv(),
