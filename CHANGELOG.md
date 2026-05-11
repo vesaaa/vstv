@@ -4,6 +4,11 @@
 
 > **说明**：本文件仍由人编写条目，**不会由机器人自动撰写内容**。推送 **Release 标签**（`v*.*.*`）时，GitHub Actions 会检查 `CHANGELOG.md` 中是否已有对应章节 **`## [x.y.z]`**（`x.y.z` 为标签去掉 `v`/`tv-` 及预发布后缀 `-…` 的核心版本）；**未写入则 Release 构建失败**，避免发版记录遗漏。**GitHub Release 页面上的版本说明**会**自动截取并发布本文件中该版本章节全文**（不再使用仅含提交列表与「Full Changelog」链接的自动生成说明）。若需对照历史，见 [GitHub Releases](https://github.com/vesaaa/vstv/releases)。
 
+## [2.1.17] - 2026-05-11
+
+- **方案 B：接入 media3-ui 字幕渲染**：新增 `androidx.media3:media3-ui` 依赖，字幕渲染改回 `SubtitleView`，提升位图/DVB 字幕兼容性。
+- **字幕显示体验增强**：沿用嵌入样式与字体设置能力，字幕轨激活后可按轨道真实类型渲染，不再仅限文本 cues 降级显示。
+
 ## [2.1.16] - 2026-05-11
 
 - **修复字幕渲染编译失败**：移除对 `media3-ui`（`SubtitleView`/`CaptionStyleCompat`）的直接依赖，解决 CI 中 `Unresolved reference 'ui'` 导致的 Release Kotlin 编译失败。

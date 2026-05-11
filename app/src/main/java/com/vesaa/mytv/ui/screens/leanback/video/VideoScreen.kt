@@ -1,5 +1,6 @@
 package com.vesaa.mytv.ui.screens.leanback.video
 
+import android.graphics.Color as AndroidColor
 import android.view.SurfaceView
 import android.view.TextureView
 import androidx.compose.animation.core.RepeatMode
@@ -10,7 +11,6 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
@@ -27,6 +27,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.media3.ui.CaptionStyleCompat
+import androidx.media3.ui.SubtitleView
 import coil.compose.AsyncImage
 import com.vesaa.mytv.ui.rememberLeanbackChildPadding
 import com.vesaa.mytv.ui.screens.leanback.video.components.LeanbackVideoPlayerMetadata
@@ -98,25 +100,33 @@ fun LeanbackVideoScreen(
             )
         }
 
-        val subtitleLines = state.subtitleCues.mapNotNull { it.text?.toString()?.trim() }.filter { it.isNotEmpty() }
-        if (state.error == null && subtitleLines.isNotEmpty()) {
-            Column(
+        if (state.error == null && state.subtitleCues.isNotEmpty()) {
+            AndroidView(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .padding(horizontal = 24.dp, vertical = 18.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                subtitleLines.take(2).forEach { line ->
-                    Text(
-                        text = line,
-                        color = Color.White,
-                        style = androidx.compose.material3.MaterialTheme.typography.titleMedium,
-                        modifier = Modifier
-                            .padding(vertical = 2.dp)
-                            .background(Color.Black.copy(alpha = 0.45f)),
-                    )
-                }
-            }
+                    .fillMaxSize(),
+                factory = {
+                    SubtitleView(context).apply {
+                        setApplyEmbeddedStyles(true)
+                        setApplyEmbeddedFontSizes(true)
+                        setBottomPaddingFraction(0.08f)
+                        setFractionalTextSize(SubtitleView.DEFAULT_TEXT_SIZE_FRACTION * 1.05f)
+                        setStyle(
+                            CaptionStyleCompat(
+                                AndroidColor.WHITE,
+                                AndroidColor.TRANSPARENT,
+                                AndroidColor.TRANSPARENT,
+                                CaptionStyleCompat.EDGE_TYPE_DROP_SHADOW,
+                                AndroidColor.BLACK,
+                                null,
+                            ),
+                        )
+                    }
+                },
+                update = { subtitleView ->
+                    subtitleView.setCues(state.subtitleCues)
+                },
+            )
         }
 
         if (showMetadataProvider()) {
