@@ -10,10 +10,17 @@ class M3uIptvParser : IptvParser {
     private val extinfSplitRegex = Regex("""\s+(?=#EXTINF)""")
 
     private val streamUrlPrefix =
-        Regex("""^(rtsp|rtmp|rtp|https?|udp)://""", RegexOption.IGNORE_CASE)
+        Regex(
+            """^(rtsp|rtmp|rtp|https?|udp|file|content)://""",
+            RegexOption.IGNORE_CASE,
+        )
 
+    /** 含本地播放地址（file/content），便于 M3U 中 file://… 一类线路参与合并与快捷切换 */
     private val streamUrlInExtinf =
-        Regex("""\b(rtsp|rtmp|rtp|https?|udp)://[^\s#]+""", RegexOption.IGNORE_CASE)
+        Regex(
+            """\b(rtsp|rtmp|rtp|https?|udp|file|content)://[^\s#]+""",
+            RegexOption.IGNORE_CASE,
+        )
 
     override fun isSupport(url: String, data: String): Boolean {
         val normalized = data.trimStart('\uFEFF')

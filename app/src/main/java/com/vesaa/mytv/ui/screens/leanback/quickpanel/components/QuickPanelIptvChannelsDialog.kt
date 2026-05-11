@@ -208,21 +208,30 @@ private fun LeanbackQuickPanelIptvChannelItem(
 
 @Composable
 private fun rememberIptvUrlDelay(url: String): Long {
+    val trimmed = url.trim()
+    if (!trimmed.startsWith("http://", ignoreCase = true) &&
+        !trimmed.startsWith("https://", ignoreCase = true)
+    ) {
+        return 0
+    }
+
     var elapsedTime by remember { mutableLongStateOf(0) }
     var hasError by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
-            val client = AppOkHttp.client()
-            val request = Request.Builder().url(url).build()
+            runCatching {
+                val client = AppOkHttp.client()
+                val request = Request.Builder().url(trimmed).build()
 
-            elapsedTime = measureTimeMillis {
-                try {
-                    client.newCall(request).execute().use { response ->
-                        if (!response.isSuccessful) throw IOException("Unexpected code $response")
+                elapsedTime = measureTimeMillis {
+                    try {
+                        client.newCall(request).execute().use { response ->
+                            if (!response.isSuccessful) throw IOException("Unexpected code $response")
+                        }
+                    } catch (_: IOException) {
+                        hasError = true
                     }
-                } catch (_: IOException) {
-                    hasError = true
                 }
             }
         }
