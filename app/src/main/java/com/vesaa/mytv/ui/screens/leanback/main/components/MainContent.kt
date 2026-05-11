@@ -76,7 +76,8 @@ fun LeanbackMainContent(
             SP.VideoPlayerAspectRatio.SIXTEEN_NINE -> 16f / 9f
             SP.VideoPlayerAspectRatio.FOUR_THREE -> 4f / 3f
             SP.VideoPlayerAspectRatio.AUTO -> {
-                configuration.screenHeightDp.toFloat() / configuration.screenWidthDp.toFloat()
+                // 与 LeanbackVideoScreen Modifier.aspectRatio 一致：宽/高（与快捷面板 QuickPanelScreen 相同）
+                configuration.screenWidthDp.toFloat() / configuration.screenHeightDp.toFloat()
             }
         }
     }
