@@ -710,8 +710,10 @@ fun LeanbackQuickPanelTrackSelectorSheet(
     modifier: Modifier = Modifier,
     audioTracks: List<LeanbackVideoPlayer.TrackOption>,
     videoTracks: List<LeanbackVideoPlayer.TrackOption>,
+    subtitleTracks: List<LeanbackVideoPlayer.TrackOption>,
     onSelectAudioTrack: (String) -> Unit,
     onSelectVideoTrack: (String) -> Unit,
+    onSelectSubtitleTrack: (String) -> Unit,
     autoCloseState: PanelAutoCloseState,
 ) {
     val onBg = MaterialTheme.colorScheme.onBackground
@@ -721,6 +723,7 @@ fun LeanbackQuickPanelTrackSelectorSheet(
     val effectiveAudioTracks = if (audioTracks.any { it.selected }) audioTracks else audioTracks.mapIndexed { idx, t ->
         t.copy(selected = idx == 0)
     }
+    val effectiveSubtitleTracks = subtitleTracks
     QuickPanelEpgSurfacePanel(modifier = modifier) {
         Column(Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
             Text(
@@ -786,6 +789,38 @@ fun LeanbackQuickPanelTrackSelectorSheet(
                                 selected = track.selected,
                                 requestInitialFocus = effectiveVideoTracks.isEmpty() && idx == 0,
                                 onSelect = { onSelectAudioTrack(track.id) },
+                                autoCloseState = autoCloseState,
+                            )
+                        }
+                    }
+                }
+
+                item("subtitle_header") {
+                    Text(
+                        text = "字幕轨道",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = onBg.copy(alpha = 0.88f),
+                        modifier = Modifier.padding(start = 8.dp, top = 8.dp, bottom = 4.dp),
+                    )
+                }
+                if (effectiveSubtitleTracks.isEmpty()) {
+                    item("subtitle_none") {
+                        Text(
+                            text = "  (无)",
+                            color = onBg.copy(alpha = 0.68f),
+                            modifier = Modifier.padding(start = 8.dp, bottom = 6.dp),
+                        )
+                    }
+                } else {
+                    effectiveSubtitleTracks.forEachIndexed { idx, track ->
+                        item("subtitle_track_${track.id}_$idx") {
+                            QuickPanelTrackOptionRow(
+                                title = "  ${track.label}",
+                                selected = track.selected,
+                                requestInitialFocus = effectiveVideoTracks.isEmpty() &&
+                                    effectiveAudioTracks.isEmpty() &&
+                                    idx == 0,
+                                onSelect = { onSelectSubtitleTrack(track.id) },
                                 autoCloseState = autoCloseState,
                             )
                         }

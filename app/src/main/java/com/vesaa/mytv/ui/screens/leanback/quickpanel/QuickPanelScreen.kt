@@ -145,8 +145,10 @@ fun LeanbackQuickPanelScreen(
     onReplayByProgramme: (Long, Long) -> Unit = { _, _ -> },
     audioTracksProvider: () -> List<LeanbackVideoPlayer.TrackOption> = { emptyList() },
     videoTracksProvider: () -> List<LeanbackVideoPlayer.TrackOption> = { emptyList() },
+    subtitleTracksProvider: () -> List<LeanbackVideoPlayer.TrackOption> = { emptyList() },
     onSelectAudioTrack: (String) -> Unit = {},
     onSelectVideoTrack: (String) -> Unit = {},
+    onSelectSubtitleTrack: (String) -> Unit = {},
     splitModeProvider: () -> QuickPanelSplitMode = { QuickPanelSplitMode.Off },
     onSplitModeChange: (QuickPanelSplitMode) -> Unit = {},
     onSplitExit: () -> Unit = {},
@@ -346,8 +348,10 @@ fun LeanbackQuickPanelScreen(
                             .fillMaxWidth(0.40f),
                         audioTracks = audioTracksProvider(),
                         videoTracks = videoTracksProvider(),
+                        subtitleTracks = subtitleTracksProvider(),
                         onSelectAudioTrack = onSelectAudioTrack,
                         onSelectVideoTrack = onSelectVideoTrack,
+                        onSelectSubtitleTrack = onSelectSubtitleTrack,
                         autoCloseState = autoCloseState,
                     )
 
@@ -389,7 +393,10 @@ fun LeanbackQuickPanelScreen(
                     )
 
                     val showMultiLineMenuItem = currentIptvProvider().urlList.size > 1
-                    val showTrackMenuItem = audioTracksProvider().isNotEmpty() || videoTracksProvider().isNotEmpty()
+                    val showTrackMenuItem =
+                        audioTracksProvider().isNotEmpty() ||
+                            videoTracksProvider().isNotEmpty() ||
+                            subtitleTracksProvider().isNotEmpty()
                     val isSplitMode = splitModeProvider() != QuickPanelSplitMode.Off
                     val menuSlots = remember(
                         showMultiLineMenuItem,

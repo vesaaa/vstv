@@ -265,6 +265,12 @@ class LeanbackMedia3VideoPlayer(
         }
 
         val mediaItem = MediaItem.fromUri(effectiveUri)
+        // 字幕轨默认关闭：仅在用户手动选择后启用。
+        videoPlayer.trackSelectionParameters = videoPlayer.trackSelectionParameters
+            .buildUpon()
+            .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, true)
+            .clearOverridesOfType(C.TRACK_TYPE_TEXT)
+            .build()
 
         val mediaSource = if (isRtmp) {
             ProgressiveMediaSource.Factory(RtmpDataSource.Factory()).createMediaSource(mediaItem)
@@ -834,13 +840,13 @@ class LeanbackMedia3VideoPlayer(
         val targetType = when (type) {
             TrackType.Audio -> C.TRACK_TYPE_AUDIO
             TrackType.Video -> C.TRACK_TYPE_VIDEO
+            TrackType.Subtitle -> C.TRACK_TYPE_TEXT
         }
         return videoPlayer.currentTracks.groups
             .filter { it.type == targetType }
             .flatMap { group ->
                 buildList {
                     for (i in 0 until group.length) {
-                        if (!group.isTrackSupported(i)) continue
                         add(
                             TrackOption(
                                 id = "${group.mediaTrackGroup.id ?: "group"}#$i",
@@ -857,17 +863,29 @@ class LeanbackMedia3VideoPlayer(
         val targetType = when (type) {
             TrackType.Audio -> C.TRACK_TYPE_AUDIO
             TrackType.Video -> C.TRACK_TYPE_VIDEO
+            TrackType.Subtitle -> C.TRACK_TYPE_TEXT
         }
         val groups = videoPlayer.currentTracks.groups.filter { it.type == targetType }
         for (group in groups) {
             for (i in 0 until group.length) {
                 val id = "${group.mediaTrackGroup.id ?: "group"}#$i"
                 if (id != trackId) continue
-                videoPlayer.trackSelectionParameters = videoPlayer.trackSelectionParameters
-                    .buildUpon()
-                    .clearOverridesOfType(targetType)
-                    .addOverride(TrackSelectionOverride(group.mediaTrackGroup, listOf(i)))
-                    .build()
+                val wasSelected = group.isTrackSelected(i)
+                videoPlayer.trackSelectionParameters = if (type == TrackType.Subtitle && wasSelected) {
+                    // 同一字幕轨再次确认：关闭字幕（取消激活）。
+                    videoPlayer.trackSelectionParameters
+                        .buildUpon()
+                        .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, true)
+                        .clearOverridesOfType(C.TRACK_TYPE_TEXT)
+                        .build()
+                } else {
+                    videoPlayer.trackSelectionParameters
+                        .buildUpon()
+                        .setTrackTypeDisabled(targetType, false)
+                        .clearOverridesOfType(targetType)
+                        .addOverride(TrackSelectionOverride(group.mediaTrackGroup, listOf(i)))
+                        .build()
+                }
                 return
             }
         }
@@ -887,6 +905,11 @@ class LeanbackMedia3VideoPlayer(
                 val res = if (f.width > 0 && f.height > 0) "${f.width}x${f.height}" else "视频轨${index + 1}"
                 val codec = f.sampleMimeType?.removePrefix("video/").orEmpty().ifBlank { "unknown" }
                 "$res · $codec"
+            }
+            TrackType.Subtitle -> {
+                val lang = f.language?.takeIf { it.isNotBlank() && it != "und" } ?: "字幕${index + 1}"
+                val codec = f.sampleMimeType.orEmpty().ifBlank { "text" }
+                "$lang · $codec"
             }
         }
     }

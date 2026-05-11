@@ -169,6 +169,10 @@ internal fun LeanbackMainEpgSurfaces(
                 videoPlayerState.trackSelectionVersion
                 videoPlayerState.getTrackOptions(com.vesaa.mytv.ui.screens.leanback.video.player.LeanbackVideoPlayer.TrackType.Video)
             },
+            subtitleTracksProvider = {
+                videoPlayerState.trackSelectionVersion
+                videoPlayerState.getTrackOptions(com.vesaa.mytv.ui.screens.leanback.video.player.LeanbackVideoPlayer.TrackType.Subtitle)
+            },
             onSelectAudioTrack = {
                 videoPlayerState.selectTrack(
                     com.vesaa.mytv.ui.screens.leanback.video.player.LeanbackVideoPlayer.TrackType.Audio,
@@ -178,6 +182,12 @@ internal fun LeanbackMainEpgSurfaces(
             onSelectVideoTrack = {
                 videoPlayerState.selectTrack(
                     com.vesaa.mytv.ui.screens.leanback.video.player.LeanbackVideoPlayer.TrackType.Video,
+                    it,
+                )
+            },
+            onSelectSubtitleTrack = {
+                videoPlayerState.selectTrack(
+                    com.vesaa.mytv.ui.screens.leanback.video.player.LeanbackVideoPlayer.TrackType.Subtitle,
                     it,
                 )
             },

@@ -60,7 +60,7 @@ abstract class LeanbackVideoPlayer(
     /** 从当前边缘往回跳（毫秒） */
     abstract fun seekBack(offsetMs: Long)
 
-    enum class TrackType { Audio, Video }
+    enum class TrackType { Audio, Video, Subtitle }
 
     data class TrackOption(
         val id: String,
