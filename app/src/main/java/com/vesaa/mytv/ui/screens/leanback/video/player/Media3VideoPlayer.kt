@@ -1139,6 +1139,9 @@ class LeanbackMedia3VideoPlayer(
     }
 
     override fun setVideoSurfaceView(surfaceView: SurfaceView) {
+        // 分屏切换（SurfaceView <-> TextureView）时，先清空当前输出面，
+        // 避免部分电视机型复用旧 surface 导致首屏绿屏。
+        videoPlayer.clearVideoSurface()
         if (boundTextureView != null) {
             videoPlayer.clearVideoTextureView(boundTextureView)
             boundTextureView = null
@@ -1149,6 +1152,9 @@ class LeanbackMedia3VideoPlayer(
     }
 
     override fun setVideoTextureView(textureView: TextureView) {
+        // 分屏切换（SurfaceView <-> TextureView）时，先清空当前输出面，
+        // 避免部分电视机型复用旧 surface 导致首屏绿屏。
+        videoPlayer.clearVideoSurface()
         if (boundSurfaceView != null) {
             videoPlayer.clearVideoSurfaceView(boundSurfaceView)
             boundSurfaceView = null
