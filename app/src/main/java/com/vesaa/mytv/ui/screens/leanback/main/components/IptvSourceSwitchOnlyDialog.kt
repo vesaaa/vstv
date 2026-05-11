@@ -44,8 +44,15 @@ import kotlinx.coroutines.delay
 
 /** 约 3 行 × 2 列可见，再多则纵向滚动 */
 private val SwitchGridVisibleRows = 3
-private val SwitchTileHeight = 76.dp
-private val SwitchGridGap = 10.dp
+
+/** 面板相对屏幕宽度 */
+private const val DialogWidthFraction = 2f / 3f
+
+/** 面板内左右留白 */
+private val PanelInnerHorizontalPadding = 22.dp
+
+/** 格子之间间距（横纵一致，排版更整齐） */
+private val SwitchGridGap = 16.dp
 
 internal fun distinctIptvSourceUrlsForSwitch(
     currentUrl: String,
@@ -89,9 +96,11 @@ internal fun LeanbackIptvSourceSwitchOnlyDialog(
                 .fillMaxSize()
                 .padding(horizontal = 16.dp, vertical = 24.dp),
         ) {
-            val dialogWidth = maxWidth * 0.92f
+            val dialogWidth = maxWidth * DialogWidthFraction
+            val innerGridWidth = dialogWidth - PanelInnerHorizontalPadding * 2
+            val cellSide = ((innerGridWidth - SwitchGridGap) / 2).coerceAtLeast(56.dp)
             val gridMaxHeight =
-                SwitchTileHeight * SwitchGridVisibleRows +
+                cellSide * SwitchGridVisibleRows +
                     SwitchGridGap * (SwitchGridVisibleRows - 1) +
                     8.dp
 
@@ -107,26 +116,23 @@ internal fun LeanbackIptvSourceSwitchOnlyDialog(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 16.dp),
+                        .padding(
+                            horizontal = PanelInnerHorizontalPadding,
+                            vertical = 18.dp,
+                        ),
                 ) {
                     Text(
                         text = "切换默认直播源",
                         style = MaterialTheme.typography.titleLarge,
                         color = MaterialTheme.colorScheme.onSurface,
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "仅用于在已保存的地址之间切换。添加新地址、扫码或修改请求头请前往：设置 → 直播源。",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Spacer(modifier = Modifier.height(14.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
                     TvLazyVerticalGrid(
                         state = gridState,
                         columns = TvGridCells.Fixed(2),
                         horizontalArrangement = Arrangement.spacedBy(SwitchGridGap),
                         verticalArrangement = Arrangement.spacedBy(SwitchGridGap),
-                        contentPadding = PaddingValues(bottom = 8.dp),
+                        contentPadding = PaddingValues(bottom = 4.dp),
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(gridMaxHeight),
@@ -139,7 +145,7 @@ internal fun LeanbackIptvSourceSwitchOnlyDialog(
                                 onClick = { onSourceSelected(url) },
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(SwitchTileHeight)
+                                    .height(cellSide)
                                     .focusRequester(focusRequester)
                                     .onFocusChanged {
                                         isFocused = it.isFocused || it.hasFocus
@@ -166,8 +172,8 @@ internal fun LeanbackIptvSourceSwitchOnlyDialog(
                                 Surface(
                                     modifier = Modifier
                                         .fillMaxSize()
-                                        .padding(2.dp),
-                                    shape = RoundedCornerShape(8.dp),
+                                        .padding(3.dp),
+                                    shape = RoundedCornerShape(10.dp),
                                     color = when {
                                         isFocused -> MaterialTheme.colorScheme.primaryContainer
                                         isCurrent -> MaterialTheme.colorScheme.secondaryContainer
@@ -186,13 +192,13 @@ internal fun LeanbackIptvSourceSwitchOnlyDialog(
                                                 style = MaterialTheme.typography.labelSmall,
                                                 color = MaterialTheme.colorScheme.primary,
                                             )
-                                            Spacer(modifier = Modifier.height(2.dp))
+                                            Spacer(modifier = Modifier.height(4.dp))
                                         }
                                         Text(
                                             text = url,
                                             style = MaterialTheme.typography.bodySmall,
                                             color = MaterialTheme.colorScheme.onSurface,
-                                            maxLines = 3,
+                                            maxLines = 4,
                                             overflow = TextOverflow.Ellipsis,
                                         )
                                     }
