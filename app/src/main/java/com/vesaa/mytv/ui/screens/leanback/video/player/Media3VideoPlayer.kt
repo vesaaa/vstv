@@ -1058,7 +1058,7 @@ class LeanbackMedia3VideoPlayer(
                 val result = RtspSmilResolver.resolve(parsed, ua, lastPlaybackLabel)
                 if (sessionId != prepareSessionId) return@launch
                 when (result) {
-                    is RtspSmilResolver.Result.Ok -> {
+                    is RtspSmilResolver.SmilResolveResult.Ok -> {
                         PlaybackTrace.i(
                             result.streamUri,
                             "smil_resolve_ok",
@@ -1067,7 +1067,7 @@ class LeanbackMedia3VideoPlayer(
                         )
                         prepare(result.streamUri, C.CONTENT_TYPE_RTSP, streamRequestHeaders)
                     }
-                    is RtspSmilResolver.Result.Fail -> {
+                    is RtspSmilResolver.SmilResolveResult.Fail -> {
                         PlaybackTrace.i(
                             parsed,
                             "smil_resolve_fail",

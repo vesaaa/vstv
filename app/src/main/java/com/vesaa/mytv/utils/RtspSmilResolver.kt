@@ -19,7 +19,7 @@ import java.util.regex.Pattern
 import kotlin.math.min
 
 /**
- * 将 `rtsp://…/*.smil` 拉取正文并解析出内嵌的真实 RTSP 流地址（简易 SMIL，常见于 Wowza）。
+ * 将 `rtsp` 且路径以 `.smil` 结尾的地址拉取正文并解析出内嵌的真实 RTSP 流地址（简易 SMIL，常见于 Wowza）。
  * 日志统一打 [TAG]，便于用户抓 logcat 反馈；开启 [SP.debugAppLog] 时写入 [Logger] 历史。
  */
 object RtspSmilResolver {
@@ -41,23 +41,23 @@ object RtspSmilResolver {
         Pattern.CASE_INSENSITIVE,
     )
 
-    sealed class Result {
-        data class Ok(val streamUri: Uri, val stages: List<String>) : Result()
-        data class Fail(val reason: String, val stages: List<String>) : Result()
+    sealed class SmilResolveResult {
+        data class Ok(val streamUri: Uri, val stages: List<String>) : SmilResolveResult()
+        data class Fail(val reason: String, val stages: List<String>) : SmilResolveResult()
     }
 
     suspend fun resolve(
         original: Uri,
         userAgent: String,
         playbackLabel: String?,
-    ): Result = withContext(Dispatchers.IO) {
+    ): SmilResolveResult = withContext(Dispatchers.IO) {
         val stages = mutableListOf<String>()
         if (!original.scheme.equals("rtsp", ignoreCase = true)) {
-            return@withContext Result.Fail("not rtsp", stages)
+            return@withContext SmilResolveResult.Fail("not rtsp", stages)
         }
         val path = original.path ?: ""
         if (!path.endsWith(".smil", ignoreCase = true)) {
-            return@withContext Result.Fail("not smil path", stages)
+            return@withContext SmilResolveResult.Fail("not smil path", stages)
         }
 
         fun trace(msg: String) {
@@ -77,7 +77,7 @@ object RtspSmilResolver {
                 val req = Request.Builder()
                     .url(httpUrl)
                     .header("User-Agent", userAgent.take(400))
-                    .header("Accept", "*/*")
+                    .header("Accept", "*" + "/" + "*")
                     .get()
                     .build()
                 okHttp.newCall(req).execute().use { resp ->
@@ -91,7 +91,7 @@ object RtspSmilResolver {
                         val chosen = pickStreamFromSmil(original, body, trace)
                         if (chosen != null) {
                             trace("smil_resolve ok via=http stream=$chosen")
-                            return@withContext Result.Ok(chosen, stages)
+                            return@withContext SmilResolveResult.Ok(chosen, stages)
                         }
                         trace("parse_smil_xml no_rtsp_candidate after http_ok")
                     }
@@ -101,20 +101,22 @@ object RtspSmilResolver {
             }
         }
 
-        when (val describe = rtspDescribeBody(original, userAgent, trace)) {
+        val describe = rtspDescribeBody(original, userAgent, trace)
+        when (describe) {
             is DescribeOk -> {
                 val chosen = pickStreamFromSmil(original, describe.body, trace)
                 if (chosen != null) {
                     trace("smil_resolve ok via=rtsp_describe stream=$chosen")
-                    return@withContext Result.Ok(chosen, stages)
+                    return@withContext SmilResolveResult.Ok(chosen, stages)
                 }
                 trace("parse_smil_xml no_rtsp_candidate after describe_ok")
             }
+
             is DescribeFail -> trace(describe.detail)
         }
 
         trace("smil_resolve fail no_rtsp_in_smil")
-        Result.Fail("无法从 SMIL 中得到 rtsp 流地址（已尝试 HTTP 与 RTSP DESCRIBE）", stages)
+        SmilResolveResult.Fail("无法从 SMIL 中得到 rtsp 流地址（已尝试 HTTP 与 RTSP DESCRIBE）", stages)
     }
 
     private fun buildHttpCandidates(uri: Uri): List<String> {
@@ -150,9 +152,8 @@ object RtspSmilResolver {
                     sb.append("DESCRIBE ").append(requestUri).append(" RTSP/1.0\r\n")
                     sb.append("CSeq: 1\r\n")
                     sb.append("User-Agent: ").append(userAgent.take(400)).append("\r\n")
-                    sb.append(
-                        "Accept: application/sdp, application/rtsl, application/smil, text/xml, */*\r\n",
-                    )
+                    sb.append("Accept: application/sdp, application/rtsl, application/smil, text/xml, ")
+                    sb.append("*").append("/").append("*").append("\r\n")
                     sb.append("\r\n")
                     w.write(sb.toString())
                     w.flush()
