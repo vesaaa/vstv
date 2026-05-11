@@ -555,6 +555,12 @@ class LeanbackMedia3VideoPlayer(
     // ── Player 事件监听 ───────────────────────────────────────────
 
     private val playerListener = object : Player.Listener {
+        override fun onTracksChanged(tracks: Tracks) {
+            syncSelectedTrackIdFromPlayer(TrackType.Audio, C.TRACK_TYPE_AUDIO)
+            syncSelectedTrackIdFromPlayer(TrackType.Video, C.TRACK_TYPE_VIDEO)
+            syncSelectedTrackIdFromPlayer(TrackType.Subtitle, C.TRACK_TYPE_TEXT)
+        }
+
         override fun onCues(cueGroup: CueGroup) {
             triggerSubtitle(cueGroup.cues)
         }
@@ -864,13 +870,14 @@ class LeanbackMedia3VideoPlayer(
                     for (i in 0 until group.length) {
                         val id = "${group.mediaTrackGroup.id ?: "group"}#$i"
                         val selectedByLocal = selectedTrackIdByType[type]
+                        val selectedByPlayer = group.isTrackSelected(i)
                         add(
                             TrackOption(
                                 id = id,
                                 label = trackLabel(type, group, i),
                                 selected = when {
-                                    selectedByLocal != null -> selectedByLocal == id
-                                    else -> group.isTrackSelected(i)
+                                    selectedByLocal != null && selectedByLocal == id -> true
+                                    else -> selectedByPlayer
                                 },
                             ),
                         )
@@ -890,7 +897,7 @@ class LeanbackMedia3VideoPlayer(
             for (i in 0 until group.length) {
                 val id = "${group.mediaTrackGroup.id ?: "group"}#$i"
                 if (id != trackId) continue
-                val wasSelected = selectedTrackIdByType[type] == id
+                val wasSelected = (selectedTrackIdByType[type] == id) || group.isTrackSelected(i)
                 videoPlayer.trackSelectionParameters = if (type == TrackType.Subtitle && wasSelected) {
                     // 同一字幕轨再次确认：关闭字幕（取消激活）。
                     triggerSubtitle(emptyList())
@@ -912,6 +919,18 @@ class LeanbackMedia3VideoPlayer(
                 return
             }
         }
+    }
+
+    private fun syncSelectedTrackIdFromPlayer(type: TrackType, targetType: Int) {
+        val selectedId = videoPlayer.currentTracks.groups
+            .asSequence()
+            .filter { it.type == targetType }
+            .mapNotNull { group ->
+                val idx = (0 until group.length).firstOrNull { i -> group.isTrackSelected(i) } ?: return@mapNotNull null
+                "${group.mediaTrackGroup.id ?: "group"}#$idx"
+            }
+            .firstOrNull()
+        selectedTrackIdByType[type] = selectedId
     }
 
     private fun trackLabel(type: TrackType, group: Tracks.Group, index: Int): String {
