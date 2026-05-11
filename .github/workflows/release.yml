@@ -68,6 +68,7 @@ jobs:
           echo "versionCode=$VC" >> "$GITHUB_OUTPUT"
           echo "Release version=$VER versionCore=$VER_NUM versionCode=$VC (from tag $TAG)"
 
+      # 单次 ./gradlew assembleRelease，无重试；若编译失败，日志里可能出现多条失败（各 flavor 并行任务独立报错）
       - name: Assemble all release variants
         env:
           KEYSTORE: ${{ github.workspace }}/app/keystore.jks

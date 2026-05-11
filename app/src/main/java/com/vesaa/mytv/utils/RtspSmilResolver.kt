@@ -60,7 +60,7 @@ object RtspSmilResolver {
             return@withContext SmilResolveResult.Fail("not smil path", stages)
         }
 
-        fun trace(msg: String) {
+        val emitLog: (String) -> Unit = { msg ->
             val safe = msg.replace('\n', ' ').take(500)
             Log.i(TAG, safe)
             if (SP.debugAppLog) historyLogger.i(safe)
@@ -68,7 +68,7 @@ object RtspSmilResolver {
             stages.add(safe)
         }
 
-        trace("smil_resolve start uri=$original")
+        emitLog("smil_resolve start uri=$original")
 
         val httpCandidates = buildHttpCandidates(original)
         for (httpUrl in httpCandidates) {
@@ -84,38 +84,38 @@ object RtspSmilResolver {
                     val code = resp.code
                     val ctype = resp.header("Content-Type") ?: ""
                     val body = resp.body?.string().orEmpty()
-                    trace("$step code=$code ct=$ctype bytes=${body.length}")
+                    emitLog("$step code=$code ct=$ctype bytes=${body.length}")
                     if (code in 200..299 && body.isNotBlank()) {
                         val preview = body.trimStart().take(160)
-                        trace("body_head=$preview")
-                        val chosen = pickStreamFromSmil(original, body, trace)
+                        emitLog("body_head=$preview")
+                        val chosen = pickStreamFromSmil(original, body, emitLog)
                         if (chosen != null) {
-                            trace("smil_resolve ok via=http stream=$chosen")
+                            emitLog("smil_resolve ok via=http stream=$chosen")
                             return@withContext SmilResolveResult.Ok(chosen, stages)
                         }
-                        trace("parse_smil_xml no_rtsp_candidate after http_ok")
+                        emitLog("parse_smil_xml no_rtsp_candidate after http_ok")
                     }
                 }
             } catch (e: Exception) {
-                trace("$step err=${e.javaClass.simpleName} msg=${e.message}")
+                emitLog("$step err=${e.javaClass.simpleName} msg=${e.message}")
             }
         }
 
-        val describe = rtspDescribeBody(original, userAgent, trace)
+        val describe = rtspDescribeBody(original, userAgent, emitLog)
         when (describe) {
             is DescribeOk -> {
-                val chosen = pickStreamFromSmil(original, describe.body, trace)
+                val chosen = pickStreamFromSmil(original, describe.body, emitLog)
                 if (chosen != null) {
-                    trace("smil_resolve ok via=rtsp_describe stream=$chosen")
+                    emitLog("smil_resolve ok via=rtsp_describe stream=$chosen")
                     return@withContext SmilResolveResult.Ok(chosen, stages)
                 }
-                trace("parse_smil_xml no_rtsp_candidate after describe_ok")
+                emitLog("parse_smil_xml no_rtsp_candidate after describe_ok")
             }
 
-            is DescribeFail -> trace(describe.detail)
+            is DescribeFail -> emitLog(describe.detail)
         }
 
-        trace("smil_resolve fail no_rtsp_in_smil")
+        emitLog("smil_resolve fail no_rtsp_in_smil")
         SmilResolveResult.Fail("无法从 SMIL 中得到 rtsp 流地址（已尝试 HTTP 与 RTSP DESCRIBE）", stages)
     }
 
@@ -138,7 +138,7 @@ object RtspSmilResolver {
     private data class DescribeOk(val body: String) : DescribeResult
     private data class DescribeFail(val detail: String) : DescribeResult
 
-    private fun rtspDescribeBody(uri: Uri, userAgent: String, trace: (String) -> Unit): DescribeResult {
+    private fun rtspDescribeBody(uri: Uri, userAgent: String, onLog: (String) -> Unit): DescribeResult {
         val host = uri.host ?: return DescribeFail("describe skip no_host")
         var port = uri.port
         if (port == -1) port = 554
@@ -162,7 +162,7 @@ object RtspSmilResolver {
                 val (headerBlock, initialTail) = readRtspHeaders(inp)
                 val statusLine = headerBlock.lineSequence().firstOrNull().orEmpty()
                 val headers = parseHeaders(headerBlock)
-                trace("rtsp_describe status=${statusLine.trim()} cseq=${headers["CSeq"] ?: headers["cseq"]}")
+                onLog("rtsp_describe status=${statusLine.trim()} cseq=${headers["CSeq"] ?: headers["cseq"]}")
                 val code = statusLine.split(' ', limit = 4).getOrNull(1)?.toIntOrNull() ?: 0
                 if (code !in 200..299) {
                     return DescribeFail("rtsp_describe http_status=$code head=${headerBlock.take(200)}")
@@ -178,7 +178,7 @@ object RtspSmilResolver {
                 if (body.isBlank()) {
                     return DescribeFail("rtsp_describe empty_body")
                 }
-                trace("describe_body bytes=${body.length} head=${body.trimStart().take(160)}")
+                onLog("describe_body bytes=${body.length} head=${body.trimStart().take(160)}")
                 if (body.trimStart().startsWith("v=0")) {
                     return DescribeFail("describe_body_is_sdp not_smil_xml")
                 }
@@ -260,7 +260,7 @@ object RtspSmilResolver {
     private fun pickStreamFromSmil(
         original: Uri,
         xml: String,
-        trace: (String) -> Unit,
+        onLog: (String) -> Unit,
     ): Uri? {
         var metaBase: String? = null
         val candidates = mutableListOf<String>()
@@ -278,7 +278,7 @@ object RtspSmilResolver {
                             ?: p.getAttributeValue(XmlPullParser.NO_NAMESPACE, "base")
                         if (!base.isNullOrBlank()) {
                             metaBase = base.trim()
-                            trace("smil_meta base=$metaBase")
+                            onLog("smil_meta base=$metaBase")
                         }
                     }
                     if (name in setOf("audio", "video", "ref", "stream")) {
@@ -291,12 +291,12 @@ object RtspSmilResolver {
                 event = p.next()
             }
         } catch (e: Exception) {
-            trace("xml_parse err=${e.javaClass.simpleName} msg=${e.message} fallback_regex")
+            onLog("xml_parse err=${e.javaClass.simpleName} msg=${e.message} fallback_regex")
         }
 
         for (c in candidates) {
             val abs = toAbsoluteRtsp(metaBase, original, c) ?: continue
-            trace("smil_candidate $abs")
+            onLog("smil_candidate $abs")
             if (abs.scheme.equals("rtsp", ignoreCase = true)) return abs
         }
 
@@ -309,7 +309,7 @@ object RtspSmilResolver {
                 null
             } ?: continue
             if (parsed.scheme.equals("rtsp", ignoreCase = true)) {
-                trace("smil_regex_candidate $parsed")
+                onLog("smil_regex_candidate $parsed")
                 return parsed
             }
         }
