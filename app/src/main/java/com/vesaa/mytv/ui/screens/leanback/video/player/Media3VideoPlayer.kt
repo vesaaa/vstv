@@ -266,12 +266,6 @@ class LeanbackMedia3VideoPlayer(
         }
 
         val mediaItem = MediaItem.fromUri(effectiveUri)
-        // 字幕轨默认关闭：仅在用户手动选择后启用。
-        videoPlayer.trackSelectionParameters = videoPlayer.trackSelectionParameters
-            .buildUpon()
-            .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, true)
-            .clearOverridesOfType(C.TRACK_TYPE_TEXT)
-            .build()
 
         val mediaSource = if (isRtmp) {
             ProgressiveMediaSource.Factory(RtmpDataSource.Factory()).createMediaSource(mediaItem)
@@ -357,9 +351,12 @@ class LeanbackMedia3VideoPlayer(
             )
             triggerMetadata(metadata)
             contentTypeAttempts[contentType ?: Util.inferContentType(effectiveUri)] = true
-            // 每次切台先按偏好设置选轨（优先 AVC/AAC），并清掉历史手动视频轨覆盖。
+            // 每次切台先按偏好设置选轨（优先 AVC/AAC），清掉历史手动覆盖，并默认禁用字幕轨。
             videoPlayer.trackSelectionParameters = preferredTrackParams.buildUpon()
                 .clearOverridesOfType(C.TRACK_TYPE_VIDEO)
+                .clearOverridesOfType(C.TRACK_TYPE_AUDIO)
+                .clearOverridesOfType(C.TRACK_TYPE_TEXT)
+                .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, true)
                 .build()
             videoPlayer.setMediaSource(mediaSource)
             videoPlayer.prepare()
