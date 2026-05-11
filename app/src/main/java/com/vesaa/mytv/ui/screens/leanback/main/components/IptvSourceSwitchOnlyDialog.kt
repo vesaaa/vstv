@@ -42,8 +42,8 @@ import androidx.tv.material3.CardDefaults
 import com.vesaa.mytv.ui.utils.handleLeanbackKeyEvents
 import kotlinx.coroutines.delay
 
-/** 约 3 行 × 2 列可见，再多则纵向滚动 */
-private val SwitchGridVisibleRows = 3
+/** 固定 3 行 × 2 列 = 一屏 6 个，多出的向下滚动 */
+private const val SwitchGridVisibleRows = 3
 
 /** 面板相对屏幕宽度 */
 private const val DialogWidthFraction = 2f / 3f
@@ -51,8 +51,17 @@ private const val DialogWidthFraction = 2f / 3f
 /** 面板内左右留白 */
 private val PanelInnerHorizontalPadding = 22.dp
 
-/** 格子之间间距（横纵一致，排版更整齐） */
-private val SwitchGridGap = 16.dp
+/** 行与行之间的间距 */
+private val RowGap = 14.dp
+
+/**
+ * 每个格子的固定高度（扁长条：格宽由两列均分后远大于此高度）。
+ * 与 [RowGap]、[SwitchGridVisibleRows] 一起决定可视区高度，保证一屏 6 格。
+ */
+private val TileHeight = 58.dp
+
+/** 两列之间的总间距（左格 end + 右格 start 各一半） */
+private val ColumnGap = 24.dp
 
 internal fun distinctIptvSourceUrlsForSwitch(
     currentUrl: String,
@@ -79,6 +88,7 @@ internal fun LeanbackIptvSourceSwitchOnlyDialog(
 ) {
     val gridState = rememberTvLazyGridState()
     val focusRequesters = remember(urls) { List(urls.size) { FocusRequester() } }
+    val columnGapHalf = ColumnGap / 2
 
     LaunchedEffect(urls) {
         delay(48)
@@ -86,6 +96,11 @@ internal fun LeanbackIptvSourceSwitchOnlyDialog(
             runCatching { focusRequesters[0].requestFocus() }
         }
     }
+
+    val gridMaxHeight =
+        TileHeight * SwitchGridVisibleRows +
+            RowGap * (SwitchGridVisibleRows - 1) +
+            8.dp
 
     Dialog(
         onDismissRequest = onDismissRequest,
@@ -97,12 +112,6 @@ internal fun LeanbackIptvSourceSwitchOnlyDialog(
                 .padding(horizontal = 16.dp, vertical = 24.dp),
         ) {
             val dialogWidth = maxWidth * DialogWidthFraction
-            val innerGridWidth = dialogWidth - PanelInnerHorizontalPadding * 2
-            val cellSide = ((innerGridWidth - SwitchGridGap) / 2).coerceAtLeast(56.dp)
-            val gridMaxHeight =
-                cellSide * SwitchGridVisibleRows +
-                    SwitchGridGap * (SwitchGridVisibleRows - 1) +
-                    8.dp
 
             Surface(
                 modifier = modifier
@@ -130,9 +139,10 @@ internal fun LeanbackIptvSourceSwitchOnlyDialog(
                     TvLazyVerticalGrid(
                         state = gridState,
                         columns = TvGridCells.Fixed(2),
-                        horizontalArrangement = Arrangement.spacedBy(SwitchGridGap),
-                        verticalArrangement = Arrangement.spacedBy(SwitchGridGap),
-                        contentPadding = PaddingValues(bottom = 4.dp),
+                        // 列间距由每个 Card 的 start/end padding 拼出，避免与网格实现叠在一起看不见缝
+                        horizontalArrangement = Arrangement.spacedBy(0.dp),
+                        verticalArrangement = Arrangement.spacedBy(RowGap),
+                        contentPadding = PaddingValues(horizontal = 2.dp, bottom = 6.dp),
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(gridMaxHeight),
@@ -141,11 +151,16 @@ internal fun LeanbackIptvSourceSwitchOnlyDialog(
                             val focusRequester = focusRequesters[index]
                             var isFocused by remember(index) { mutableStateOf(false) }
                             val isCurrent = url.trim() == currentUrl.trim()
+                            val col = index % 2
                             Card(
                                 onClick = { onSourceSelected(url) },
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(cellSide)
+                                    .height(TileHeight)
+                                    .padding(
+                                        start = if (col == 1) columnGapHalf else 0.dp,
+                                        end = if (col == 0) columnGapHalf else 0.dp,
+                                    )
                                     .focusRequester(focusRequester)
                                     .onFocusChanged {
                                         isFocused = it.isFocused || it.hasFocus
@@ -183,7 +198,7 @@ internal fun LeanbackIptvSourceSwitchOnlyDialog(
                                     Column(
                                         modifier = Modifier
                                             .fillMaxSize()
-                                            .padding(horizontal = 10.dp, vertical = 8.dp),
+                                            .padding(horizontal = 10.dp, vertical = 6.dp),
                                         verticalArrangement = Arrangement.Center,
                                     ) {
                                         if (isCurrent) {
@@ -192,13 +207,13 @@ internal fun LeanbackIptvSourceSwitchOnlyDialog(
                                                 style = MaterialTheme.typography.labelSmall,
                                                 color = MaterialTheme.colorScheme.primary,
                                             )
-                                            Spacer(modifier = Modifier.height(4.dp))
+                                            Spacer(modifier = Modifier.height(2.dp))
                                         }
                                         Text(
                                             text = url,
                                             style = MaterialTheme.typography.bodySmall,
                                             color = MaterialTheme.colorScheme.onSurface,
-                                            maxLines = 4,
+                                            maxLines = 2,
                                             overflow = TextOverflow.Ellipsis,
                                         )
                                     }
