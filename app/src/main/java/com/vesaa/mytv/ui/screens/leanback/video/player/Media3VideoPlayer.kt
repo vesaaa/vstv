@@ -89,8 +89,8 @@ class LeanbackMedia3VideoPlayer(
     private var lastPreparedContentType: Int? = null
 
     private fun newRenderersFactory(): DefaultRenderersFactory {
-        // 优先使用 FFmpeg 扩展解码器以确保视频 SEI 数据（含 CEA-608）透传至字幕解码器。
-        val mode = EXTENSION_RENDERER_MODE_PREFER
+        // HEVC 软解回退时才启用扩展解码器。
+        val mode = if (forcePreferExtensionDecoders) EXTENSION_RENDERER_MODE_PREFER else EXTENSION_RENDERER_MODE_ON
         return DefaultRenderersFactory(context)
             .setExtensionRendererMode(mode)
             .setEnableDecoderFallback(true)
@@ -567,17 +567,21 @@ class LeanbackMedia3VideoPlayer(
         if (!pendingApplyDefaultFirstSubtitle) return
         val groups = videoPlayer.currentTracks.groups.filter { it.type == C.TRACK_TYPE_TEXT }
         if (groups.isEmpty()) return
-        for (group in groups) {
+        // 诊断：先打印所有字幕轨的格式信息，再选择第一条可解码轨。
+        for ((g, group) in groups.withIndex()) {
             for (i in 0 until group.length) {
                 val fmt = group.mediaTrackGroup.getFormat(i)
-                android.util.Log.d("MyTVSub", "subtitle track[$i] supported=${group.isTrackSupported(i)} " +
+                android.util.Log.d("MyTVSub", "subtitle group[$g] track[$i] supported=${group.isTrackSupported(i)} " +
                     "mime=${fmt.sampleMimeType} codecs=${fmt.codecs} lang=${fmt.language} " +
                     "id=${fmt.id} label=${fmt.label} initDataSize=${fmt.initializationData?.size}")
-                // 诊断：打印初始化数据前 64 字节 hex，排查 CEA-608/708 描述符是否存在。
                 fmt.initializationData?.forEachIndexed { idx, data ->
                     val hex = data.take(64).joinToString(" ") { "%02x".format(it) }
                     android.util.Log.d("MyTVSub", "  initData[$idx] len=${data.size} hex=$hex")
                 }
+            }
+        }
+        for (group in groups) {
+            for (i in 0 until group.length) {
                 if (!group.isTrackSupported(i)) continue
                 videoPlayer.trackSelectionParameters = videoPlayer.trackSelectionParameters
                     .buildUpon()
