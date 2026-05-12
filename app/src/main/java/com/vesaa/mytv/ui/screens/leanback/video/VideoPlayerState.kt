@@ -158,15 +158,17 @@ class LeanbackVideoPlayerState(
             if (now - lastSubtitleToggleMs < 300) return
             lastSubtitleToggleMs = now
             val turningOff = selectedSubtitleTrackId == trackId
-            selectedSubtitleTrackId = if (turningOff) null else trackId
             if (turningOff) {
+                selectedSubtitleTrackId = null
                 instance.selectTrack(type, trackId)
             } else {
-                val options = instance.getTrackOptions(type)
-                val alreadyPlaying = options.any { it.id == trackId && it.selected }
+                // 读取播放器原始选中态判断是否已播放，避免 selectedSubtitleTrackId 本地状态污染判断。
+                val rawOptions = instance.getTrackOptions(type)
+                val alreadyPlaying = rawOptions.any { it.id == trackId && it.selected }
                 if (!alreadyPlaying) {
                     instance.selectTrack(type, trackId)
                 }
+                selectedSubtitleTrackId = trackId
             }
             trackSelectionVersion += 1
             return
