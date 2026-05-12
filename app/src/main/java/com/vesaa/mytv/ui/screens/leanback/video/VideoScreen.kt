@@ -1,6 +1,5 @@
 package com.vesaa.mytv.ui.screens.leanback.video
 
-import android.graphics.Color as AndroidColor
 import android.view.SurfaceView
 import android.view.TextureView
 import androidx.compose.animation.core.RepeatMode
@@ -11,8 +10,10 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
@@ -21,14 +22,16 @@ import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.media3.ui.CaptionStyleCompat
-import androidx.media3.ui.SubtitleView
 import coil.compose.AsyncImage
 import com.vesaa.mytv.ui.rememberLeanbackChildPadding
 import com.vesaa.mytv.ui.screens.leanback.video.components.LeanbackVideoPlayerMetadata
@@ -100,35 +103,43 @@ fun LeanbackVideoScreen(
             )
         }
 
-        // 在组合作用域读 subtitleCues，确保变化能触发重组并刷新 SubtitleView。
+        // 在组合作用域读 subtitleCues，确保变化能触发重组。
+        // 使用 Compose Text 渲染字幕，避免原生 SubtitleView 与 SurfaceView 的 z-order 冲突。
         val currentCues = state.subtitleCues.toList()
-        if (state.error == null) {
-            AndroidView(
+        if (state.error == null && currentCues.isNotEmpty()) {
+            val textSize = 24.sp
+            Box(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .fillMaxSize(),
-                factory = {
-                    SubtitleView(context).apply {
-                        setApplyEmbeddedStyles(true)
-                        setApplyEmbeddedFontSizes(true)
-                        setBottomPaddingFraction(0.08f)
-                        setFractionalTextSize(SubtitleView.DEFAULT_TEXT_SIZE_FRACTION * 1.05f)
-                        setStyle(
-                            CaptionStyleCompat(
-                                AndroidColor.WHITE,
-                                AndroidColor.TRANSPARENT,
-                                AndroidColor.TRANSPARENT,
-                                CaptionStyleCompat.EDGE_TYPE_DROP_SHADOW,
-                                AndroidColor.BLACK,
-                                null,
+                    .padding(bottom = 64.dp)
+                    .fillMaxWidth(),
+                contentAlignment = Alignment.BottomCenter,
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.padding(horizontal = 48.dp),
+                ) {
+                    for (cue in currentCues) {
+                        val cueText = cue.text?.toString().orEmpty()
+                        if (cueText.isBlank()) continue
+                        android.util.Log.d("MyTVSub", "rendering cue text=$cueText")
+                        Text(
+                            text = cueText,
+                            color = Color.White,
+                            fontSize = textSize,
+                            style = TextStyle(
+                                shadow = Shadow(
+                                    color = Color.Black,
+                                    blurRadius = 4f,
+                                    offset = Offset(1f, 1f),
+                                ),
                             ),
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(vertical = 2.dp),
                         )
                     }
-                },
-                update = { subtitleView ->
-                    subtitleView.setCues(currentCues)
-                },
-            )
+                }
+            }
         }
 
         if (showMetadataProvider()) {

@@ -579,11 +579,13 @@ class LeanbackMedia3VideoPlayer(
         }
 
         override fun onCues(cueGroup: CueGroup) {
+            android.util.Log.d("MyTVSub", "onCues(CueGroup) size=${cueGroup.cues.size}, text=${cueGroup.cues.firstOrNull()?.text}")
             triggerSubtitle(cueGroup.cues)
         }
 
         @Suppress("OVERRIDE_DEPRECATION")
         override fun onCues(cues: MutableList<androidx.media3.common.text.Cue>) {
+            android.util.Log.d("MyTVSub", "onCues(List) size=${cues.size}, text=${cues.firstOrNull()?.text}")
             triggerSubtitle(cues)
         }
 
