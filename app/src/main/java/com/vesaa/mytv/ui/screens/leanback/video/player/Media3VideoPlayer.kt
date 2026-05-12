@@ -86,7 +86,9 @@ class LeanbackMedia3VideoPlayer(
     private var lastPreparedContentType: Int? = null
 
     private fun newRenderersFactory(): DefaultRenderersFactory {
-        val mode = if (forcePreferExtensionDecoders) EXTENSION_RENDERER_MODE_PREFER else EXTENSION_RENDERER_MODE_ON
+        // 默认关闭 FFmpeg 扩展解码器，使用系统解码器以确保 CEA-608/嵌入式字幕 SEI 数据正常透传。
+        // 仅 HEVC 软解回退时启用扩展（forcePreferExtensionDecoders=true）。
+        val mode = if (forcePreferExtensionDecoders) EXTENSION_RENDERER_MODE_PREFER else EXTENSION_RENDERER_MODE_OFF
         return DefaultRenderersFactory(context)
             .setExtensionRendererMode(mode)
             .setEnableDecoderFallback(true)
