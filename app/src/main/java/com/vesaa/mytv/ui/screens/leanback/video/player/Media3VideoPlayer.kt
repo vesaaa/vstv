@@ -89,9 +89,8 @@ class LeanbackMedia3VideoPlayer(
     private var lastPreparedContentType: Int? = null
 
     private fun newRenderersFactory(): DefaultRenderersFactory {
-        // 默认关闭 FFmpeg 扩展解码器，使用系统解码器以确保 CEA-608/嵌入式字幕 SEI 数据正常透传。
-        // 仅 HEVC 软解回退时启用扩展（forcePreferExtensionDecoders=true）。
-        val mode = if (forcePreferExtensionDecoders) EXTENSION_RENDERER_MODE_PREFER else 0 // 0 = 关闭扩展解码器
+        // HEVC 软解回退时才启用扩展解码器。
+        val mode = if (forcePreferExtensionDecoders) EXTENSION_RENDERER_MODE_PREFER else EXTENSION_RENDERER_MODE_ON
         return DefaultRenderersFactory(context)
             .setExtensionRendererMode(mode)
             .setEnableDecoderFallback(true)
@@ -284,15 +283,8 @@ class LeanbackMedia3VideoPlayer(
         } else when (val type = contentType ?: Util.inferContentType(effectiveUri)) {
             C.CONTENT_TYPE_HLS -> {
                 val dsf = DefaultDataSource.Factory(context, httpDataSourceFactory(uri, headers))
-                // 注入 CEA-608 CC1 格式，确保 HLS TS 提取器通过 SeiReader 从视频 SEI 中提取隐藏字幕。
-                val cea608Format = Format.Builder()
-                    .setSampleMimeType(MimeTypes.APPLICATION_CEA608)
-                    .setAccessibilityChannel(1)
-                    .build()
-                val extractorFactory = DefaultHlsExtractorFactory(
-                    DefaultTsPayloadReaderFactory.DEFAULT_FLAGS,
-                    listOf(cea608Format),
-                )
+                // 启用 TS 字幕样本解析，支持 CEA-608/708 等嵌入式字幕格式。
+                val extractorFactory = DefaultHlsExtractorFactory(0, true)
                 HlsMediaSource.Factory(dsf)
                     .setAllowChunklessPreparation(false)
                     .setExtractorFactory(extractorFactory)
