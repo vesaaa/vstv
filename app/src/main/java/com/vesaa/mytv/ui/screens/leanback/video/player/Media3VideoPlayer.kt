@@ -29,16 +29,21 @@ import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON
 import androidx.media3.exoplayer.DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.Renderer
 import androidx.media3.exoplayer.analytics.AnalyticsListener
 import androidx.media3.exoplayer.dash.DashMediaSource
 import androidx.media3.exoplayer.hls.DefaultHlsExtractorFactory
 import androidx.media3.exoplayer.hls.HlsMediaSource
+import androidx.media3.exoplayer.mediacodec.MediaCodecSelector
 import androidx.media3.exoplayer.rtsp.RtspMediaSource
 import androidx.media3.exoplayer.smoothstreaming.SsMediaSource
 import androidx.media3.exoplayer.source.ProgressiveMediaSource
 import androidx.media3.exoplayer.util.EventLogger
+import androidx.media3.exoplayer.video.MediaCodecVideoRenderer
 import androidx.media3.exoplayer.video.VideoFrameMetadataListener
+import androidx.media3.exoplayer.video.VideoRendererEventListener
 import androidx.media3.extractor.ts.DefaultTsPayloadReaderFactory
+import android.os.Handler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.Dispatchers
@@ -89,11 +94,52 @@ class LeanbackMedia3VideoPlayer(
     private var lastPreparedContentType: Int? = null
 
     private fun newRenderersFactory(): DefaultRenderersFactory {
-        // HEVC 软解回退时才启用扩展解码器。
         val mode = if (forcePreferExtensionDecoders) EXTENSION_RENDERER_MODE_PREFER else EXTENSION_RENDERER_MODE_ON
-        return DefaultRenderersFactory(context)
-            .setExtensionRendererMode(mode)
-            .setEnableDecoderFallback(true)
+        val context = context
+        val onSeiCues: (List<androidx.media3.common.text.Cue>) -> Unit = { cues -> triggerSubtitle(cues) }
+        return object : DefaultRenderersFactory(context) {
+            override fun buildVideoRenderers(
+                context: Context,
+                videoOutputMode: Int,
+                mediaCodecSelector: MediaCodecSelector,
+                enableDecoderFallback: Boolean,
+                eventHandler: Handler?,
+                eventListener: VideoRendererEventListener?,
+                extensionRendererMode: Int,
+                out: MutableList<Renderer>
+            ) {
+                // 先调用父类构建标准渲染器列表
+                super.buildVideoRenderers(
+                    context, videoOutputMode, mediaCodecSelector,
+                    enableDecoderFallback, eventHandler, eventListener,
+                    extensionRendererMode, out
+                )
+                // 替换 MediaCodecVideoRenderer 为 SEI 拦截版本
+                for (i in out.indices) {
+                    val renderer = out[i]
+                    if (renderer is MediaCodecVideoRenderer && renderer !is SeiVideoRenderer) {
+                        out[i] = SeiVideoRenderer(
+                            context,
+                            mediaCodecSelector,
+                            renderer.allowedJoiningTimeMs,
+                            enableDecoderFallback,
+                            eventHandler,
+                            eventListener,
+                            50, // Media3 默认的最大丢弃帧数
+                            onSeiCues
+                        )
+                    }
+                }
+                // HEVC 硬解失败时，移除所有 MediaCodec 渲染器，仅保留 FFmpeg 扩展
+                // 解决 x86_64 模拟器上高通 OMX HEVC 解码器不稳定导致反复重建的问题
+                if (hevcSoftFallbackTried) {
+                    out.removeAll { it is MediaCodecVideoRenderer }
+                }
+            }
+        }.apply {
+            setExtensionRendererMode(mode)
+            setEnableDecoderFallback(true)
+        }
     }
 
     private var videoPlayer = ExoPlayer.Builder(context, newRenderersFactory())
