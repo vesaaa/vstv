@@ -122,7 +122,6 @@ fun LeanbackVideoScreen(
                     for (cue in currentCues) {
                         val cueText = cue.text?.toString().orEmpty()
                         if (cueText.isBlank()) continue
-                        android.util.Log.d("MyTVSub", "rendering cue text=$cueText")
                         Text(
                             text = cueText,
                             color = Color.White,

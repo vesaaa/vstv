@@ -158,7 +158,6 @@ class LeanbackVideoPlayerState(
             if (now - lastSubtitleToggleMs < 300) return
             lastSubtitleToggleMs = now
             val turningOff = selectedSubtitleTrackId == trackId
-            android.util.Log.d("MyTVSub", "selectTrack turningOff=$turningOff trackId=$trackId prevId=$selectedSubtitleTrackId")
             if (turningOff) {
                 selectedSubtitleTrackId = null
                 instance.selectTrack(type, trackId)
@@ -166,7 +165,6 @@ class LeanbackVideoPlayerState(
                 // 读取播放器原始选中态判断是否已播放，避免 selectedSubtitleTrackId 本地状态污染判断。
                 val rawOptions = instance.getTrackOptions(type)
                 val alreadyPlaying = rawOptions.any { it.id == trackId && it.selected }
-                android.util.Log.d("MyTVSub", "selectTrack alreadyPlaying=$alreadyPlaying options=${rawOptions.map { "${it.id}:${it.selected}" }}")
                 if (!alreadyPlaying) {
                     instance.selectTrack(type, trackId)
                 }
@@ -225,7 +223,6 @@ class LeanbackVideoPlayerState(
             }
         }
         instance.onSubtitle {
-            android.util.Log.d("MyTVSub", "onSubtitle callback size=${it.size}, text=${it.firstOrNull()?.text}")
             subtitleCues.clear()
             subtitleCues.addAll(it)
         }

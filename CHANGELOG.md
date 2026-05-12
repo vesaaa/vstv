@@ -4,6 +4,13 @@
 
 > **说明**：本文件仍由人编写条目，**不会由机器人自动撰写内容**。推送 **Release 标签**（`v*.*.*`）时，GitHub Actions 会检查 `CHANGELOG.md` 中是否已有对应章节 **`## [x.y.z]`**（`x.y.z` 为标签去掉 `v`/`tv-` 及预发布后缀 `-…` 的核心版本）；**未写入则 Release 构建失败**，避免发版记录遗漏。**GitHub Release 页面上的版本说明**会**自动截取并发布本文件中该版本章节全文**（不再使用仅含提交列表与「Full Changelog」链接的自动生成说明）。若需对照历史，见 [GitHub Releases](https://github.com/vesaaa/vstv/releases)。
 
+## [2.2.0] - 2026-05-12
+
+- **WebVTT 字幕正式支持**：HLS 流中通过 `#EXT-X-MEDIA:TYPE=SUBTITLES` 声明的 WebVTT 字幕轨可正常解码显示。
+- **TS 内嵌字幕轨道检测**：可发现 HLS TS 分片中的 CEA-608/DVB 字幕轨道并在轨道列表中显示；数据提取与解码仍在开发中，选择后暂不渲染字幕。
+- **移除字幕诊断日志**：清理 beta 阶段的 `MyTVSub` 诊断日志，减少运行时 Logcat 开销。
+- **恢复硬解优先策略**：`EXTENSION_RENDERER_MODE_ON` 保持硬解优先/FFmpeg 软解兜底，仅 HEVC 硬解失败时自动切换 PREFER。
+
 ## [2.1.26] - 2026-05-11
 
 - **修复 Release Kotlin 编译失败**：`QuickPanelTrackOptionRow` 中 `onPreviewKeyEvent` 对 Compose `KeyEvent` 使用 `type`/`key` 在部分依赖组合下无法解析；改为仅通过 `nativeKeyEvent` 判断 `ACTION_DOWN` 与 `KEYCODE_DPAD_DOWN`，与 TV 方向键一致且兼容 CI 所用 Compose 版本。
