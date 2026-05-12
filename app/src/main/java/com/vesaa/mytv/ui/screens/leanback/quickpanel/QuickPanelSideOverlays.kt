@@ -32,8 +32,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.key.Key
-import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.draw.clip
@@ -675,12 +673,9 @@ private fun QuickPanelTrackOptionRow(
         }
     }
     val trapDownModifier = if (consumeDpadDownExit) {
-        Modifier.onPreviewKeyEvent { e ->
-            if (e.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
-            val down =
-                e.key == Key.DirectionDown ||
-                    e.nativeKeyEvent.keyCode == AndroidKeyEvent.KEYCODE_DPAD_DOWN
-            down
+        Modifier.onPreviewKeyEvent { event ->
+            if (event.nativeKeyEvent.action != AndroidKeyEvent.ACTION_DOWN) return@onPreviewKeyEvent false
+            event.nativeKeyEvent.keyCode == AndroidKeyEvent.KEYCODE_DPAD_DOWN
         }
     } else {
         Modifier

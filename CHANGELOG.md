@@ -4,6 +4,10 @@
 
 > **说明**：本文件仍由人编写条目，**不会由机器人自动撰写内容**。推送 **Release 标签**（`v*.*.*`）时，GitHub Actions 会检查 `CHANGELOG.md` 中是否已有对应章节 **`## [x.y.z]`**（`x.y.z` 为标签去掉 `v`/`tv-` 及预发布后缀 `-…` 的核心版本）；**未写入则 Release 构建失败**，避免发版记录遗漏。**GitHub Release 页面上的版本说明**会**自动截取并发布本文件中该版本章节全文**（不再使用仅含提交列表与「Full Changelog」链接的自动生成说明）。若需对照历史，见 [GitHub Releases](https://github.com/vesaaa/vstv/releases)。
 
+## [2.1.26] - 2026-05-11
+
+- **修复 Release Kotlin 编译失败**：`QuickPanelTrackOptionRow` 中 `onPreviewKeyEvent` 对 Compose `KeyEvent` 使用 `type`/`key` 在部分依赖组合下无法解析；改为仅通过 `nativeKeyEvent` 判断 `ACTION_DOWN` 与 `KEYCODE_DPAD_DOWN`，与 TV 方向键一致且兼容 CI 所用 Compose 版本。
+
 ## [2.1.25] - 2026-05-11
 
 - **轨道选择左侧面板焦点**：在最后一个可聚焦轨道项（通常为最后一条字幕）上消费向下键，避免焦点逃出面板落到底栏「分屏播放」等按钮。
