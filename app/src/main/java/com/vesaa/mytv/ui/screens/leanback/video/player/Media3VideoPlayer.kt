@@ -3,6 +3,7 @@ package com.vesaa.mytv.ui.screens.leanback.video.player
 import android.content.Context
 import android.net.Uri
 import android.net.wifi.WifiManager
+import android.os.Build
 import android.os.SystemClock
 import android.view.SurfaceView
 import android.view.TextureView
@@ -810,12 +811,12 @@ class LeanbackMedia3VideoPlayer(
             val startupDelayMs = when {
                 hlsSuspiciousSession -> 1200L
                 isRtspSession -> Constants.VIDEO_RTSP_NO_VIDEO_WATCHDOG_STARTUP_MS
-                else -> 4000L
+                else -> 2000L
             }
             val noFrameThresholdMs = when {
                 hlsSuspiciousSession -> 2000L
                 isRtspSession -> Constants.VIDEO_RTSP_NO_VIDEO_WATCHDOG_THRESHOLD_MS
-                else -> 4500L
+                else -> 2500L
             }
             delay(startupDelayMs)
             while (true) {
@@ -1032,6 +1033,12 @@ class LeanbackMedia3VideoPlayer(
         ) {
             metadata = metadata.copy(videoDecoder = decoderName)
             triggerMetadata(metadata)
+            // x86_64 上高通 OMX 解码器不稳定，若是 HEVC 立即转 FFmpeg 软解
+            if (decoderName.contains("qcom", ignoreCase = true) &&
+                Build.SUPPORTED_ABIS.any { it.contains("x86") } &&
+                metadata.videoMimeType.contains("hevc", ignoreCase = true)) {
+                tryHevcSoftDecodeFallback()
+            }
         }
 
         override fun onAudioInputFormatChanged(
