@@ -1039,22 +1039,6 @@ class LeanbackMedia3VideoPlayer(
             metadata = metadata.copy(audioDecoder = decoderName)
             triggerMetadata(metadata)
         }
-
-        override fun onDownstreamFormatChanged(
-            eventTime: AnalyticsListener.EventTime,
-            format: Format,
-            @C.TrackType trackType: Int,
-            mediaStructure: AnalyticsListener.MediaStructure?,
-        ) {
-            if (trackType == C.TRACK_TYPE_TEXT) {
-                android.util.Log.d("MyTVSub", "downstreamFmt TEXT mime=${format.sampleMimeType} codecs=${format.codecs} " +
-                    "lang=${format.language} id=${format.id} initDataSize=${format.initializationData?.size}")
-                format.initializationData?.forEachIndexed { idx, data ->
-                    val hex = data.take(64).joinToString(" ") { "%02x".format(it) }
-                    android.util.Log.d("MyTVSub", "  downstream initData[$idx] len=${data.size} hex=$hex")
-                }
-            }
-        }
     }
 
     // ── FPS 统计 ──────────────────────────────────────────────────
