@@ -161,7 +161,7 @@ VsTV 支持常见的电视直播订阅格式，下面是最常用的 4 类：
 - [x] WebVTT 字幕（HLS `#EXT-X-MEDIA:TYPE=SUBTITLES`）  
 - [x] SRT / DVB Subtitle / PGS 蓝光字幕（Media3 内置解码）
 - [ ] ASS/SSA 字幕（无内置解码器，暂不支持）
-- [ ] TS 内嵌 CEA-608/708 字幕（轨道可发现，SEI 解析开发中）
+- [x] TS 内嵌 CEA-608 字幕（Media3 内置 Cea608Decoder）
 
 ---
 
