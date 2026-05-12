@@ -84,7 +84,7 @@ class LeanbackMedia3VideoPlayer(
         .setBackBuffer(0, false)
         .build()
 
-    private var forcePreferExtensionDecoders = true
+    private var forcePreferExtensionDecoders = false
     private var hevcSoftFallbackTried = false
     private var lastPreparedUri: Uri? = null
     private var lastPreparedContentType: Int? = null
