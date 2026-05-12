@@ -988,6 +988,7 @@ class LeanbackMedia3VideoPlayer(
             initializationDurationMs: Long,
         ) {
             metadata = metadata.copy(videoDecoder = decoderName)
+            android.util.Log.d("MyTVSub", "videoDecoder=$decoderName")
             triggerMetadata(metadata)
         }
 
