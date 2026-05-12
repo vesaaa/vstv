@@ -1,6 +1,9 @@
 package com.vesaa.mytv.utils
 
 import java.nio.ByteBuffer
+import kotlin.ExperimentalStdlibApi
+
+@file:OptIn(ExperimentalStdlibApi::class)
 
 /**
  * 从 H.264 Annex B 字节流中提取 CEA-608/708 字幕数据。
@@ -53,6 +56,7 @@ object SeiCaptionParser {
     /**
      * 从原始字节数组中提取 CEA-608 数据
      */
+    @OptIn(ExperimentalStdlibApi::class)
     fun extractFromBytes(data: ByteArray, output: MutableList<Cea608Pair>) {
         var pos = 0
         while (pos < data.size - 3) {

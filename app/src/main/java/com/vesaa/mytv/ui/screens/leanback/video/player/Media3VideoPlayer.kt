@@ -104,8 +104,8 @@ class LeanbackMedia3VideoPlayer(
                 videoOutputMode: Int,
                 mediaCodecSelector: MediaCodecSelector,
                 enableDecoderFallback: Boolean,
-                eventHandler: Handler?,
-                eventListener: VideoRendererEventListener?,
+                eventHandler: Handler,
+                eventListener: VideoRendererEventListener,
                 extensionRendererMode: Int,
                 out: MutableList<Renderer>
             ) {
@@ -122,11 +122,11 @@ class LeanbackMedia3VideoPlayer(
                         out[i] = SeiVideoRenderer(
                             context,
                             mediaCodecSelector,
-                            renderer.allowedJoiningTimeMs,
+                            5000L,
                             enableDecoderFallback,
                             eventHandler,
                             eventListener,
-                            50, // Media3 默认的最大丢弃帧数
+                            50,
                             onSeiCues
                         )
                     }

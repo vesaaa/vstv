@@ -21,8 +21,8 @@ class SeiVideoRenderer(
     mediaCodecSelector: MediaCodecSelector,
     allowedJoiningTimeMs: Long,
     enableDecoderFallback: Boolean,
-    eventHandler: Handler?,
-    eventListener: VideoRendererEventListener?,
+    eventHandler: Handler,
+    eventListener: VideoRendererEventListener,
     maxDroppedFramesToReport: Int,
     private val onSeiCuesReady: (List<Cue>) -> Unit
 ) : MediaCodecVideoRenderer(
@@ -39,9 +39,9 @@ class SeiVideoRenderer(
     private var seiSampleCounter = 0
     private var seiCueCounter = 0
 
-    override fun supportsFormat(format: androidx.media3.common.Format): Int {
+    override fun onInputFormatChanged(format: androidx.media3.common.Format) {
         currentMime = format.sampleMimeType
-        return super.supportsFormat(format)
+        super.onInputFormatChanged(format)
     }
 
     override fun onQueueInputBuffer(inputBuffer: DecoderInputBuffer) {
