@@ -558,6 +558,10 @@ class LeanbackMedia3VideoPlayer(
         if (groups.isEmpty()) return
         for (group in groups) {
             for (i in 0 until group.length) {
+                val fmt = group.mediaTrackGroup.getFormat(i)
+                android.util.Log.d("MyTVSub", "subtitle track[$i] supported=${group.isTrackSupported(i)} " +
+                    "mime=${fmt.sampleMimeType} codecs=${fmt.codecs} lang=${fmt.language} " +
+                    "id=${fmt.id} label=${fmt.label} initDataSize=${fmt.initializationData?.size}")
                 if (!group.isTrackSupported(i)) continue
                 videoPlayer.trackSelectionParameters = videoPlayer.trackSelectionParameters
                     .buildUpon()
