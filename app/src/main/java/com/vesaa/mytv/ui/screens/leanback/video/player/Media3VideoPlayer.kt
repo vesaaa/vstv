@@ -139,6 +139,11 @@ class LeanbackMedia3VideoPlayer(
     /** 新会话在 [onTracksChanged] 中自动启用第一条可解码字幕轨；用户手动选字幕后置 false。 */
     private var pendingApplyDefaultFirstSubtitle: Boolean = false
 
+    /** 诊断：统计 onCues 空/非空调用的数量与会话内时序，排查 SEI 数据是否可达解码器。 */
+    private var subCueCount = 0
+    private var subEmptyCueCount = 0
+    private var subLastCueLogElapsedMs = 0L
+
     private val preferredTrackParams: TrackSelectionParameters by lazy {
         // 优先选更兼容的编解码，提升老盒子/运营商定制 ROM 的可播率：
         // - 视频：优先 AVC(H.264)，其次 HEVC(H.265)
@@ -351,6 +356,9 @@ class LeanbackMedia3VideoPlayer(
             latestZapStartElapsedMs = SystemClock.elapsedRealtime()
             awaitingFirstReadyAfterPrepare = true
             lastRenderedFpsElapsedMs = 0L
+            subCueCount = 0
+            subEmptyCueCount = 0
+            subLastCueLogElapsedMs = 0L
             attemptedVideoTrackFallbackKeys.clear()
             metadata = metadata.copy(
                 zapLatencyMs = null,
@@ -568,6 +576,11 @@ class LeanbackMedia3VideoPlayer(
                 android.util.Log.d("MyTVSub", "subtitle track[$i] supported=${group.isTrackSupported(i)} " +
                     "mime=${fmt.sampleMimeType} codecs=${fmt.codecs} lang=${fmt.language} " +
                     "id=${fmt.id} label=${fmt.label} initDataSize=${fmt.initializationData?.size}")
+                // 诊断：打印初始化数据前 64 字节 hex，排查 CEA-608/708 描述符是否存在。
+                fmt.initializationData?.forEachIndexed { idx, data ->
+                    val hex = data.take(64).joinToString(" ") { "%02x".format(it) }
+                    android.util.Log.d("MyTVSub", "  initData[$idx] len=${data.size} hex=$hex")
+                }
                 if (!group.isTrackSupported(i)) continue
                 videoPlayer.trackSelectionParameters = videoPlayer.trackSelectionParameters
                     .buildUpon()
@@ -589,7 +602,12 @@ class LeanbackMedia3VideoPlayer(
         }
 
         override fun onCues(cueGroup: CueGroup) {
-            android.util.Log.d("MyTVSub", "onCues(CueGroup) size=${cueGroup.cues.size}, text=${cueGroup.cues.firstOrNull()?.text}")
+            subCueCount++
+            if (cueGroup.cues.isEmpty()) subEmptyCueCount++
+            val nowMs = SystemClock.elapsedRealtime()
+            val gapMs = if (subLastCueLogElapsedMs > 0) nowMs - subLastCueLogElapsedMs else 0
+            subLastCueLogElapsedMs = nowMs
+            android.util.Log.d("MyTVSub", "onCues #$subCueCount empty=${subEmptyCueCount}/${subCueCount} gap=${gapMs}ms size=${cueGroup.cues.size} text=${cueGroup.cues.firstOrNull()?.text}")
             triggerSubtitle(cueGroup.cues)
         }
 
@@ -1020,6 +1038,22 @@ class LeanbackMedia3VideoPlayer(
         ) {
             metadata = metadata.copy(audioDecoder = decoderName)
             triggerMetadata(metadata)
+        }
+
+        override fun onDownstreamFormatChanged(
+            eventTime: AnalyticsListener.EventTime,
+            format: Format,
+            @C.TrackType trackType: Int,
+            mediaStructure: AnalyticsListener.MediaStructure?,
+        ) {
+            if (trackType == C.TRACK_TYPE_TEXT) {
+                android.util.Log.d("MyTVSub", "downstreamFmt TEXT mime=${format.sampleMimeType} codecs=${format.codecs} " +
+                    "lang=${format.language} id=${format.id} initDataSize=${format.initializationData?.size}")
+                format.initializationData?.forEachIndexed { idx, data ->
+                    val hex = data.take(64).joinToString(" ") { "%02x".format(it) }
+                    android.util.Log.d("MyTVSub", "  downstream initData[$idx] len=${data.size} hex=$hex")
+                }
+            }
         }
     }
 
