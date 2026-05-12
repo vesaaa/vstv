@@ -9,6 +9,7 @@ import android.view.TextureView
 import androidx.annotation.OptIn
 import androidx.media3.common.C
 import androidx.media3.common.Format
+import androidx.media3.common.MimeTypes
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.common.TrackSelectionOverride
@@ -30,12 +31,14 @@ import androidx.media3.exoplayer.DefaultRenderersFactory.EXTENSION_RENDERER_MODE
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.analytics.AnalyticsListener
 import androidx.media3.exoplayer.dash.DashMediaSource
+import androidx.media3.exoplayer.hls.DefaultHlsExtractorFactory
 import androidx.media3.exoplayer.hls.HlsMediaSource
 import androidx.media3.exoplayer.rtsp.RtspMediaSource
 import androidx.media3.exoplayer.smoothstreaming.SsMediaSource
 import androidx.media3.exoplayer.source.ProgressiveMediaSource
 import androidx.media3.exoplayer.util.EventLogger
 import androidx.media3.exoplayer.video.VideoFrameMetadataListener
+import androidx.media3.extractor.ts.DefaultTsPayloadReaderFactory
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.Dispatchers
@@ -281,9 +284,18 @@ class LeanbackMedia3VideoPlayer(
         } else when (val type = contentType ?: Util.inferContentType(effectiveUri)) {
             C.CONTENT_TYPE_HLS -> {
                 val dsf = DefaultDataSource.Factory(context, httpDataSourceFactory(uri, headers))
+                // 注入 CEA-608 CC1 格式，确保 HLS TS 提取器通过 SeiReader 从视频 SEI 中提取隐藏字幕。
+                val cea608Format = Format.Builder()
+                    .setSampleMimeType(MimeTypes.APPLICATION_CEA608)
+                    .setAccessibilityChannel(1)
+                    .build()
+                val extractorFactory = DefaultHlsExtractorFactory(
+                    DefaultTsPayloadReaderFactory.DEFAULT_FLAGS,
+                    listOf(cea608Format),
+                )
                 HlsMediaSource.Factory(dsf)
-                    // 兼容“master 标注仅音频，但分片实际含视频”的非规范 HLS 源。
                     .setAllowChunklessPreparation(false)
+                    .setExtractorFactory(extractorFactory)
                     .createMediaSource(mediaItem)
             }
 
@@ -600,7 +612,7 @@ class LeanbackMedia3VideoPlayer(
         }
 
         override fun onPlayerError(ex: Media3PlaybackException) {
-            // 运营商 RTSP 常见“UDP 不通、TCP 可播”场景：
+            // 运营商 RTSP 常见"UDP 不通、TCP 可播"场景：
             // 先按 TCP 拉流；若失败且还未尝试 UDP，则自动回退 UDP 再试一次。
             val curUri = videoPlayer.currentMediaItem?.localConfiguration?.uri
             if (curUri?.scheme.equals("rtsp", ignoreCase = true) &&
@@ -759,7 +771,7 @@ class LeanbackMedia3VideoPlayer(
     }
 
     /**
-     * 多视频轨场景（例如 AVC+HEVC）下，部分设备会默认选中无法解码的视频轨，表现为“有声音无画面”。
+     * 多视频轨场景（例如 AVC+HEVC）下，部分设备会默认选中无法解码的视频轨，表现为"有声音无画面"。
      * READY 后若持续无视频帧渲染，则自动切到同组下一个可用视频轨；每个候选仅尝试一次。
      */
     private fun startNoVideoFrameWatchdog() {
