@@ -4,6 +4,17 @@
 
 > **说明**：本文件仍由人编写条目，**不会由机器人自动撰写内容**。推送 **Release 标签**（`v*.*.*`）时，GitHub Actions 会检查 `CHANGELOG.md` 中是否已有对应章节 **`## [x.y.z]`**（`x.y.z` 为标签去掉 `v`/`tv-` 及预发布后缀 `-…` 的核心版本）；**未写入则 Release 构建失败**，避免发版记录遗漏。**GitHub Release 页面上的版本说明**会**自动截取并发布本文件中该版本章节全文**（不再使用仅含提交列表与「Full Changelog」链接的自动生成说明）。若需对照历史，见 [GitHub Releases](https://github.com/vesaaa/vstv/releases)。
 
+## [2.2.2] - 2026-03-14
+
+- **换台菜单滑动流畅度优化**：补全 `@Immutable` Compose 稳定性标注（`Epg`/`EpgProgramme`/`EpgProgrammeCurrent`/`IptvGroup`），并对频道列表的 EPG 节目单匹配做预缓存（`Map<Iptv, Epg?>`），避免每个列表项每次重组都 O(N) 扫描全部节目单。
+- **长按确认键快速切换直播源修复**：修复电视端长按确认键激活切换面板后，手指抬起时的 `ACTION_UP` 被误判为短按确认，导致刚弹出面板就立即点击了首项。
+
+## [2.2.1] - 2026-03-14
+
+- **TS 内嵌 CEA-608 字幕正式支持**：HLS TS 分片中的 CEA-608 字幕轨可正常解码显示，双字幕轨道切换正常。
+- **HEVC 硬解失败自动软解兜底**：当 OMX HEVC 解码器初始化后无帧输出时，播放器自动降级为 FFmpeg 扩展软解，解决 x86_64 设备上 HEVC 频道有声无画的问题。
+- **硬解优先策略修正**：`forcePreferExtensionDecoders` 默认恢复为 `false`，保持硬解优先、FFmpeg 软解兜底。
+
 ## [2.2.0] - 2026-05-12
 
 - **WebVTT 字幕正式支持**：HLS 流中通过 `#EXT-X-MEDIA:TYPE=SUBTITLES` 声明的 WebVTT 字幕轨可正常解码显示。
