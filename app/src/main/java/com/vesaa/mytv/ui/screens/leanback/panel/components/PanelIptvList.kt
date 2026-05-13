@@ -41,11 +41,18 @@ fun LeanbackPanelIptvList(
     onUserAction: () -> Unit = {},
 ) {
     val iptvList = iptvListProvider()
+    val epgList = epgListProvider()
 
     val listState = rememberTvLazyListState(max(0, iptvList.indexOf(currentIptvProvider()) - 2))
     val childPadding = rememberLeanbackChildPadding()
 
     var hasFocused by rememberSaveable { mutableStateOf(false) }
+
+    val epgMatchMap = remember(epgList, iptvList) {
+        iptvList.associateWith { iptv ->
+            epgList.firstOrNull { it.matchesIptv(iptv) }
+        }
+    }
 
     var showEpgDialog by remember { mutableStateOf(false) }
     var currentShowEpgIptv by remember { mutableStateOf(Iptv()) }
@@ -69,9 +76,7 @@ fun LeanbackPanelIptvList(
             LeanbackPanelIptvItem(
                 iptvProvider = { iptv },
                 currentProgrammeProvider = {
-                    epgListProvider().firstOrNull { epg -> epg.matchesIptv(iptv) }
-                        ?.currentProgrammes()
-                        ?.primaryProgramme()
+                    epgMatchMap[iptv]?.currentProgrammes()?.primaryProgramme()
                 },
                 showProgrammeProgressProvider = { showProgrammeProgressProvider() },
                 onIptvSelected = { onIptvSelected(iptv) },

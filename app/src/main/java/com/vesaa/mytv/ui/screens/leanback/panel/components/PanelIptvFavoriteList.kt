@@ -63,9 +63,16 @@ fun LeanbackPanelIptvFavoriteList(
     var key by remember { mutableIntStateOf(0) }
     val entries = remember(key) { favoriteEntriesProvider() }
     val iptvList = remember(key) { IptvList(entries.map { it.toIptv() }) }
+    val epgList = epgListProvider()
     val listState = rememberTvLazyGridState(max(0, iptvList.indexOf(currentIptvProvider())))
 
     var hasFocused by rememberSaveable { mutableStateOf(false) }
+
+    val epgMatchMap = remember(epgList, iptvList) {
+        iptvList.associateWith { iptv ->
+            epgList.firstOrNull { it.matchesIptv(iptv) }
+        }
+    }
 
     var showEpgDialog by remember { mutableStateOf(false) }
     var currentShowEpgIptv by remember { mutableStateOf(Iptv()) }
@@ -119,9 +126,7 @@ fun LeanbackPanelIptvFavoriteList(
                     },
                     iptvProvider = { iptv },
                     currentProgrammeProvider = {
-                        epgListProvider().firstOrNull { epg -> epg.matchesIptv(iptv) }
-                            ?.currentProgrammes()
-                            ?.primaryProgramme()
+                        epgMatchMap[iptv]?.currentProgrammes()?.primaryProgramme()
                     },
                     showProgrammeProgressProvider = { showProgrammeProgressProvider() },
                     onIptvSelected = {

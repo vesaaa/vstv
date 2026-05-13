@@ -75,6 +75,7 @@ fun LeanbackClassicPanelIptvList(
 ) {
     val focusManager = LocalFocusManager.current
     val iptvList = iptvListProvider()
+    val epgList = epgListProvider()
     val initialIptv = initialIptvProvider()
 
     var hasFocused by rememberSaveable { mutableStateOf(!iptvList.contains(initialIptv)) }
@@ -82,6 +83,12 @@ fun LeanbackClassicPanelIptvList(
         List(iptvList.size) { FocusRequester() }
     }
     var focusedIptv by remember(iptvList) { mutableStateOf(initialIptv) }
+
+    val epgMatchMap = remember(epgList, iptvList) {
+        iptvList.associateWith { iptv ->
+            epgList.firstOrNull { it.matchesIptv(iptv) }
+        }
+    }
 
     LaunchedEffect(iptvList) {
         if (iptvList.isNotEmpty()) {
@@ -127,7 +134,7 @@ fun LeanbackClassicPanelIptvList(
 
             LeanbackClassicPanelIptvItem(
                 iptvProvider = { iptv },
-                epgProgrammeCurrentProvider = { epgListProvider().currentProgrammes(iptv) },
+                epgProgrammeCurrentProvider = { epgMatchMap[iptv]?.currentProgrammes() },
                 playbackStatusProvider = playbackStatusProvider,
                 focusRequesterProvider = { itemFocusRequesterList[index] },
                 isSelectedProvider = { isSelected },

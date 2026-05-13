@@ -1,10 +1,12 @@
 package com.vesaa.mytv.data.entities
 
+import androidx.compose.runtime.Immutable
 import kotlinx.serialization.Serializable
 
 /**
  * 频道节目
  */
+@Immutable
 @Serializable
 data class EpgProgramme(
     /**

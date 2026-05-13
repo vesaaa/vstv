@@ -1,8 +1,11 @@
 package com.vesaa.mytv.data.entities
 
+import androidx.compose.runtime.Immutable
+
 /**
  * 直播源分组
  */
+@Immutable
 data class IptvGroup(
     /**
      * 分组名称

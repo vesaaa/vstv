@@ -1,8 +1,11 @@
 package com.vesaa.mytv.data.entities
 
+import androidx.compose.runtime.Immutable
+
 /**
  * 当前节目/下一个节目
  */
+@Immutable
 data class EpgProgrammeCurrent(
     /**
      * 当前正在播放
