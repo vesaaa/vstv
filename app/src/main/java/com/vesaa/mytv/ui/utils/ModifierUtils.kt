@@ -19,6 +19,7 @@ fun Modifier.handleLeanbackKeyEvents(
     onKeyLongTap: Map<Int, () -> Unit> = emptyMap(),
 ): Modifier {
     val keyDownMap = mutableMapOf<Int, Boolean>()
+    val longPressedKeys = mutableSetOf<Int>()
 
     return onPreviewKeyEvent {
         when (it.nativeKeyEvent.action) {
@@ -27,11 +28,16 @@ fun Modifier.handleLeanbackKeyEvents(
                     keyDownMap[it.nativeKeyEvent.keyCode] = true
                 } else if (it.nativeKeyEvent.repeatCount == 1) {
                     keyDownMap.remove(it.nativeKeyEvent.keyCode)
+                    longPressedKeys.add(it.nativeKeyEvent.keyCode)
                     onKeyLongTap[it.nativeKeyEvent.keyCode]?.invoke()
                 }
             }
 
             KeyEvent.ACTION_UP -> {
+                if (longPressedKeys.remove(it.nativeKeyEvent.keyCode)) {
+                    // 长按已触发；消费 ACTION_UP，防止传播到新焦点元素（例如对话框卡片）
+                    return@onPreviewKeyEvent true
+                }
                 if (keyDownMap[it.nativeKeyEvent.keyCode] == true) {
                     keyDownMap.remove(it.nativeKeyEvent.keyCode)
                     onKeyTap[it.nativeKeyEvent.keyCode]?.invoke()
