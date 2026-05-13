@@ -11,8 +11,9 @@ if [[ ! -f "$ENC" ]]; then
 fi
 
 if [[ -z "${PROPRIETARY_AGE_PASSPHRASE:-}" ]]; then
-  echo "::error::未配置构建用口令 Secret，无法还原内置端点"
-  exit 1
+  echo "::warning::未配置 PROPRIETARY_AGE_PASSPHRASE，跳过 proprietary 解密；将使用仓库中已提交的 defaults/*.kt。"
+  echo "::warning::发布含内置端点解密的正式包前，请在目标仓库的 Actions Secrets 中配置 PROPRIETARY_AGE_PASSPHRASE（与加密 bundle 口令一致）。"
+  exit 0
 fi
 
 mkdir -p "$DEST"

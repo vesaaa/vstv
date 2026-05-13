@@ -22,6 +22,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
+      # 未配置 PROPRIETARY_AGE_PASSPHRASE 时脚本会跳过解密并打 warning，仍用仓库内 defaults；正式发版请在新仓补同名 Secret。
       - name: Prepare builtin endpoints bundle
         env:
           PROPRIETARY_AGE_PASSPHRASE: ${{ secrets.PROPRIETARY_AGE_PASSPHRASE }}
