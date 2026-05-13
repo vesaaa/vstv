@@ -192,10 +192,14 @@ jobs:
           print(body[:4000] if len(body) > 4000 else body)
           PY
 
+      # 分发仓库固定为 vesaaa/vstv（README / Release 对外）；源码在 vesaaa/vstv-src 时须 PAT 写权限。
+      # 在 vstv 本仓跑同一工作流时仍用默认 GITHUB_TOKEN 即可（与 repository 指向同一仓）。
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         if: success()
         with:
+          token: ${{ github.repository == 'vesaaa/vstv-src' && secrets.PUBLIC_REPO_RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
+          repository: vesaaa/vstv
           # 顺序影响上传/部分 API 中资产排列；与 Package artifacts 中 copy 顺序一致，优先 arm
           files: |
             artifacts/vstv-${{ steps.ver.outputs.version }}-arm.apk
@@ -203,5 +207,3 @@ jobs:
             artifacts/vstv-${{ steps.ver.outputs.version }}-HarmonyOS.apk
           body_path: release_body.md
           generate_release_notes: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
