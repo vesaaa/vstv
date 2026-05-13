@@ -47,7 +47,7 @@ fun LeanbackSettingsCategoryAbout(
         item {
             LeanbackSettingsCategoryListItem(
                 headlineContent = "设置页面地址",
-                supportingContent = "若无法访问，短按下一项切换本机 IPv4；第一项为自动选择",
+                supportingContent = "服务监听所有网卡的 1616 端口；此处与扫码仅影响展示的 IP。若手机打不开，请确认与电视同一局域网、关闭访客/AP 隔离，或在电视自带浏览器试 http://127.0.0.1:1616",
                 trailingContent = serverUrl,
             )
         }
@@ -55,7 +55,7 @@ fun LeanbackSettingsCategoryAbout(
         item {
             LeanbackSettingsCategoryListItem(
                 headlineContent = "切换扫码用的本机 IP",
-                supportingContent = "在自动与检测到的局域网 IPv4 之间循环",
+                supportingContent = "在「自动」与检测到的 IPv4 间循环，便于二维码对准真实局域网地址",
                 trailingContent = "短按切换",
                 onSelected = {
                     serverUrl = HttpServer.cycleHttpServerAdvertiseIp()

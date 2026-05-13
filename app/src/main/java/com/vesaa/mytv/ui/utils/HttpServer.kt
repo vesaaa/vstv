@@ -22,9 +22,13 @@ import com.vesaa.mytv.data.utils.Constants
 import com.vesaa.mytv.utils.LanIpResolver
 import com.vesaa.mytv.utils.Loggable
 import com.vesaa.mytv.utils.normalizeIptvRequestHeadersInput
+import java.util.concurrent.atomic.AtomicBoolean
 
 object HttpServer : Loggable() {
     const val SERVER_PORT = 1616
+
+    /** 避免 Activity 重建时重复 listen 导致 EADDRINUSE，第二次失败则整页服务不可用。 */
+    private val listenStarted = AtomicBoolean(false)
 
     private var showToast: (String) -> Unit = { }
 
@@ -51,6 +55,10 @@ object HttpServer : Loggable() {
     }
 
     fun start(context: Context, showToast: (String) -> Unit) {
+        if (!listenStarted.compareAndSet(false, true)) {
+            log.i("设置服务已在运行，跳过重复 listen")
+            return
+        }
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val server = AsyncHttpServer()
@@ -87,8 +95,9 @@ object HttpServer : Loggable() {
                 }
 
                 HttpServer.showToast = showToast
-                log.i("服务已启动: 0.0.0.0:${SERVER_PORT}")
+                log.i("服务已启动: 0.0.0.0:${SERVER_PORT}（任意本机 IPv4 的 ${SERVER_PORT} 均可访问，与「扫码用 IP」展示无关）")
             } catch (ex: Exception) {
+                listenStarted.set(false)
                 log.e("服务启动失败: ${ex.message}", ex)
                 launch(Dispatchers.Main) {
                     Toast.makeText(context, "设置服务启动失败", Toast.LENGTH_SHORT).show()

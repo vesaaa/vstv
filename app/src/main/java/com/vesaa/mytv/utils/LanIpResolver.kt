@@ -49,7 +49,21 @@ object LanIpResolver {
         } catch (_: Exception) {
         }
 
-        return ordered.toList()
+        return demoteHotspotStyleIpLast(ordered.toList())
+    }
+
+    /**
+     * 部分机顶盒热点/AP 网卡固定为 10.0.0.1，与真实局域网口（如 192.168.x.x）并存时，
+     * 若把 10.0.0.1 排在首位，扫码后手机走家用 Wi‑Fi 会连不上；在仍有其它候选时将其挪到队尾。
+     */
+    private fun demoteHotspotStyleIpLast(ips: List<String>): List<String> {
+        if (ips.size <= 1) return ips
+        val hotspotLike = setOf("10.0.0.1")
+        val hasOther = ips.any { it !in hotspotLike }
+        if (!hasOther) return ips
+        val head = ips.filter { it !in hotspotLike }
+        val tail = ips.filter { it in hotspotLike }
+        return head + tail
     }
 
     /** 越小越优先：以太网、Wi‑Fi 常见命名靠前 */
