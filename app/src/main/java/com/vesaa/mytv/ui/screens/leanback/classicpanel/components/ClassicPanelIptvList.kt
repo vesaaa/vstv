@@ -45,7 +45,7 @@ import androidx.tv.foundation.lazy.list.itemsIndexed
 import androidx.tv.material3.ListItemDefaults
 import kotlinx.coroutines.flow.distinctUntilChanged
 import com.vesaa.mytv.data.entities.EpgList
-import com.vesaa.mytv.data.entities.EpgList.Companion.currentProgrammes
+import com.vesaa.mytv.data.entities.Epg.Companion.currentProgrammes
 import com.vesaa.mytv.data.entities.EpgProgramme.Companion.isLive
 import com.vesaa.mytv.data.entities.EpgProgramme.Companion.progress
 import com.vesaa.mytv.data.entities.EpgProgrammeCurrent
