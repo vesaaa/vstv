@@ -26,6 +26,15 @@ object RtspSmilResolver {
     private const val TAG = "VsTVSmil"
     private val historyLogger = Logger.create(TAG)
 
+    /**
+     * 仅当 DESCRIBE 的目标路径以 `.smil` 结尾时，才对 301/302 等响应解析 `Location` 并发起后续 DESCRIBE（见 [rtspDescribeBody]）。
+     * 若将来要对非 SMIL 的 RTSP 重定向单独策略，可把「是否跟跳」提升为参数或策略接口，而不是改全局常量。
+     */
+    private const val SMIL_DESCRIBE_MAX_REDIRECTS = 3
+
+    /** 与 HTTP 常见语义对齐；部分运营商 RTSP 栈会混用 303。扩展时在此集合增减即可。 */
+    private val RTSP_REDIRECT_STATUS_CODES = setOf(301, 302, 303, 307, 308)
+
     private val okHttp: OkHttpClient by lazy {
         OkHttpClient.Builder()
             .connectTimeout(6, TimeUnit.SECONDS)
@@ -119,6 +128,10 @@ object RtspSmilResolver {
         SmilResolveResult.Fail("无法从 SMIL 中得到 rtsp 流地址（已尝试 HTTP 与 RTSP DESCRIBE）", stages)
     }
 
+    /**
+     * 由 RTSP SMIL URI 推导可拉取正文的 HTTP URL 列表。
+     * 不包含 https：同 host 的 443 在运营商边缘常未开放，易造成固定连接超时；若将来需 https，可在此恢复或改为可配置。
+     */
     private fun buildHttpCandidates(uri: Uri): List<String> {
         val host = uri.host ?: return emptyList()
         val path = uri.path?.ifEmpty { "/" } ?: "/"
@@ -126,10 +139,8 @@ object RtspSmilResolver {
         val out = linkedSetOf<String>()
         val port = uri.port
         out.add("http://$host$path$query")
-        out.add("https://$host$path$query")
         if (port != -1 && port != 80 && port != 443) {
             out.add("http://$host:$port$path$query")
-            out.add("https://$host:$port$path$query")
         }
         return out.toList()
     }
@@ -138,8 +149,52 @@ object RtspSmilResolver {
     private data class DescribeOk(val body: String) : DescribeResult
     private data class DescribeFail(val detail: String) : DescribeResult
 
+    /** 单次 TCP 上的 DESCRIBE 结果；跟跳由 [rtspDescribeBody] 组合多轮。 */
+    private sealed interface RtspDescribeSingleOutcome {
+        data class Ok(val body: String) : RtspDescribeSingleOutcome
+        data class Fail(val detail: String) : RtspDescribeSingleOutcome
+        data class Redirect(val target: Uri, val code: Int) : RtspDescribeSingleOutcome
+    }
+
+    /**
+     * 对 SMIL 播放列表执行 RTSP DESCRIBE；若路径以 `.smil` 结尾且服务端返回重定向，则按 `Location` 继续 DESCRIBE（最多 [SMIL_DESCRIBE_MAX_REDIRECTS] 次跳转）。
+     * 非 `.smil` 路径保持单次请求、不跟跳，避免将来若有其它入口误用本函数时产生意外行为。
+     */
     private fun rtspDescribeBody(uri: Uri, userAgent: String, onLog: (String) -> Unit): DescribeResult {
-        val host = uri.host ?: return DescribeFail("describe skip no_host")
+        val allowRedirects = (uri.path ?: "").endsWith(".smil", ignoreCase = true)
+        var current = uri
+        var redirectsUsed = 0
+        while (true) {
+            when (val step = rtspDescribeSingle(current, userAgent, onLog)) {
+                is RtspDescribeSingleOutcome.Ok -> return DescribeOk(step.body)
+                is RtspDescribeSingleOutcome.Fail -> return DescribeFail(step.detail)
+                is RtspDescribeSingleOutcome.Redirect -> {
+                    if (!allowRedirects) {
+                        return DescribeFail(
+                            "rtsp_describe redirect_ignored non_smil_path code=${step.code} to=${step.target}",
+                        )
+                    }
+                    if (redirectsUsed >= SMIL_DESCRIBE_MAX_REDIRECTS) {
+                        return DescribeFail(
+                            "rtsp_describe redirect_limit max=$SMIL_DESCRIBE_MAX_REDIRECTS last_code=${step.code} to=${step.target}",
+                        )
+                    }
+                    redirectsUsed++
+                    onLog(
+                        "rtsp_describe redirect hop=$redirectsUsed/$SMIL_DESCRIBE_MAX_REDIRECTS code=${step.code} to=${step.target}",
+                    )
+                    current = step.target
+                }
+            }
+        }
+    }
+
+    private fun rtspDescribeSingle(
+        uri: Uri,
+        userAgent: String,
+        onLog: (String) -> Unit,
+    ): RtspDescribeSingleOutcome {
+        val host = uri.host ?: return RtspDescribeSingleOutcome.Fail("describe skip no_host")
         var port = uri.port
         if (port == -1) port = 554
         val requestUri = uri.toString()
@@ -158,15 +213,27 @@ object RtspSmilResolver {
                 val reqBytes = sb.toString().toByteArray(StandardCharsets.UTF_8)
                 sock.getOutputStream().write(reqBytes)
                 sock.getOutputStream().flush()
-                onLog("rtsp_describe request_sent bytes=${reqBytes.size} port=$port")
+                onLog("rtsp_describe request_sent bytes=${reqBytes.size} port=$port uri=$requestUri")
                 val inp = sock.getInputStream()
                 val (headerBlock, initialTail) = readRtspHeaders(inp)
                 val statusLine = headerBlock.lineSequence().firstOrNull().orEmpty()
                 val headers = parseHeaders(headerBlock)
                 onLog("rtsp_describe status=${statusLine.trim()} cseq=${headers["CSeq"] ?: headers["cseq"]}")
                 val code = statusLine.split(' ', limit = 4).getOrNull(1)?.toIntOrNull() ?: 0
+                if (code in RTSP_REDIRECT_STATUS_CODES) {
+                    val locRaw = headerIgnoreCase(headers, "Location") ?: ""
+                    val target = resolveRedirectRequestUri(uri, locRaw)
+                    if (target == null) {
+                        return RtspDescribeSingleOutcome.Fail(
+                            "rtsp_describe redirect code=$code missing_or_bad_location loc_len=${locRaw.length} head=${headerBlock.take(280)}",
+                        )
+                    }
+                    return RtspDescribeSingleOutcome.Redirect(target, code)
+                }
                 if (code !in 200..299) {
-                    return DescribeFail("rtsp_describe http_status=$code head=${headerBlock.take(200)}")
+                    return RtspDescribeSingleOutcome.Fail(
+                        "rtsp_describe http_status=$code head=${headerBlock.take(200)}",
+                    )
                 }
                 val cl = headers["Content-Length"]?.toIntOrNull()
                     ?: headers["content-length"]?.toIntOrNull()
@@ -177,16 +244,43 @@ object RtspSmilResolver {
                     merged.decodeToString()
                 }
                 if (body.isBlank()) {
-                    return DescribeFail("rtsp_describe empty_body")
+                    return RtspDescribeSingleOutcome.Fail("rtsp_describe empty_body")
                 }
                 onLog("describe_body bytes=${body.length} head=${body.trimStart().take(160)}")
                 if (body.trimStart().startsWith("v=0")) {
-                    return DescribeFail("describe_body_is_sdp not_smil_xml")
+                    return RtspDescribeSingleOutcome.Fail("describe_body_is_sdp not_smil_xml")
                 }
-                DescribeOk(body)
+                RtspDescribeSingleOutcome.Ok(body)
             }
         } catch (e: Exception) {
-            DescribeFail("rtsp_describe err=${e.javaClass.simpleName} msg=${e.message}")
+            RtspDescribeSingleOutcome.Fail("rtsp_describe err=${e.javaClass.simpleName} msg=${e.message}")
+        }
+    }
+
+    private fun headerIgnoreCase(headers: Map<String, String>, canonicalName: String): String? =
+        headers.entries.firstOrNull { it.key.equals(canonicalName, ignoreCase = true) }?.value
+
+    /**
+     * 将 `Location` 解析为下一次 DESCRIBE 的 URI；支持绝对 rtsp(s) 与相对引用（相对当前请求 URI）。
+     * 扩展：若遇 `Content-Base` 与 Location 组合等特例，可在此集中处理。
+     */
+    private fun resolveRedirectRequestUri(current: Uri, locationRaw: String): Uri? {
+        var loc = locationRaw.trim()
+        if (loc.startsWith('<') && loc.endsWith('>')) {
+            loc = loc.substring(1, loc.length - 1).trim()
+        }
+        if (loc.isEmpty()) return null
+        return try {
+            when {
+                loc.startsWith("rtsp://", ignoreCase = true) ||
+                    loc.startsWith("rtsps://", ignoreCase = true) -> Uri.parse(loc)
+                else -> {
+                    val resolved = java.net.URI(current.toString()).resolve(loc).toString()
+                    Uri.parse(resolved)
+                }
+            }
+        } catch (_: Exception) {
+            null
         }
     }
 
