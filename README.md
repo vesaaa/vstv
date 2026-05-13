@@ -1,5 +1,4 @@
-﻿> **关于本仓库**：此处 **只保留安装包（[Releases](https://github.com/vesaaa/vstv/releases)）与本说明**；完整源码、发版构建与问题交流请在 **[vstv-src](https://github.com/vesaaa/vstv-src)** 进行。
-><div align="center">
+﻿<div align="center">
     <h1>VsTV</h1>
     <p><strong>极致小巧 · 极速启动 · 纯净无广</strong></p>
     <p>面向电视与盒子的<strong>全能直播</strong>应用 · 遥控器 / 触屏深度优化</p>
@@ -176,7 +175,7 @@ VsTV 支持常见的电视直播订阅格式，下面是最常用的 4 类：
 | **`vstv-<版本>-x86_64.apk`** | 适用于 **x86_64** 设备（常规包名 `com.vesaa.mytv`）。 |
 | **`vstv-<版本>-HarmonyOS.apk`** | **华为智慧屏 / 需不同包名** 时使用：桌面名 **Z视介**，包名 `com.chinablue.tv`，与常规包 **数据与更新通道不互通**，请勿混用升级包。 |
 
-应用内 **检查更新**：`2.0.0+` 按安装类型与设备架构匹配附件——常规包优先 `…-arm.apk` 或（x86/x86_64）`…-x86_64.apk`；**HarmonyOS** 变体（包名 `com.chinablue.tv`）仅匹配 `…-HarmonyOS.apk`。旧版本升级到 `2.0.0` 的首轮更新逻辑见 **[CHANGELOG](https://github.com/vesaaa/vstv-src/blob/main/CHANGELOG.md)** 中 `2.0.0` 说明。
+应用内 **检查更新**：`2.0.0+` 按安装类型与设备架构匹配附件——常规包优先 `…-arm.apk` 或（x86/x86_64）`…-x86_64.apk`；**HarmonyOS** 变体（包名 `com.chinablue.tv`）仅匹配 `…-HarmonyOS.apk`。旧版本升级到 `2.0.0` 的首轮更新逻辑见 **[CHANGELOG](https://github.com/vesaaa/vstv/releases)** 中 `2.0.0` 说明。
 
 ---
 
@@ -188,13 +187,13 @@ VsTV 支持常见的电视直播订阅格式，下面是最常用的 4 类：
 
 **网页配置**：浏览器打开 **`http://<电视IP>:1616`**，可修改直播源、节目单等（与电视端设置写入同一配置）。
 
-更细的操作项（多源、多线路规则、节目单格式等）与历史版本变更见 **[CHANGELOG.md](https://github.com/vesaaa/vstv-src/blob/main/CHANGELOG.md)**。
+更细的操作项（多源、多线路规则、节目单格式等）与历史版本变更见 **[CHANGELOG.md](https://github.com/vesaaa/vstv/releases)**。
 
 ---
 
 ## 更新日志
 
-[CHANGELOG.md](https://github.com/vesaaa/vstv-src/blob/main/CHANGELOG.md)
+[CHANGELOG.md](https://github.com/vesaaa/vstv/releases)
 
 **README 摘录（v2.1.12）**：**长按确认键可快速切换直播源**（详见上文「重点功能操作说明 → 5」）。
 
