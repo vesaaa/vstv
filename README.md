@@ -10,7 +10,7 @@
 <br>
 🚀 <strong>体积不足 10MB</strong> | ⚡ <strong>秒开体验</strong> | 📺 <strong>支持 4K/组播/回看</strong> | 🤖 <strong>AI 实时字幕</strong>
 <br>
-💬 <a href="https://t.me/vsshare_chat"><strong>Telegram 交流群</strong></a>
+📖 <a href="https://github.com/vesaaa/vstv/blob/main/docs/README.md"><strong>使用帮助</strong></a> | 💬 <a href="https://t.me/vsshare_chat"><strong>Telegram 交流群</strong></a>
 </div>
 </div>
 
@@ -50,6 +50,8 @@
 ---
 
 ## 🚀 快速上手
+
+> 详细的使用说明见 **[使用帮助](https://github.com/vesaaa/vstv/blob/main/docs/README.md)**：添加直播源、节目单与回看、精选与扩展频道、AI 字幕、常见问题等。
 
 1. 在 **[Releases](https://github.com/vesaaa/vstv/releases)** 下载对应的安装包，安装到电视或盒子上（见下文「下载与安装」）。
 2. 第一次打开时会自动弹出「添加直播源」，选一种方式添加：
