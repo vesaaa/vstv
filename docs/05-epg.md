@@ -1,6 +1,29 @@
 # 节目单与回看
 
-[返回目录](README.md)
+<!-- nav-top -->
+<details>
+<summary>帮助目录</summary>
+
+- 入门
+  - [基本介绍](01-introduction.md)
+  - [添加直播源的四种方法](02-add-source.md)
+  - [支持的格式](03-formats.md)
+- 日常使用
+  - [直播源管理](04-sources.md)
+  - **节目单与回看**（当前）
+  - [播放与画面](06-playback.md)
+  - [老人小孩模式：精选与只看精选](07-favorites.md)
+  - [多源合并：扩展频道](08-merge.md)
+- 进阶
+  - [AI 字幕](09-ai-subtitle.md)
+  - [手机访问与网络](10-network.md)
+  - [软件更新](11-update.md)
+  - [扩展支持](12-extensions.md)
+- 遇到问题
+  - [常见问题](13-faq.md)
+
+</details>
+<!-- /nav-top -->
 
 ## 节目单从哪里来
 
@@ -49,3 +72,9 @@
 ## 时移
 
 支持回看的频道，在快捷菜单里还能选「回看时长」，比如回看 30 分钟前的直播，错过的内容可以倒回去看。
+
+<!-- nav-bottom -->
+---
+
+上一篇：[直播源管理](04-sources.md) · [帮助目录](README.md) · 下一篇：[播放与画面](06-playback.md)
+<!-- /nav-bottom -->

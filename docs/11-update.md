@@ -1,6 +1,29 @@
 # 软件更新
 
-[返回目录](README.md)
+<!-- nav-top -->
+<details>
+<summary>帮助目录</summary>
+
+- 入门
+  - [基本介绍](01-introduction.md)
+  - [添加直播源的四种方法](02-add-source.md)
+  - [支持的格式](03-formats.md)
+- 日常使用
+  - [直播源管理](04-sources.md)
+  - [节目单与回看](05-epg.md)
+  - [播放与画面](06-playback.md)
+  - [老人小孩模式：精选与只看精选](07-favorites.md)
+  - [多源合并：扩展频道](08-merge.md)
+- 进阶
+  - [AI 字幕](09-ai-subtitle.md)
+  - [手机访问与网络](10-network.md)
+  - **软件更新**（当前）
+  - [扩展支持](12-extensions.md)
+- 遇到问题
+  - [常见问题](13-faq.md)
+
+</details>
+<!-- /nav-top -->
 
 ## 在线更新
 
@@ -25,3 +48,9 @@ Android 8 及以上要允许 VsTV「安装未知应用」：到系统设置里�
 ## 手动下载
 
 所有版本都在 [Releases](https://github.com/vesaaa/vstv/releases)，可以下载安装包用 U 盘或文件管理器安装，直接覆盖安装不会丢设置。选哪个安装包见 [基本介绍](01-introduction.md#选哪个安装包)。
+
+<!-- nav-bottom -->
+---
+
+上一篇：[手机访问与网络](10-network.md) · [帮助目录](README.md) · 下一篇：[扩展支持](12-extensions.md)
+<!-- /nav-bottom -->

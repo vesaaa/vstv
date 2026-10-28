@@ -1,6 +1,29 @@
 # 扩展支持
 
-[返回目录](README.md)
+<!-- nav-top -->
+<details>
+<summary>帮助目录</summary>
+
+- 入门
+  - [基本介绍](01-introduction.md)
+  - [添加直播源的四种方法](02-add-source.md)
+  - [支持的格式](03-formats.md)
+- 日常使用
+  - [直播源管理](04-sources.md)
+  - [节目单与回看](05-epg.md)
+  - [播放与画面](06-playback.md)
+  - [老人小孩模式：精选与只看精选](07-favorites.md)
+  - [多源合并：扩展频道](08-merge.md)
+- 进阶
+  - [AI 字幕](09-ai-subtitle.md)
+  - [手机访问与网络](10-network.md)
+  - [软件更新](11-update.md)
+  - **扩展支持**（当前）
+- 遇到问题
+  - [常见问题](13-faq.md)
+
+</details>
+<!-- /nav-top -->
 
 VsTV 可以和一些配套的软件、服务一起用，效果更好。
 
@@ -35,3 +58,9 @@ VsTV 只在第一次见到某个直播源地址时检查一次它是不是 tvgo�
 ## 杜比音频直通
 
 接了支持杜比的功放或回音壁时，杜比数字、杜比数字+、杜比全景声可以直通给功放解码，快捷菜单里会显示「直通」徽章。
+
+<!-- nav-bottom -->
+---
+
+上一篇：[软件更新](11-update.md) · [帮助目录](README.md) · 下一篇：[常见问题](13-faq.md)
+<!-- /nav-bottom -->
