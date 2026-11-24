@@ -14,6 +14,7 @@
   - [播放与画面](06-playback.md)
   - [老人小孩模式：精选与只看精选](07-favorites.md)
   - [多源合并：扩展频道](08-merge.md)
+  - [在手机上用](14-phone.md)
 - 进阶
   - [AI 字幕](09-ai-subtitle.md)
   - [手机访问与网络](10-network.md)
